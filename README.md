@@ -1,0 +1,153 @@
+# React01 - 低代码搭建平台
+
+一个基于 React + TypeScript + Vite 构建的低代码可视化搭建平台，支持拖拽式组件编排、实时预览和属性配置。
+
+## 技术栈
+
+- **前端框架**: React 19
+- **开发语言**: TypeScript
+- **构建工具**: Vite 8
+- **样式方案**: TailwindCSS 4
+- **状态管理**: Zustand 5
+- **拖拽库**: DnD Kit
+- **路由方案**: React Router 7
+- **代码规范**: ESLint + Prettier
+
+## 功能特性
+
+### 基础 UI 组件库
+- **Button** - 可配置的按钮组件
+- **Text** - 文本展示组件
+- **Image** - 图片展示组件
+- **Container** - 容器组件，支持嵌套
+
+### 三栏布局编辑器
+- **左侧组件面板** - 展示可拖拽的组件列表
+- **中间画布区域** - 可视化编辑区域，支持拖拽摆放
+- **右侧属性面板** - 编辑选中组件的属性配置
+
+### 核心功能
+- ✅ 组件拖拽添加到画布
+- ✅ 组件选中与取消选中
+- ✅ 组件删除功能
+- ✅ 组件复制功能
+- ✅ 撤销/重做（历史记录）
+- ✅ 编辑模式/预览模式切换
+- ✅ 响应式设计支持
+
+## 项目结构
+
+```
+React01/
+├── src/
+│   ├── assets/              # 静态资源
+│   ├── components/
+│   │   ├── builder/         # 低代码编辑器核心组件
+│   │   │   ├── Canvas/      # 画布组件
+│   │   │   ├── ComponentPanel/ # 组件面板
+│   │   │   ├── ComponentRenderer/ # 组件渲染器
+│   │   │   └── PropertyPanel/ # 属性面板
+│   │   └── ui/              # 基础 UI 组件
+│   ├── constants/           # 常量定义
+│   ├── hooks/               # 自定义 Hooks
+│   ├── router/              # 路由配置
+│   ├── store/               # 状态管理
+│   ├── types/               # TypeScript 类型定义
+│   ├── utils/               # 工具函数
+│   ├── App.tsx              # 根组件
+│   └── main.tsx             # 入口文件
+├── public/                  # 公共静态资源
+├── .env.development         # 开发环境变量
+├── .env.production          # 生产环境变量
+├── package.json             # 依赖配置
+├── vite.config.ts           # Vite 配置
+└── tsconfig.json            # TypeScript 配置
+```
+
+## 快速开始
+
+### 环境要求
+- Node.js >= 18
+- npm >= 9 或 pnpm >= 8
+
+### 安装依赖
+
+```bash
+npm install
+# 或
+pnpm install
+```
+
+### 开发模式
+
+```bash
+npm run dev
+# 或
+pnpm dev
+```
+
+项目将在 `http://localhost:5173` 启动。
+
+### 构建生产版本
+
+```bash
+npm run build
+# 或
+pnpm build
+```
+
+### 预览生产构建
+
+```bash
+npm run preview
+# 或
+pnpm preview
+```
+
+### 代码检查
+
+```bash
+npm run lint
+# 或
+pnpm lint
+```
+
+### 代码格式化
+
+```bash
+npm run format
+# 或
+pnpm format
+```
+
+## 使用说明
+
+1. **添加组件**: 从左侧组件面板拖拽组件到中间画布
+2. **编辑属性**: 点击画布中的组件选中，然后在右侧属性面板编辑属性
+3. **删除组件**: 选中组件后，按 `Delete` 键或使用工具栏删除按钮
+4. **复制组件**: 选中组件后，使用工具栏复制按钮
+5. **撤销/重做**: 使用工具栏的撤销/重做按钮
+6. **预览模式**: 点击工具栏的预览按钮，查看实际运行效果
+
+## 开发计划
+
+- [ ] 更多基础组件（表单、表格、图表等）
+- [ ] 组件样式自定义
+- [ ] 数据绑定与事件处理
+- [ ] 页面模板库
+- [ ] 导出为 React 代码
+- [ ] 数据持久化
+- [ ] 多页面支持
+- [ ] 协作编辑
+
+## 许可证
+
+MIT License
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+---
+
+> 本项目是一个学习型项目，用于探索低代码平台的核心技术实现。
