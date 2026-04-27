@@ -33,3 +33,5 @@ dist-ssr
 # Environment templates (these should be committed)
 # .env.development
 # .env.production
+
+prompts/
