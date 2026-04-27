@@ -95,6 +95,7 @@ const BuilderLayout: React.FC<BuilderLayoutProps> = ({
     return {
       marginLeft: leftPanelVisible ? PANEL_WIDTH_PX.left : 0,
       marginRight: rightPanelVisible ? PANEL_WIDTH_PX.right : 0,
+      paddingTop: '56px',
     };
   };
 
@@ -128,7 +129,7 @@ const BuilderLayout: React.FC<BuilderLayoutProps> = ({
 
       <div
         className={cn(
-          'fixed left-0 top-14 h-[calc(100vh-56px)] transition-all duration-300 ease-in-out z-40',
+          'fixed left-0 top-14 h-[calc(100vh-3.5rem)] transition-all duration-300 ease-in-out z-40',
           isSmallScreen
             ? leftPanelVisible
               ? 'translate-x-0 opacity-100'
@@ -155,7 +156,7 @@ const BuilderLayout: React.FC<BuilderLayoutProps> = ({
 
       <div
         className={cn(
-          'fixed right-0 top-14 h-[calc(100vh-56px)] transition-all duration-300 ease-in-out z-40',
+          'fixed right-0 top-14 h-[calc(100vh-3.5rem)] transition-all duration-300 ease-in-out z-40',
           isSmallScreen
             ? rightPanelVisible
               ? 'translate-x-0 opacity-100'
@@ -182,19 +183,23 @@ const BuilderLayout: React.FC<BuilderLayoutProps> = ({
 
       <main
         className={cn(
-          'pt-14 overflow-hidden transition-all duration-300 ease-in-out h-[calc(100vh-56px)] flex flex-col',
+          'pt-14 transition-all duration-300 ease-in-out h-screen flex flex-col overflow-y-auto',
           isSmallScreen && 'ml-0 mr-0'
         )}
         style={getCanvasStyle()}
       >
-        <Toolbar
-          onUndo={onUndo}
-          onRedo={onRedo}
-          onPreview={onPreview}
-          onSave={onSave}
-        />
-        <div className="flex-1 overflow-auto p-4 md:p-8">
-          <div className="max-w-4xl mx-auto">{canvas}</div>
+        <div className="flex-1 overflow-y-auto p-4 md:p-8">
+          <div className="max-w-4xl mx-auto min-h-full">
+            <div className="mb-4 sticky top-0 z-10">
+              <Toolbar
+                onUndo={onUndo}
+                onRedo={onRedo}
+                onPreview={onPreview}
+                onSave={onSave}
+              />
+            </div>
+            {canvas}
+          </div>
         </div>
       </main>
     </div>
