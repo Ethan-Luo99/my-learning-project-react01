@@ -19,6 +19,8 @@ interface BuilderLayoutProps {
   projectName?: string;
   onUndo?: () => void;
   onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
   onPreview?: () => void;
   onSave?: () => void;
 }
@@ -48,6 +50,8 @@ const BuilderLayout: React.FC<BuilderLayoutProps> = ({
   projectName,
   onUndo,
   onRedo,
+  canUndo = false,
+  canRedo = false,
   onPreview,
   onSave,
 }) => {
@@ -105,6 +109,8 @@ const BuilderLayout: React.FC<BuilderLayoutProps> = ({
         projectName={projectName}
         onUndo={onUndo}
         onRedo={onRedo}
+        canUndo={canUndo}
+        canRedo={canRedo}
         onPreview={onPreview}
         onSave={onSave}
         leftPanelVisible={leftPanelVisible}
@@ -194,6 +200,8 @@ const BuilderLayout: React.FC<BuilderLayoutProps> = ({
               <Toolbar
                 onUndo={onUndo}
                 onRedo={onRedo}
+                canUndo={canUndo}
+                canRedo={canRedo}
                 onPreview={onPreview}
                 onSave={onSave}
               />
