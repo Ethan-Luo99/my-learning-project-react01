@@ -20,6 +20,10 @@ export interface ComponentBaseSchema {
   type: ComponentType;
   props: Record<string, any>;
   styles: Record<string, string>;
+  x?: number;
+  y?: number;
+  width?: number | string;
+  height?: number | string;
 }
 
 export interface TextComponentSchema extends ComponentBaseSchema {
@@ -55,6 +59,8 @@ export interface ComponentConfig {
   icon?: string;
   defaultProps: Record<string, any>;
   defaultStyles: Record<string, string>;
+  defaultWidth?: number | string;
+  defaultHeight?: number | string;
 }
 
 export interface ComponentPanelItem {

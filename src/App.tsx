@@ -2,6 +2,7 @@ import { BuilderLayout } from '@/components/builder/Layout';
 import { ComponentPanel } from '@/components/builder/ComponentPanel';
 import { Canvas } from '@/components/builder/Canvas';
 import { PropertyPanel } from '@/components/builder/PropertyPanel';
+import { DndContextProvider } from '@/components/builder/DndContext';
 
 function App() {
   const handleUndo = () => {
@@ -21,16 +22,18 @@ function App() {
   };
 
   return (
-    <BuilderLayout
-      leftPanel={<ComponentPanel />}
-      canvas={<Canvas />}
-      rightPanel={<PropertyPanel />}
-      projectName="低代码平台项目"
-      onUndo={handleUndo}
-      onRedo={handleRedo}
-      onPreview={handlePreview}
-      onSave={handleSave}
-    />
+    <DndContextProvider>
+      <BuilderLayout
+        leftPanel={<ComponentPanel />}
+        canvas={<Canvas />}
+        rightPanel={<PropertyPanel />}
+        projectName="低代码平台项目"
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        onPreview={handlePreview}
+        onSave={handleSave}
+      />
+    </DndContextProvider>
   );
 }
 

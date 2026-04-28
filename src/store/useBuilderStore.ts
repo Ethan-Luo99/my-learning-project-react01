@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { ComponentType, type ComponentSchema, type ContainerComponentSchema } from '@/types/component';
-import { MOCK_CANVAS_DATA } from '@/constants/mockData';
+import { MOCK_EMPTY_CANVAS } from '@/constants/mockData';
 
 const isContainerComponent = (
   component: ComponentSchema
@@ -89,7 +89,7 @@ const addComponentToParentInTree = (
 export const useBuilderStore = create<BuilderState>()(
   devtools(
     (set) => ({
-      components: MOCK_CANVAS_DATA,
+      components: MOCK_EMPTY_CANVAS,
       selectedComponentId: null,
 
       setComponents: (components) => set({ components }, false, 'setComponents'),

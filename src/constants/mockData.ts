@@ -4,6 +4,8 @@ export const DEFAULT_COMPONENT_CONFIGS: Record<ComponentType, ComponentConfig> =
   [ComponentType.Text]: {
     type: ComponentType.Text,
     label: '文本',
+    defaultWidth: 200,
+    defaultHeight: 'auto',
     defaultProps: {
       children: '文本内容',
       variant: 'body',
@@ -15,6 +17,8 @@ export const DEFAULT_COMPONENT_CONFIGS: Record<ComponentType, ComponentConfig> =
   [ComponentType.Button]: {
     type: ComponentType.Button,
     label: '按钮',
+    defaultWidth: 120,
+    defaultHeight: 44,
     defaultProps: {
       children: '按钮',
       variant: 'primary',
@@ -25,6 +29,8 @@ export const DEFAULT_COMPONENT_CONFIGS: Record<ComponentType, ComponentConfig> =
   [ComponentType.Image]: {
     type: ComponentType.Image,
     label: '图片',
+    defaultWidth: 300,
+    defaultHeight: 200,
     defaultProps: {
       src: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=modern%20minimalist%20placeholder%20image%20with%20soft%20gradient%20background&image_size=square_hd',
       alt: '图片',
@@ -32,12 +38,15 @@ export const DEFAULT_COMPONENT_CONFIGS: Record<ComponentType, ComponentConfig> =
     },
     defaultStyles: {
       width: '100%',
-      maxWidth: '400px',
+      height: '100%',
+      objectFit: 'cover',
     },
   },
   [ComponentType.Container]: {
     type: ComponentType.Container,
     label: '容器',
+    defaultWidth: 400,
+    defaultHeight: 200,
     defaultProps: {
       direction: 'column',
       gap: 'md',
@@ -79,6 +88,10 @@ export const MOCK_CANVAS_DATA: ComponentSchema[] = [
   {
     id: 'container-1',
     type: ComponentType.Container,
+    x: 32,
+    y: 32,
+    width: 600,
+    height: 'auto',
     props: {
       direction: 'column',
       gap: 'lg',
@@ -95,6 +108,10 @@ export const MOCK_CANVAS_DATA: ComponentSchema[] = [
       {
         id: 'text-1',
         type: ComponentType.Text,
+        x: 0,
+        y: 0,
+        width: 'auto',
+        height: 'auto',
         props: {
           children: '欢迎使用页面构建器',
           variant: 'h1',
@@ -110,6 +127,10 @@ export const MOCK_CANVAS_DATA: ComponentSchema[] = [
       {
         id: 'text-2',
         type: ComponentType.Text,
+        x: 0,
+        y: 0,
+        width: 500,
+        height: 'auto',
         props: {
           children: '拖拽左侧组件到画布开始创建您的页面',
           variant: 'body',
@@ -125,6 +146,10 @@ export const MOCK_CANVAS_DATA: ComponentSchema[] = [
       {
         id: 'image-1',
         type: ComponentType.Image,
+        x: 0,
+        y: 0,
+        width: 600,
+        height: 340,
         props: {
           src: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=modern%20website%20builder%20interface%20with%20drag%20and%20drop%20components%20clean%20minimalist%20design&image_size=landscape_16_9',
           alt: '构建器示例',
@@ -135,11 +160,16 @@ export const MOCK_CANVAS_DATA: ComponentSchema[] = [
           maxWidth: '600px',
           marginTop: '32px',
           boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+          objectFit: 'cover',
         },
       },
       {
         id: 'container-2',
         type: ComponentType.Container,
+        x: 0,
+        y: 0,
+        width: 'auto',
+        height: 'auto',
         props: {
           direction: 'row',
           gap: 'lg',
@@ -154,6 +184,10 @@ export const MOCK_CANVAS_DATA: ComponentSchema[] = [
           {
             id: 'button-1',
             type: ComponentType.Button,
+            x: 0,
+            y: 0,
+            width: 140,
+            height: 48,
             props: {
               children: '开始创建',
               variant: 'primary',
@@ -168,6 +202,10 @@ export const MOCK_CANVAS_DATA: ComponentSchema[] = [
           {
             id: 'button-2',
             type: ComponentType.Button,
+            x: 0,
+            y: 0,
+            width: 140,
+            height: 48,
             props: {
               children: '查看示例',
               variant: 'outline',

@@ -1,8 +1,7 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useRef, createContext, useContext, useMemo } from 'react';
 import {
   DndContext as DndKitContext,
   DragOverlay,
-  closestCenter,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -10,10 +9,44 @@ import {
   type DragEndEvent,
   type DragStartEvent,
   type DragOverEvent,
+  type DragMoveEvent,
 } from '@dnd-kit/core';
-import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { ComponentType, type ComponentSchema, type ContainerComponentSchema } from '@/types/component';
 import { useBuilderStore } from '../../store/useBuilderStore';
+import {
+  isPanelItem,
+  isCanvasItem,
+  getPanelItemType,
+  getCanvasItemId,
+  DROP_ZONE_ID,
+  snapToGrid,
+  GRID_SIZE,
+  DEFAULT_POSITION,
+  COMPONENT_MIN_SIZE,
+  isOverCanvas,
+  clamp,
+} from '@/constants/dnd';
+import { generateId } from '@/utils/id';
+import { DEFAULT_COMPONENT_CONFIGS } from '@/constants/mockData';
+import { Text } from '@/components/ui';
+import { cn } from '@/utils/classname';
+import { logger } from '@/utils/logger';
+
+interface CanvasContextValue {
+  canvasRef: React.MutableRefObject<HTMLElement | null>;
+  isOverDropZoneRef: React.MutableRefObject<boolean>;
+}
+
+const CanvasContext = createContext<CanvasContextValue | null>(null);
+
+export const useCanvasContext = (): CanvasContextValue => {
+  const context = useContext(CanvasContext);
+  if (!context) {
+    throw new Error('useCanvasContext must be used within DndContextProvider');
+  }
+  return context;
+};
 
 const isContainerComponent = (
   component: ComponentSchema
@@ -21,12 +54,81 @@ const isContainerComponent = (
   return component.type === ComponentType.Container;
 };
 
+const createComponentFromType = (type: string, x: number = DEFAULT_POSITION.X, y: number = DEFAULT_POSITION.Y): ComponentSchema => {
+  const componentType = type as ComponentType;
+  const config = DEFAULT_COMPONENT_CONFIGS[componentType];
+  const id = generateId(type.toLowerCase());
+
+  const component: ComponentSchema = {
+    id,
+    type: componentType,
+    props: { ...config.defaultProps },
+    styles: { ...config.defaultStyles },
+    x: snapToGrid(x),
+    y: snapToGrid(y),
+    width: config.defaultWidth,
+    height: config.defaultHeight,
+  };
+
+  if (componentType === ComponentType.Container) {
+    (component as ContainerComponentSchema).children = [];
+  }
+
+  return component;
+};
+
 interface DndContextProviderProps {
   children: React.ReactNode;
 }
 
+interface ActiveDragItem {
+  id: string;
+  type?: string;
+  label?: string;
+  isFromPanel: boolean;
+}
+
+const DragPreview: React.FC<{ item: ActiveDragItem }> = ({ item }) => {
+  const getIcon = () => {
+    const icons: Record<string, string> = {
+      Text: 'T',
+      Button: '⬛',
+      Image: '🖼️',
+      Container: '📦',
+    };
+    return item.type ? icons[item.type] || '?' : '?';
+  };
+
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-2 px-4 py-3 bg-white shadow-lg rounded-lg border-2',
+        'border-primary-400 opacity-90 cursor-grabbing pointer-events-none'
+      )}
+    >
+      <span className="text-xl">{getIcon()}</span>
+      <Text variant="body" weight="medium">
+        {item.label || item.type || '组件'}
+      </Text>
+    </div>
+  );
+};
+
+interface DragPosition {
+  x: number;
+  y: number;
+}
+
 export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children }) => {
-  const { components, setComponents } = useBuilderStore();
+  const { addComponent, updateComponent } = useBuilderStore();
+
+  const [activeDragItem, setActiveDragItem] = useState<ActiveDragItem | null>(null);
+
+  const canvasRef = useRef<HTMLElement | null>(null);
+  const isOverDropZoneRef = useRef(false);
+  const lastMousePositionRef = useRef<DragPosition | null>(null);
+  const globalMousePositionRef = useRef<DragPosition>({ x: 0, y: 0 });
+  const isDraggingPanelItemRef = useRef(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -39,122 +141,299 @@ export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children
     })
   );
 
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    const { active } = event;
-    console.log('Drag started:', active.id);
+  const handleGlobalPointerMove = useCallback((e: PointerEvent) => {
+    globalMousePositionRef.current = { x: e.clientX, y: e.clientY };
   }, []);
 
-  const handleDragOver = useCallback((event: DragOverEvent) => {
-    const { active, over } = event;
+  const getCanvasRelativePosition = (
+    clientX: number,
+    clientY: number
+  ): { x: number; y: number } => {
+    logger.log('=== 【诊断 2】getCanvasRelativePosition 诊断 ===');
+    logger.log('传入的坐标 (clientX, clientY):', clientX, clientY);
 
-    if (over && active.id !== over.id) {
-      console.log('Drag over:', active.id, '->', over.id);
+    let canvasElement = canvasRef.current;
+
+    if (!canvasElement) {
+      logger.warn('canvasRef.current 为 null，使用备用查找');
+      canvasElement = document.querySelector(`[data-dnd-id-container="${DROP_ZONE_ID}"]`) as HTMLElement | null;
+    }
+
+    if (!canvasElement) {
+      logger.error('未找到画布元素，返回默认位置 (32, 32)');
+      return { x: DEFAULT_POSITION.X, y: DEFAULT_POSITION.Y };
+    }
+
+    if (!canvasRef.current) {
+      canvasRef.current = canvasElement;
+      logger.log('已同步 canvasRef.current');
+    }
+
+    const rect = canvasElement.getBoundingClientRect();
+    logger.log('【诊断 2】画布 rect 完整信息:', {
+      top: rect.top,
+      left: rect.left,
+      right: rect.right,
+      bottom: rect.bottom,
+      width: rect.width,
+      height: rect.height,
+      x: rect.x,
+      y: rect.y,
+    });
+
+    logger.log('window.scrollX:', window.scrollX);
+    logger.log('window.scrollY:', window.scrollY);
+
+    const scrollLeft = canvasElement.scrollLeft || 0;
+    const scrollTop = canvasElement.scrollTop || 0;
+    logger.log('画布滚动位置 (scrollLeft, scrollTop):', scrollLeft, scrollTop);
+
+    logger.log('=== 【诊断 3】坐标计算详细步骤 ===');
+    logger.log('输入参数:');
+    logger.log('  clientX:', clientX);
+    logger.log('  clientY:', clientY);
+    logger.log('  rect.left:', rect.left);
+    logger.log('  rect.top:', rect.top);
+    logger.log('  rect.width:', rect.width);
+    logger.log('  rect.height:', rect.height);
+    logger.log('  scrollLeft:', scrollLeft);
+    logger.log('  scrollTop:', scrollTop);
+
+    const relativeX = clientX - rect.left + scrollLeft;
+    const relativeY = clientY - rect.top + scrollTop;
+
+    logger.log('计算步骤 1 - 相对坐标:');
+    logger.log('  clientX - rect.left =', clientX, '-', rect.left, '=', clientX - rect.left);
+    logger.log('  + scrollLeft =', clientX - rect.left, '+', scrollLeft, '=', relativeX);
+    logger.log('  relativeX:', relativeX);
+    logger.log('  relativeY:', relativeY);
+
+    const maxX = Math.max(0, rect.width - COMPONENT_MIN_SIZE.WIDTH);
+    const maxY = Math.max(0, rect.height - COMPONENT_MIN_SIZE.HEIGHT);
+
+    logger.log('计算步骤 2 - 边界限制:');
+    logger.log('  maxX = rect.width - COMPONENT_MIN_SIZE.WIDTH =', rect.width, '-', COMPONENT_MIN_SIZE.WIDTH, '=', maxX);
+    logger.log('  maxY = rect.height - COMPONENT_MIN_SIZE.HEIGHT =', rect.height, '-', COMPONENT_MIN_SIZE.HEIGHT, '=', maxY);
+    logger.log('  clamp 参数: relativeX =', relativeX, ', min = 0, maxX =', maxX);
+    logger.log('  clamp 参数: relativeY =', relativeY, ', min = 0, maxY =', maxY);
+
+    const x = clamp(relativeX, 0, maxX);
+    const y = clamp(relativeY, 0, maxY);
+
+    logger.log('  clamp 后 x:', x);
+    logger.log('  clamp 后 y:', y);
+
+    logger.log('计算步骤 3 - 网格对齐:');
+    logger.log('  GRID_SIZE:', GRID_SIZE);
+    logger.log('  snapToGrid(x) = Math.round(', x, '/', GRID_SIZE, ') *', GRID_SIZE);
+    logger.log('  = Math.round(', x / GRID_SIZE, ') *', GRID_SIZE);
+    logger.log('  =', Math.round(x / GRID_SIZE), '*', GRID_SIZE);
+
+    const snappedX = snapToGrid(x);
+    const snappedY = snapToGrid(y);
+
+    logger.log('  snapToGrid 后 snappedX:', snappedX);
+    logger.log('  snapToGrid 后 snappedY:', snappedY);
+
+    logger.log('=== 【诊断 3】最终结果 ===');
+    logger.log('返回坐标:', { x: snappedX, y: snappedY });
+
+    return { x: snappedX, y: snappedY };
+  };
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const { active } = event;
+    const activeIdStr = String(active.id);
+
+    logger.log('=== handleDragStart ===');
+    logger.log('active.id:', activeIdStr);
+    logger.log('isPanelItem:', isPanelItem(activeIdStr));
+
+    lastMousePositionRef.current = null;
+    window.addEventListener('pointermove', handleGlobalPointerMove);
+    logger.log('已添加全局 pointermove 监听');
+
+    isDraggingPanelItemRef.current = isPanelItem(activeIdStr);
+    isOverDropZoneRef.current = false;
+
+    if (isPanelItem(activeIdStr)) {
+      const type = getPanelItemType(activeIdStr);
+      const config = DEFAULT_COMPONENT_CONFIGS[type as ComponentType];
+      setActiveDragItem({
+        id: activeIdStr,
+        type,
+        label: config?.label || type,
+        isFromPanel: true,
+      });
+    } else if (isCanvasItem(activeIdStr)) {
+      setActiveDragItem({
+        id: activeIdStr,
+        isFromPanel: false,
+      });
+    }
+  }, [handleGlobalPointerMove]);
+
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    const { over, point } = event;
+
+    logger.log('=== handleDragOver ===');
+    logger.log('over:', over ? String(over.id) : 'null');
+    logger.log('point:', point);
+
+    if (!over) {
+      isOverDropZoneRef.current = false;
+      return;
+    }
+
+    const overIdStr = String(over.id);
+    const isOverCanvasArea = isOverCanvas(overIdStr);
+    logger.log('isOverCanvas:', isOverCanvasArea);
+
+    isOverDropZoneRef.current = isOverCanvasArea;
+
+    if (point) {
+      lastMousePositionRef.current = {
+        x: point.x,
+        y: point.y,
+      };
+      logger.log('handleDragOver 已更新 lastMousePositionRef:', lastMousePositionRef.current);
+    }
+  }, []);
+
+  const handleDragMove = useCallback((event: DragMoveEvent) => {
+    const { over, point } = event;
+
+    logger.log('=== handleDragMove ===');
+    logger.log('over:', over ? String(over.id) : 'null');
+    logger.log('point:', point);
+
+    if (over) {
+      const overIdStr = String(over.id);
+      const isOverCanvasArea = isOverCanvas(overIdStr);
+      isOverDropZoneRef.current = isOverCanvasArea;
+    }
+
+    if (point) {
+      lastMousePositionRef.current = {
+        x: point.x,
+        y: point.y,
+      };
+      logger.log('handleDragMove 已更新 lastMousePositionRef:', lastMousePositionRef.current);
+    } else {
+      logger.warn('handleDragMove 中 point 是 undefined');
     }
   }, []);
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
-      const { active, over } = event;
+      const { active, over, point } = event;
 
-      if (!over || active.id === over.id) {
+      window.removeEventListener('pointermove', handleGlobalPointerMove);
+      logger.log('已移除全局 pointermove 监听');
+
+      logger.log('=== 【诊断 1】handleDragEnd 详细诊断 ===');
+      logger.log('event.point:', point);
+      logger.log('point?.x:', point?.x);
+      logger.log('point?.y:', point?.y);
+      logger.log('lastMousePositionRef.current:', lastMousePositionRef.current);
+      logger.log('globalMousePositionRef.current:', globalMousePositionRef.current);
+      logger.log('active.id:', String(active.id));
+      logger.log('over:', over ? String(over.id) : 'null');
+      logger.log('isOverDropZoneRef.current:', isOverDropZoneRef.current);
+
+      const mouseX = point?.x ?? lastMousePositionRef.current?.x ?? globalMousePositionRef.current.x;
+      const mouseY = point?.y ?? lastMousePositionRef.current?.y ?? globalMousePositionRef.current.y;
+      logger.log('坐标来源优先级:');
+      logger.log('  - 来自 event.point:', point?.x ?? 'N/A', point?.y ?? 'N/A');
+      logger.log('  - 来自 lastMousePositionRef:', lastMousePositionRef.current?.x ?? 'N/A', lastMousePositionRef.current?.y ?? 'N/A');
+      logger.log('  - 来自 globalMousePositionRef:', globalMousePositionRef.current.x, globalMousePositionRef.current.y);
+      logger.log('【诊断 1】最终使用的鼠标坐标 (mouseX, mouseY):', mouseX, mouseY);
+
+      setActiveDragItem(null);
+      isDraggingPanelItemRef.current = false;
+
+      const activeIdStr = String(active.id);
+      const effectiveOverId = over ? String(over.id) : null;
+      const isOverCanvasArea = isOverCanvas(effectiveOverId);
+      const isOverDropZone = isOverDropZoneRef.current;
+
+      logger.log('检查放置位置:');
+      logger.log('  - effectiveOverId:', effectiveOverId);
+      logger.log('  - isOverCanvas:', isOverCanvasArea);
+      logger.log('  - isOverDropZone:', isOverDropZone);
+
+      if (!isOverCanvasArea && !isOverDropZone) {
+        logger.log('❌ 不在画布上，不放置组件');
+        isOverDropZoneRef.current = false;
         return;
       }
 
-      console.log('Drag ended:', active.id, '->', over.id);
+      logger.log('✅ 在画布上，准备放置组件');
 
-      const activeId = String(active.id);
-      const overId = String(over.id);
+      if (isPanelItem(activeIdStr)) {
+        const type = getPanelItemType(activeIdStr);
+        logger.log('  - 从组件库拖拽，类型:', type);
 
-      const findComponentIndex = (
-        items: ComponentSchema[],
-        id: string
-      ): { index: number; parentId: string | null; items: ComponentSchema[] } | null => {
-        const index = items.findIndex((item) => item.id === id);
-        if (index !== -1) {
-          return { index, parentId: null, items };
-        }
+        const position = getCanvasRelativePosition(mouseX, mouseY);
+        const newComponent = createComponentFromType(type, position.x, position.y);
+        addComponent(newComponent);
 
-        for (const item of items) {
-          if (isContainerComponent(item) && item.children && item.children.length > 0) {
-            const result = findComponentIndex(item.children, id);
-            if (result) {
-              return { ...result, parentId: item.id };
-            }
-          }
-        }
-
-        return null;
-      };
-
-      const activeResult = findComponentIndex(components, activeId);
-      const overResult = findComponentIndex(components, overId);
-
-      if (!activeResult || !overResult) {
-        return;
-      }
-
-      const updateComponentsInTree = (
-        items: ComponentSchema[],
-        targetItems: ComponentSchema[],
-        fromIndex: number,
-        toIndex: number,
-        targetParentId: string | null
-      ): ComponentSchema[] => {
-        if (targetParentId === null) {
-          const newItems = arrayMove(targetItems, fromIndex, toIndex);
-          return newItems;
-        }
-
-        return items.map((item) => {
-          if (item.id === targetParentId && isContainerComponent(item)) {
-            return {
-              ...item,
-              children: arrayMove(item.children || [], fromIndex, toIndex),
-            };
-          }
-          if (isContainerComponent(item) && item.children && item.children.length > 0) {
-            return {
-              ...item,
-              children: updateComponentsInTree(
-                item.children,
-                targetItems,
-                fromIndex,
-                toIndex,
-                targetParentId
-              ),
-            };
-          }
-          return item;
-        });
-      };
-
-      if (activeResult.parentId === overResult.parentId) {
-        const newComponents = updateComponentsInTree(
-          components,
-          activeResult.items,
-          activeResult.index,
-          overResult.index,
-          activeResult.parentId
+        logger.log(
+          '✅ 从组件库添加新组件:',
+          newComponent.type,
+          newComponent.id,
+          '位置:',
+          `(${newComponent.x}, ${newComponent.y})`
         );
-        setComponents(newComponents);
+        isOverDropZoneRef.current = false;
+        return;
       }
+
+      if (isCanvasItem(activeIdStr)) {
+        const actualActiveId = getCanvasItemId(activeIdStr);
+        const position = getCanvasRelativePosition(mouseX, mouseY);
+
+        updateComponent(actualActiveId, {
+          x: position.x,
+          y: position.y,
+        });
+
+        logger.log(
+          '移动组件:',
+          actualActiveId,
+          '新位置:',
+          `(${position.x}, ${position.y})`
+        );
+      }
+
+      isOverDropZoneRef.current = false;
     },
-    [components, setComponents]
+    [addComponent, updateComponent, handleGlobalPointerMove]
+  );
+
+  const contextValue: CanvasContextValue = useMemo(
+    () => ({
+      canvasRef,
+      isOverDropZoneRef,
+    }),
+    [canvasRef, isOverDropZoneRef]
   );
 
   return (
-    <DndKitContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDragEnd={handleDragEnd}
-    >
-      {children}
-      <DragOverlay>
-        {null}
-      </DragOverlay>
-    </DndKitContext>
+    <CanvasContext.Provider value={contextValue}>
+      <DndKitContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragMove={handleDragMove}
+        onDragEnd={handleDragEnd}
+      >
+        {children}
+        <DragOverlay>
+          {activeDragItem ? <DragPreview item={activeDragItem} /> : null}
+        </DragOverlay>
+      </DndKitContext>
+    </CanvasContext.Provider>
   );
 };
 
