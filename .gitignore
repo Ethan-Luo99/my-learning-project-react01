@@ -35,3 +35,6 @@ dist-ssr
 # .env.production
 
 prompts/
+
+# Trae IDE internal files
+.trae/
