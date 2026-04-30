@@ -197,14 +197,18 @@ const getComponentIcon = (type: ComponentType): string => {
 };
 
 const regenerateComponentIds = (component: ComponentSchema): ComponentSchema => {
-  const newComponent = { ...component };
-  newComponent.id = generateId(newComponent.type.toLowerCase());
-
-  if (newComponent.type === ComponentType.Container && newComponent.children && newComponent.children.length > 0) {
-    newComponent.children = newComponent.children.map(regenerateComponentIds);
+  if (component.type === ComponentType.Container && component.children && component.children.length > 0) {
+    return {
+      ...component,
+      id: generateId(component.type.toLowerCase()),
+      children: component.children.map(regenerateComponentIds),
+    };
   }
 
-  return newComponent;
+  return {
+    ...component,
+    id: generateId(component.type.toLowerCase()),
+  };
 };
 
 const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
@@ -240,25 +244,21 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
     if (config.category === 'props') {
       updateComponent(selectedComponentId, {
         props: {
-          ...(selectedComponent.props || {}),
+          ...selectedComponent.props,
           [config.key]: value,
         },
       });
     } else if (config.category === 'styles') {
       updateComponent(selectedComponentId, {
         styles: {
-          ...(selectedComponent.styles || {}),
+          ...selectedComponent.styles,
           [config.key]: value,
         },
       });
     } else if (config.category === 'basic') {
-      const updates: Partial<ComponentSchema> = {};
-      if (config.key === 'x') updates.x = value;
-      else if (config.key === 'y') updates.y = value;
-      else if (config.key === 'width') updates.width = value;
-      else if (config.key === 'height') updates.height = value;
-
-      updateComponent(selectedComponentId, updates);
+      updateComponent(selectedComponentId, {
+        [config.key]: value,
+      } as Partial<ComponentSchema>);
     }
   };
 
@@ -325,9 +325,9 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
     let value: any;
 
     if (config.category === 'props') {
-      value = selectedComponent.props[config.key];
+      value = selectedComponent.props?.[config.key];
     } else if (config.category === 'styles') {
-      value = selectedComponent.styles[config.key];
+      value = selectedComponent.styles?.[config.key];
     } else if (config.category === 'basic') {
       value = (selectedComponent as any)[config.key];
     }
