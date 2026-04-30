@@ -1,5 +1,16 @@
 import { ComponentType } from '@/types/component';
 
+export const SPACING_PROPERTY_KEYS = [
+  'marginTop',
+  'marginBottom',
+  'marginLeft',
+  'marginRight',
+  'paddingTop',
+  'paddingBottom',
+  'paddingLeft',
+  'paddingRight',
+] as const;
+
 export interface PropertyConfig {
   key: string;
   label: string;
@@ -23,6 +34,7 @@ const createCommonBasicProperties = (): PropertyConfig[] => [
     type: 'number',
     placeholder: '0',
     category: 'basic',
+    defaultValue: 0,
   },
   {
     key: 'y',
@@ -30,6 +42,7 @@ const createCommonBasicProperties = (): PropertyConfig[] => [
     type: 'number',
     placeholder: '0',
     category: 'basic',
+    defaultValue: 0,
   },
   {
     key: 'width',
@@ -37,6 +50,7 @@ const createCommonBasicProperties = (): PropertyConfig[] => [
     type: 'text',
     placeholder: 'auto',
     category: 'basic',
+    defaultValue: 'auto',
   },
   {
     key: 'height',
@@ -44,6 +58,7 @@ const createCommonBasicProperties = (): PropertyConfig[] => [
     type: 'text',
     placeholder: 'auto',
     category: 'basic',
+    defaultValue: 'auto',
   },
 ];
 
@@ -174,6 +189,7 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
           { value: 'caption', label: '说明文字' },
         ],
         category: 'props',
+        defaultValue: 'body',
       },
       {
         key: 'weight',
@@ -187,6 +203,7 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
           { value: 'bold', label: '粗' },
         ],
         category: 'props',
+        defaultValue: 'normal',
       },
       {
         key: 'color',
@@ -201,6 +218,7 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
           { value: 'muted', label: '弱色' },
         ],
         category: 'props',
+        defaultValue: 'default',
       },
       ...createCommonStyleProperties(),
     ],
@@ -229,6 +247,7 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
           { value: 'ghost', label: '幽灵按钮' },
         ],
         category: 'props',
+        defaultValue: 'primary',
       },
       {
         key: 'size',
@@ -240,6 +259,7 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
           { value: 'lg', label: '大' },
         ],
         category: 'props',
+        defaultValue: 'md',
       },
       ...createCommonStyleProperties(),
     ],
@@ -276,6 +296,7 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
           { value: 'full', label: '圆形' },
         ],
         category: 'props',
+        defaultValue: 'none',
       },
       ...createCommonStyleProperties(),
     ],
@@ -297,6 +318,7 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
           { value: 'column-reverse', label: '纵向反向' },
         ],
         category: 'props',
+        defaultValue: 'row',
       },
       {
         key: 'gap',
@@ -311,6 +333,7 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
           { value: 'xl', label: '极大' },
         ],
         category: 'props',
+        defaultValue: 'md',
       },
       {
         key: 'align',
@@ -323,6 +346,7 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
           { value: 'stretch', label: '拉伸' },
         ],
         category: 'props',
+        defaultValue: 'center',
       },
       {
         key: 'justify',
@@ -337,6 +361,7 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
           { value: 'evenly', label: '均匀' },
         ],
         category: 'props',
+        defaultValue: 'start',
       },
       {
         key: 'wrap',
@@ -347,6 +372,7 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
           { value: 'false', label: '否' },
         ],
         category: 'props',
+        defaultValue: 'false',
       },
       {
         key: 'padding',
@@ -359,6 +385,7 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
           { value: 'lg', label: '大' },
         ],
         category: 'props',
+        defaultValue: 'md',
       },
       ...createCommonStyleProperties(),
     ],

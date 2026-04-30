@@ -4,7 +4,7 @@ import { cn } from '@/utils/classname';
 import { generateId } from '@/utils/id';
 import { useBuilderStore } from '@/store/useBuilderStore';
 import { ComponentType, type ComponentSchema } from '@/types/component';
-import { getComponentPropertyConfig, type PropertyConfig } from '@/constants/propertyConfig';
+import { getComponentPropertyConfig, type PropertyConfig, SPACING_PROPERTY_KEYS } from '@/constants/propertyConfig';
 
 interface PropertyPanelProps {
   className?: string;
@@ -292,8 +292,6 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
   const groupedProperties = useMemo(() => {
     if (!propertyConfig) return null;
 
-    const spacingKeys = ['marginTop', 'marginBottom', 'marginLeft', 'marginRight', 'paddingTop', 'paddingBottom', 'paddingLeft', 'paddingRight'];
-
     const groups: { 
       basic: PropertyConfig[]; 
       props: PropertyConfig[]; 
@@ -306,7 +304,7 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
 
     propertyConfig.properties.forEach((prop) => {
       if (prop.category === 'styles') {
-        if (spacingKeys.includes(prop.key)) {
+        if (SPACING_PROPERTY_KEYS.includes(prop.key as typeof SPACING_PROPERTY_KEYS[number])) {
           groups.styles.spacing.push(prop);
         } else {
           groups.styles.basic.push(prop);
