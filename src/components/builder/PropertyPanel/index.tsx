@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { Text, Container, Button } from '@/components/ui';
 import { cn } from '@/utils/classname';
 import { generateId } from '@/utils/id';
@@ -34,10 +34,59 @@ const normalizeHexColor = (color: string): string | null => {
   return `#${hex.toLowerCase()}`;
 };
 
+const DEBOUNCE_DELAY = 300;
+
+const isContainerComponent = (
+  component: ComponentSchema
+): component is ComponentSchema & { children?: ComponentSchema[] } => {
+  return component.type === ComponentType.Container;
+};
+
+const getComponentLabel = (type: ComponentType): string => {
+  const labels: Record<ComponentType, string> = {
+    [ComponentType.Text]: '文本',
+    [ComponentType.Button]: '按钮',
+    [ComponentType.Image]: '图片',
+    [ComponentType.Container]: '容器',
+  };
+  return labels[type] || '未知组件';
+};
+
+const getComponentIcon = (type: ComponentType): string => {
+  const icons: Record<ComponentType, string> = {
+    [ComponentType.Text]: 'T',
+    [ComponentType.Button]: '⬛',
+    [ComponentType.Image]: '🖼️',
+    [ComponentType.Container]: '📦',
+  };
+  return icons[type] || '?';
+};
+
 const PropertyEditor: React.FC<PropertyEditorProps> = ({ config, value, onChange }) => {
   const { type, placeholder, options } = config;
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleChange = (newValue: any) => {
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
+  const debouncedChange = (newValue: any) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      onChange(newValue);
+    }, DEBOUNCE_DELAY);
+  };
+
+  const immediateChange = (newValue: any) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
     onChange(newValue);
   };
 
@@ -50,7 +99,7 @@ const PropertyEditor: React.FC<PropertyEditorProps> = ({ config, value, onChange
             value={value ?? ''}
             onChange={(e) => {
               const textValue = e.target.value;
-              handleChange(textValue === '' ? undefined : textValue);
+              debouncedChange(textValue === '' ? undefined : textValue);
             }}
             placeholder={placeholder}
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
@@ -64,7 +113,7 @@ const PropertyEditor: React.FC<PropertyEditorProps> = ({ config, value, onChange
             value={value ?? ''}
             onChange={(e) => {
               const numValue = e.target.value === '' ? undefined : Number(e.target.value);
-              handleChange(numValue);
+              immediateChange(numValue);
             }}
             placeholder={placeholder}
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
@@ -77,7 +126,7 @@ const PropertyEditor: React.FC<PropertyEditorProps> = ({ config, value, onChange
             value={value ?? ''}
             onChange={(e) => {
               const textValue = e.target.value;
-              handleChange(textValue === '' ? undefined : textValue);
+              debouncedChange(textValue === '' ? undefined : textValue);
             }}
             placeholder={placeholder}
             rows={3}
@@ -91,7 +140,7 @@ const PropertyEditor: React.FC<PropertyEditorProps> = ({ config, value, onChange
             value={value ?? ''}
             onChange={(e) => {
               const selectValue = e.target.value;
-              handleChange(selectValue === '' ? undefined : selectValue);
+              immediateChange(selectValue === '' ? undefined : selectValue);
             }}
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white appearance-none cursor-pointer"
           >
@@ -112,18 +161,18 @@ const PropertyEditor: React.FC<PropertyEditorProps> = ({ config, value, onChange
           const textValue = e.target.value;
 
           if (textValue === '') {
-            handleChange(undefined);
+            debouncedChange(undefined);
             return;
           }
 
           const normalized = normalizeHexColor(textValue);
           if (normalized) {
-            handleChange(normalized);
+            debouncedChange(normalized);
           }
         };
 
         const handleColorPickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-          handleChange(e.target.value);
+          immediateChange(e.target.value);
         };
 
         return (
@@ -214,38 +263,109 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({ title, children
   );
 };
 
-const EmptyState: React.FC = () => {
+interface EmptyStateProps {
+  components: ComponentSchema[];
+  onSelectComponent: (id: string) => void;
+}
+
+const EmptyState: React.FC<EmptyStateProps> = ({ components, onSelectComponent }) => {
+  const hasComponents = components.length > 0;
+
+  const getFirstComponentId = (): string | null => {
+    if (components.length === 0) return null;
+
+    const firstComponent = components[0];
+    if (isContainerComponent(firstComponent) && firstComponent.children && firstComponent.children.length > 0) {
+      return firstComponent.children[0].id;
+    }
+    return firstComponent.id;
+  };
+
+  const handleSelectFirstComponent = () => {
+    const firstId = getFirstComponentId();
+    if (firstId) {
+      onSelectComponent(firstId);
+    }
+  };
+
+  const getAllComponentIds = (comps: ComponentSchema[]): { id: string; type: ComponentType; label: string }[] => {
+    const result: { id: string; type: ComponentType; label: string }[] = [];
+
+    const addComponents = (list: ComponentSchema[]) => {
+      for (const comp of list) {
+        result.push({
+          id: comp.id,
+          type: comp.type,
+          label: getComponentLabel(comp.type),
+        });
+        if (isContainerComponent(comp) && comp.children && comp.children.length > 0) {
+          addComponents(comp.children);
+        }
+      }
+    };
+
+    addComponents(components);
+    return result;
+  };
+
+  const allComponents = hasComponents ? getAllComponentIds(components) : [];
+
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
+    <div className="flex flex-col items-center justify-center py-8 text-center">
       <div className="text-5xl mb-4 opacity-50">🖱️</div>
       <Text variant="h4" weight="medium" className="mb-2 text-gray-600">
         未选中组件
       </Text>
-      <Text variant="body" color="muted" className="max-w-[200px]">
+      <Text variant="body" color="muted" className="max-w-[240px] mb-6">
         请点击画布上的任意组件来查看和编辑其属性
       </Text>
+
+      {hasComponents && (
+        <div className="w-full max-w-[280px] space-y-4">
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleSelectFirstComponent}
+            className="w-full"
+          >
+            选择第一个组件
+          </Button>
+
+          {allComponents.length > 1 && (
+            <div className="pt-4 border-t border-gray-200">
+              <Text variant="caption" color="muted" className="mb-3 block">
+                所有组件列表：
+              </Text>
+              <div className="max-h-48 overflow-y-auto space-y-1">
+                {allComponents.map((comp) => (
+                  <button
+                    key={comp.id}
+                    type="button"
+                    onClick={() => onSelectComponent(comp.id)}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left rounded-md hover:bg-gray-100 transition-colors"
+                  >
+                    <span className="text-base">{getComponentIcon(comp.type)}</span>
+                    <span className="text-gray-700">{comp.label}</span>
+                    <span className="ml-auto text-xs text-gray-400 truncate max-w-[100px]">
+                      {comp.id}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!hasComponents && (
+        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+          <Text variant="caption" color="muted">
+            💡 提示：从左侧组件库拖拽组件到画布
+          </Text>
+        </div>
+      )}
     </div>
   );
-};
-
-const getComponentLabel = (type: ComponentType): string => {
-  const labels: Record<ComponentType, string> = {
-    [ComponentType.Text]: '文本',
-    [ComponentType.Button]: '按钮',
-    [ComponentType.Image]: '图片',
-    [ComponentType.Container]: '容器',
-  };
-  return labels[type] || '未知组件';
-};
-
-const getComponentIcon = (type: ComponentType): string => {
-  const icons: Record<ComponentType, string> = {
-    [ComponentType.Text]: 'T',
-    [ComponentType.Button]: '⬛',
-    [ComponentType.Image]: '🖼️',
-    [ComponentType.Container]: '📦',
-  };
-  return icons[type] || '?';
 };
 
 const regenerateComponentIds = (component: ComponentSchema): ComponentSchema => {
@@ -393,7 +513,10 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
             属性配置
           </Text>
         </div>
-        <EmptyState />
+        <EmptyState
+          components={components}
+          onSelectComponent={setSelectedComponentId}
+        />
       </div>
     );
   }

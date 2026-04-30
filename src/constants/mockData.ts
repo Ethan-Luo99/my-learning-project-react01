@@ -48,10 +48,11 @@ export const DEFAULT_COMPONENT_CONFIGS: Record<ComponentType, ComponentConfig> =
     defaultWidth: 400,
     defaultHeight: 200,
     defaultProps: {
-      direction: 'column',
+      direction: 'row',
       gap: 'md',
-      align: 'stretch',
+      align: 'center',
       justify: 'start',
+      wrap: 'false',
       padding: 'md',
     },
     defaultStyles: {

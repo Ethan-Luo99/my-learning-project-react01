@@ -32,6 +32,49 @@ const findComponentById = (
   return null;
 };
 
+interface FindNextComponentResult {
+  nextId: string | null;
+}
+
+const findNextComponentAfterDelete = (
+  components: ComponentSchema[],
+  deletedId: string
+): FindNextComponentResult => {
+  const findInList = (
+    list: ComponentSchema[],
+    parentId: string | null
+  ): FindNextComponentResult | null => {
+    const index = list.findIndex((c) => c.id === deletedId);
+
+    if (index !== -1) {
+      if (list.length > 1) {
+        if (index < list.length - 1) {
+          return { nextId: list[index + 1].id };
+        }
+        return { nextId: list[index - 1].id };
+      }
+      return { nextId: parentId };
+    }
+
+    for (const comp of list) {
+      if (isContainerComponent(comp) && comp.children && comp.children.length > 0) {
+        const result = findInList(comp.children, comp.id);
+        if (result) {
+          if (result.nextId !== null) {
+            return result;
+          }
+          return { nextId: comp.id };
+        }
+      }
+    }
+
+    return null;
+  };
+
+  const result = findInList(components, null);
+  return result || { nextId: null };
+};
+
 interface BuilderState {
   components: ComponentSchema[];
   selectedComponentId: string | null;
@@ -269,14 +312,20 @@ export const useBuilderStore = create<BuilderState>()(
       },
 
       removeComponent: (id) => {
-        const { components, pushHistory } = get();
+        const { components, pushHistory, selectedComponentId } = get();
         const newComponents = removeComponentFromTree(components, id);
         pushHistory(components, newComponents);
+
+        let newSelectedComponentId = selectedComponentId;
+        if (selectedComponentId === id) {
+          const { nextId } = findNextComponentAfterDelete(components, id);
+          newSelectedComponentId = nextId;
+        }
+
         set(
           (state) => ({
             components: removeComponentFromTree(state.components, id),
-            selectedComponentId:
-              state.selectedComponentId === id ? null : state.selectedComponentId,
+            selectedComponentId: newSelectedComponentId,
           }),
           false,
           { type: 'removeComponent', id }
