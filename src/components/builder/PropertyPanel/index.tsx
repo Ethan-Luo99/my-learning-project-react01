@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Text, Container, Button } from '@/components/ui';
 import { cn } from '@/utils/classname';
+import { generateId } from '@/utils/id';
 import { useBuilderStore } from '@/store/useBuilderStore';
 import { ComponentType, type ComponentSchema } from '@/types/component';
 import { getComponentPropertyConfig, type PropertyConfig } from '@/constants/propertyConfig';
@@ -29,7 +30,7 @@ const PropertyEditor: React.FC<PropertyEditorProps> = ({ config, value, onChange
           <input
             type="text"
             value={value ?? ''}
-            onChange={(e) => handleChange(e.target.value || undefined)}
+            onChange={(e) => handleChange(e.target.value)}
             placeholder={placeholder}
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
           />
@@ -53,7 +54,7 @@ const PropertyEditor: React.FC<PropertyEditorProps> = ({ config, value, onChange
         return (
           <textarea
             value={value ?? ''}
-            onChange={(e) => handleChange(e.target.value || undefined)}
+            onChange={(e) => handleChange(e.target.value)}
             placeholder={placeholder}
             rows={3}
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white resize-none"
@@ -64,7 +65,7 @@ const PropertyEditor: React.FC<PropertyEditorProps> = ({ config, value, onChange
         return (
           <select
             value={value ?? ''}
-            onChange={(e) => handleChange(e.target.value || undefined)}
+            onChange={(e) => handleChange(e.target.value)}
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white appearance-none cursor-pointer"
           >
             <option value="">请选择</option>
@@ -74,6 +75,25 @@ const PropertyEditor: React.FC<PropertyEditorProps> = ({ config, value, onChange
               </option>
             ))}
           </select>
+        );
+
+      case 'color':
+        return (
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={value || '#000000'}
+              onChange={(e) => handleChange(e.target.value)}
+              className="w-10 h-10 rounded border border-gray-300 cursor-pointer p-0"
+            />
+            <input
+              type="text"
+              value={value || ''}
+              onChange={(e) => handleChange(e.target.value)}
+              placeholder={placeholder || '#000000'}
+              className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+            />
+          </div>
         );
 
       default:
@@ -112,6 +132,36 @@ const PropertySection: React.FC<PropertySectionProps> = ({ title, children, isEm
   );
 };
 
+interface CollapsibleSectionProps {
+  title: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}
+
+const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({ title, children, defaultOpen = false }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div className="mb-4">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors"
+      >
+        <span>{title}</span>
+        <span className={`transform transition-transform ${isOpen ? 'rotate-180' : ''}`}>
+          ▼
+        </span>
+      </button>
+      {isOpen && (
+        <div className="mt-2 pl-2 border-l-2 border-gray-200">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const EmptyState: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -146,8 +196,19 @@ const getComponentIcon = (type: ComponentType): string => {
   return icons[type] || '?';
 };
 
+const regenerateComponentIds = (component: ComponentSchema): ComponentSchema => {
+  const newComponent = { ...component };
+  newComponent.id = generateId(newComponent.type.toLowerCase());
+
+  if (newComponent.type === ComponentType.Container && newComponent.children && newComponent.children.length > 0) {
+    newComponent.children = newComponent.children.map(regenerateComponentIds);
+  }
+
+  return newComponent;
+};
+
 const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
-  const { components, selectedComponentId, updateComponent } = useBuilderStore();
+  const { components, selectedComponentId, updateComponent, removeComponent, setSelectedComponentId, addComponent } = useBuilderStore();
 
   const selectedComponent = useMemo(() => {
     if (!selectedComponentId) return null;
@@ -174,19 +235,19 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
   }, [selectedComponent]);
 
   const handlePropertyChange = (config: PropertyConfig, value: any) => {
-    if (!selectedComponentId) return;
+    if (!selectedComponentId || !selectedComponent) return;
 
     if (config.category === 'props') {
       updateComponent(selectedComponentId, {
         props: {
-          ...selectedComponent?.props,
+          ...(selectedComponent.props || {}),
           [config.key]: value,
         },
       });
     } else if (config.category === 'styles') {
       updateComponent(selectedComponentId, {
         styles: {
-          ...selectedComponent?.styles,
+          ...(selectedComponent.styles || {}),
           [config.key]: value,
         },
       });
@@ -201,34 +262,77 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
     }
   };
 
+  const handleDelete = () => {
+    if (!selectedComponentId) return;
+
+    const confirmed = window.confirm('确定要删除此组件吗？删除后可通过撤销恢复。');
+    if (confirmed) {
+      removeComponent(selectedComponentId);
+      setSelectedComponentId(null);
+    }
+  };
+
+  const handleDuplicate = () => {
+    if (!selectedComponent) return;
+
+    const clonedComponent = structuredClone(selectedComponent) as ComponentSchema;
+    const regeneratedComponent = regenerateComponentIds(clonedComponent);
+
+    if (regeneratedComponent.x !== undefined) {
+      regeneratedComponent.x = regeneratedComponent.x + 10;
+    }
+    if (regeneratedComponent.y !== undefined) {
+      regeneratedComponent.y = regeneratedComponent.y + 10;
+    }
+
+    addComponent(regeneratedComponent);
+    setSelectedComponentId(regeneratedComponent.id);
+  };
+
   const groupedProperties = useMemo(() => {
     if (!propertyConfig) return null;
 
-    const groups: { basic: PropertyConfig[]; props: PropertyConfig[]; styles: PropertyConfig[] } = {
+    const spacingKeys = ['marginTop', 'marginBottom', 'marginLeft', 'marginRight', 'paddingTop', 'paddingBottom', 'paddingLeft', 'paddingRight'];
+
+    const groups: { 
+      basic: PropertyConfig[]; 
+      props: PropertyConfig[]; 
+      styles: { basic: PropertyConfig[]; spacing: PropertyConfig[] };
+    } = {
       basic: [],
       props: [],
-      styles: [],
+      styles: { basic: [], spacing: [] },
     };
 
     propertyConfig.properties.forEach((prop) => {
-      groups[prop.category].push(prop);
+      if (prop.category === 'styles') {
+        if (spacingKeys.includes(prop.key)) {
+          groups.styles.spacing.push(prop);
+        } else {
+          groups.styles.basic.push(prop);
+        }
+      } else {
+        groups[prop.category].push(prop);
+      }
     });
 
     return groups;
   }, [propertyConfig]);
 
   const getPropertyValue = (config: PropertyConfig): any => {
-    if (!selectedComponent) return undefined;
+    if (!selectedComponent) return config.defaultValue;
+
+    let value: any;
 
     if (config.category === 'props') {
-      return selectedComponent.props[config.key];
+      value = selectedComponent.props[config.key];
     } else if (config.category === 'styles') {
-      return selectedComponent.styles[config.key];
+      value = selectedComponent.styles[config.key];
     } else if (config.category === 'basic') {
-      return (selectedComponent as any)[config.key];
+      value = (selectedComponent as any)[config.key];
     }
 
-    return undefined;
+    return value !== undefined ? value : config.defaultValue;
   };
 
   if (!selectedComponent || !propertyConfig || !groupedProperties) {
@@ -264,6 +368,26 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
             </Text>
           </div>
         </div>
+
+        <div className="mt-3 flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDuplicate}
+            className="flex-1"
+          >
+            复制组件
+          </Button>
+          <Button
+            variant="outline"
+            color="danger"
+            size="sm"
+            onClick={handleDelete}
+            className="flex-1"
+          >
+            删除组件
+          </Button>
+        </div>
       </div>
 
       <PropertySection
@@ -296,9 +420,9 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
 
       <PropertySection
         title="样式属性"
-        isEmpty={groupedProperties.styles.length === 0}
+        isEmpty={groupedProperties.styles.basic.length === 0 && groupedProperties.styles.spacing.length === 0}
       >
-        {groupedProperties.styles.map((config) => (
+        {groupedProperties.styles.basic.map((config) => (
           <PropertyEditor
             key={config.key}
             config={config}
@@ -306,6 +430,19 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
             onChange={(value) => handlePropertyChange(config, value)}
           />
         ))}
+        
+        {groupedProperties.styles.spacing.length > 0 && (
+          <CollapsibleSection title="间距设置">
+            {groupedProperties.styles.spacing.map((config) => (
+              <PropertyEditor
+                key={config.key}
+                config={config}
+                value={getPropertyValue(config)}
+                onChange={(value) => handlePropertyChange(config, value)}
+              />
+            ))}
+          </CollapsibleSection>
+        )}
       </PropertySection>
     </div>
   );

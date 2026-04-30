@@ -3,10 +3,11 @@ import { ComponentType } from '@/types/component';
 export interface PropertyConfig {
   key: string;
   label: string;
-  type: 'text' | 'number' | 'select' | 'textarea';
+  type: 'text' | 'number' | 'select' | 'textarea' | 'color';
   options?: { value: string; label: string }[];
   placeholder?: string;
   category: 'basic' | 'props' | 'styles';
+  defaultValue?: string | number | undefined;
 }
 
 export interface ComponentPropertyConfig {
@@ -50,14 +51,14 @@ const createCommonStyleProperties = (): PropertyConfig[] => [
   {
     key: 'backgroundColor',
     label: '背景颜色',
-    type: 'text',
+    type: 'color',
     placeholder: '#ffffff',
     category: 'styles',
   },
   {
     key: 'color',
     label: '文字颜色',
-    type: 'text',
+    type: 'color',
     placeholder: '#000000',
     category: 'styles',
   },

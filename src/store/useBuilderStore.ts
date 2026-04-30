@@ -7,12 +7,29 @@ const MAX_HISTORY_LENGTH = 50;
 
 interface HistoryState {
   components: ComponentSchema[];
+  selectedComponentId: string | null;
 }
 
 const isContainerComponent = (
   component: ComponentSchema
 ): component is ContainerComponentSchema => {
   return component.type === ComponentType.Container;
+};
+
+const findComponentById = (
+  components: ComponentSchema[],
+  id: string
+): ComponentSchema | null => {
+  for (const comp of components) {
+    if (comp.id === id) {
+      return comp;
+    }
+    if (isContainerComponent(comp) && comp.children && comp.children.length > 0) {
+      const found = findComponentById(comp.children, id);
+      if (found) return found;
+    }
+  }
+  return null;
 };
 
 interface BuilderState {
@@ -102,6 +119,7 @@ const addComponentToParentInTree = (
 const createInitialHistory = (): HistoryState[] => [
   {
     components: MOCK_EMPTY_CANVAS,
+    selectedComponentId: null,
   },
 ];
 
@@ -116,30 +134,24 @@ export const useBuilderStore = create<BuilderState>()(
       canUndo: false,
       canRedo: false,
 
-      pushHistory: (newComponents) => {
-        const { components, history, currentIndex } = get();
+      pushHistory: (previousComponents, nextComponents) => {
+        const { history, currentIndex, selectedComponentId } = get();
 
         const newHistory = history.slice(0, currentIndex + 1);
 
-        const currentState: HistoryState = {
-          components: structuredClone(components),
+        const stateToSave: HistoryState = {
+          components: structuredClone(previousComponents),
+          selectedComponentId: selectedComponentId,
         };
 
-        let shouldSave = false;
-
-        if (newComponents) {
-          shouldSave = JSON.stringify(components) !== JSON.stringify(newComponents);
-        } else {
-          const lastState = newHistory[newHistory.length - 1];
-          shouldSave =
-            JSON.stringify(lastState.components) !== JSON.stringify(currentState.components);
-        }
+        const shouldSave =
+          JSON.stringify(previousComponents) !== JSON.stringify(nextComponents);
 
         if (!shouldSave) {
           return;
         }
 
-        newHistory.push(currentState);
+        newHistory.push(stateToSave);
 
         if (newHistory.length > MAX_HISTORY_LENGTH) {
           newHistory.shift();
@@ -166,10 +178,20 @@ export const useBuilderStore = create<BuilderState>()(
 
         const newIndex = currentIndex - 1;
         const previousState = history[newIndex];
+        const newComponents = structuredClone(previousState.components);
+        
+        let newSelectedComponentId = previousState.selectedComponentId;
+        if (newSelectedComponentId !== null) {
+          const componentExists = findComponentById(newComponents, newSelectedComponentId) !== null;
+          if (!componentExists) {
+            newSelectedComponentId = null;
+          }
+        }
 
         set(
           {
-            components: structuredClone(previousState.components),
+            components: newComponents,
+            selectedComponentId: newSelectedComponentId,
             currentIndex: newIndex,
             canUndo: newIndex > 0,
             canRedo: newIndex < history.length - 1,
@@ -186,12 +208,22 @@ export const useBuilderStore = create<BuilderState>()(
 
         const newIndex = currentIndex + 1;
         const nextState = history[newIndex];
+        const newComponents = structuredClone(nextState.components);
+        
+        let newSelectedComponentId = nextState.selectedComponentId;
+        if (newSelectedComponentId !== null) {
+          const componentExists = findComponentById(newComponents, newSelectedComponentId) !== null;
+          if (!componentExists) {
+            newSelectedComponentId = null;
+          }
+        }
 
         set(
           {
-            components: structuredClone(nextState.components),
+            components: newComponents,
+            selectedComponentId: newSelectedComponentId,
             currentIndex: newIndex,
-            canUndo: true,
+            canUndo: newIndex > 0,
             canRedo: newIndex < history.length - 1,
           },
           false,
@@ -201,7 +233,8 @@ export const useBuilderStore = create<BuilderState>()(
 
       setComponents: (components) => {
         const { pushHistory } = get();
-        pushHistory(components);
+        const previousComponents = get().components;
+        pushHistory(previousComponents, components);
         set({ components }, false, 'setComponents');
       },
 
@@ -212,7 +245,7 @@ export const useBuilderStore = create<BuilderState>()(
       addComponent: (component) => {
         const { components, pushHistory } = get();
         const newComponents = [...components, component];
-        pushHistory(newComponents);
+        pushHistory(components, newComponents);
         set(
           (state) => ({
             components: [...state.components, component],
@@ -225,7 +258,7 @@ export const useBuilderStore = create<BuilderState>()(
       addComponentToParent: (parentId, component) => {
         const { components, pushHistory } = get();
         const newComponents = addComponentToParentInTree(components, parentId, component);
-        pushHistory(newComponents);
+        pushHistory(components, newComponents);
         set(
           (state) => ({
             components: addComponentToParentInTree(state.components, parentId, component),
@@ -238,7 +271,7 @@ export const useBuilderStore = create<BuilderState>()(
       removeComponent: (id) => {
         const { components, pushHistory } = get();
         const newComponents = removeComponentFromTree(components, id);
-        pushHistory(newComponents);
+        pushHistory(components, newComponents);
         set(
           (state) => ({
             components: removeComponentFromTree(state.components, id),
@@ -253,7 +286,7 @@ export const useBuilderStore = create<BuilderState>()(
       updateComponent: (id, updates) => {
         const { components, pushHistory } = get();
         const newComponents = updateComponentInTree(components, id, updates);
-        pushHistory(newComponents);
+        pushHistory(components, newComponents);
         set(
           (state) => ({
             components: updateComponentInTree(state.components, id, updates),
