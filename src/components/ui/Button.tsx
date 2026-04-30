@@ -9,7 +9,7 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'primary', size = 'md', color = 'primary', ...props }, ref) => {
+  ({ className, variant = 'primary', size = 'md', color = 'default', ...props }, ref) => {
     const getVariantStyles = (v: string, c: string) => {
       if (c === 'danger') {
         switch (v) {

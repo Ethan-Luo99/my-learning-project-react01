@@ -16,8 +16,26 @@ interface PropertyEditorProps {
   onChange: (value: any) => void;
 }
 
+const HEX_COLOR_PATTERN = /^#?([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+
+const isValidHexColor = (color: string): boolean => {
+  return HEX_COLOR_PATTERN.test(color);
+};
+
+const normalizeHexColor = (color: string): string | null => {
+  const match = color.trim().match(HEX_COLOR_PATTERN);
+  if (!match) return null;
+
+  let hex = match[1];
+  if (hex.length === 3) {
+    hex = hex.split('').map((c) => c + c).join('');
+  }
+
+  return `#${hex.toLowerCase()}`;
+};
+
 const PropertyEditor: React.FC<PropertyEditorProps> = ({ config, value, onChange }) => {
-  const { key, type, placeholder, options } = config;
+  const { type, placeholder, options } = config;
 
   const handleChange = (newValue: any) => {
     onChange(newValue);
@@ -30,7 +48,10 @@ const PropertyEditor: React.FC<PropertyEditorProps> = ({ config, value, onChange
           <input
             type="text"
             value={value ?? ''}
-            onChange={(e) => handleChange(e.target.value)}
+            onChange={(e) => {
+              const textValue = e.target.value;
+              handleChange(textValue === '' ? undefined : textValue);
+            }}
             placeholder={placeholder}
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
           />
@@ -54,7 +75,10 @@ const PropertyEditor: React.FC<PropertyEditorProps> = ({ config, value, onChange
         return (
           <textarea
             value={value ?? ''}
-            onChange={(e) => handleChange(e.target.value)}
+            onChange={(e) => {
+              const textValue = e.target.value;
+              handleChange(textValue === '' ? undefined : textValue);
+            }}
             placeholder={placeholder}
             rows={3}
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white resize-none"
@@ -65,7 +89,10 @@ const PropertyEditor: React.FC<PropertyEditorProps> = ({ config, value, onChange
         return (
           <select
             value={value ?? ''}
-            onChange={(e) => handleChange(e.target.value)}
+            onChange={(e) => {
+              const selectValue = e.target.value;
+              handleChange(selectValue === '' ? undefined : selectValue);
+            }}
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white appearance-none cursor-pointer"
           >
             <option value="">请选择</option>
@@ -77,24 +104,49 @@ const PropertyEditor: React.FC<PropertyEditorProps> = ({ config, value, onChange
           </select>
         );
 
-      case 'color':
+      case 'color': {
+        const normalizedValue = value ? normalizeHexColor(value) : null;
+        const displayColor = normalizedValue || '#ffffff';
+
+        const handleTextInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+          const textValue = e.target.value;
+
+          if (textValue === '') {
+            handleChange(undefined);
+            return;
+          }
+
+          const normalized = normalizeHexColor(textValue);
+          if (normalized) {
+            handleChange(normalized);
+          }
+        };
+
+        const handleColorPickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+          handleChange(e.target.value);
+        };
+
         return (
           <div className="flex items-center gap-2">
             <input
               type="color"
-              value={value || '#000000'}
-              onChange={(e) => handleChange(e.target.value)}
+              value={displayColor}
+              onChange={handleColorPickerChange}
               className="w-10 h-10 rounded border border-gray-300 cursor-pointer p-0"
             />
             <input
               type="text"
-              value={value || ''}
-              onChange={(e) => handleChange(e.target.value)}
-              placeholder={placeholder || '#000000'}
-              className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+              value={value ?? ''}
+              onChange={handleTextInputChange}
+              placeholder={placeholder ?? '#ffffff'}
+              className={cn(
+                'flex-1 px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white',
+                value && !isValidHexColor(value) ? 'border-red-500' : 'border-gray-300'
+              )}
             />
           </div>
         );
+      }
 
       default:
         return null;
