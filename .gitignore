@@ -35,6 +35,11 @@ dist-ssr
 # .env.production
 
 prompts/
+.prompt/
+.history/
+.qoder/
+.feedback/
 
 # Trae IDE internal files
 .trae/
+
