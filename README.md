@@ -140,6 +140,103 @@ pnpm format
 - [ ] 多页面支持
 - [ ] 协作编辑
 
+## AI 训练工作流（Skills）
+
+本项目内置了一套完整的 AI 大模型训练辅助工具，用于生成训练 prompt 和评估模型产出。
+
+### 工作流概览
+
+```
+1. 使用 /prompt-planning 生成训练 prompt
+   ↓ 保存到 .prompt/prompt_planning.md
+   
+2. 将 prompt 发送给受训练大模型
+   ↓ 获取模型返回的代码变更
+   
+3. 使用 /code-annotation-in-trae-cn 评估模型产出
+   ↓ 生成评估报告到 .history/TASK_*.md
+```
+
+### 可用指令
+
+#### `/prompt-planning` - Prompt 规划与生成
+**用途**：根据构思生成用于训练其他 AI IDE 的 prompt
+
+**使用方式**：
+```
+[描述您的构思和需求]...规划 N 轮
+
+/prompt-planning
+```
+
+**功能**：
+- 读取您的构思描述
+- 按照规范生成高质量 prompt
+- 自动保存到 `.prompt/prompt_planning.md`
+- 支持多轮规划（按序号追加）
+
+**规范要求**：
+- 长度精炼，不要过长
+- 需求复杂度适中，确保需要改动多文件
+- 不放太多源码，不放完整页面/功能代码
+- 需求点丰富，提供足够上下文
+- 纯文本格式，禁用 markdown
+
+---
+
+#### `/code-annotation-in-trae-cn` - 代码标注与评估
+**用途**：评估受训练大模型的代码输出，生成评估报告
+
+**前置准备**：
+1. 在 `.prompt/previous_prompt.md` 中填写原始 prompt
+2. 在 `.feedback/previous_feedback.md` 中填写您的反馈
+3. 将受训练模型的代码变更 `git add` 到暂存区
+
+**使用方式**：
+```
+/code-annotation-in-trae-cn
+```
+
+**功能**：
+- 读取 prompt 和 feedback 文件
+- 分析 git 暂存区的代码变更
+- 生成标准化评估报告
+- 自动保存到 `.history/TASK_YYMMDD_序号.md`
+
+**评估维度**：
+- 任务类型（Bug修复/0-1代码生成/Feature迭代等）
+- 业务领域（Web前端/全栈Web应用等）
+- 修改范围（单文件/模块内多文件/跨模块多文件等）
+- 任务完成度
+- 产物满意度
+
+### 目录结构
+
+```
+.project/
+├── .qoder/
+│   ├── rules/              # 规范约束
+│   │   ├── prompt-generation.md    # Prompt 生成规范
+│   │   └── code-evaluation.md      # 评估报告格式
+│   └── skills/             # 专业技能
+│       ├── prompt-planning/          # /prompt-planning
+│       └── code-annotation-in-trae-cn/  # /code-annotation-in-trae-cn
+├── .prompt/                # Prompt 存储
+│   ├── prompt_planning.md      # 规划的 prompt
+│   └── previous_prompt.md      # 当前使用的 prompt
+├── .feedback/              # 反馈记录
+│   └── previous_feedback.md    # 对模型产出的反馈
+└── .history/               # 评估报告
+    └── TASK_YYMMDD_序号.md     # 评估报告文件
+```
+
+### 跨项目复用
+
+要将此工作流复制到其他项目，只需：
+1. 复制 `.qoder/` 目录到新项目
+2. 用 Qoder 打开新项目
+3. Skills 会自动创建所需的目录结构（.prompt/、.feedback/、.history/）
+
 ## 许可证
 
 MIT License
@@ -151,3 +248,5 @@ MIT License
 ---
 
 > 本项目是一个学习型项目，用于探索低代码平台的核心技术实现。
+
+
