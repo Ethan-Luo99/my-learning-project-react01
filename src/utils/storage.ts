@@ -1,4 +1,5 @@
 import type { ComponentSchema } from '@/types/component';
+import { validateProjectData, formatValidationErrors } from '@/utils/validation';
 
 export interface Project {
   id: string;
@@ -82,15 +83,53 @@ export const saveProject = (
   }
 };
 
-export const loadProject = (id: string): Project | null => {
+export interface LoadProjectResult {
+  success: boolean;
+  project?: Project;
+  validationErrors?: string;
+  isCorrupted?: boolean;
+}
+
+export const loadProject = (id: string): LoadProjectResult => {
   try {
     const projectKey = getProjectKey(id);
     const stored = localStorage.getItem(projectKey);
-    if (!stored) return null;
-    return JSON.parse(stored) as Project;
+    if (!stored) {
+      return { success: false };
+    }
+    
+    let parsedData: unknown;
+    try {
+      parsedData = JSON.parse(stored);
+    } catch (parseError) {
+      console.error(`JSON parse failed for project ${id}:`, parseError);
+      return {
+        success: false,
+        isCorrupted: true,
+        validationErrors: 'JSON 解析失败，项目数据可能已损坏',
+      };
+    }
+    
+    const validation = validateProjectData(parsedData);
+    
+    if (!validation.valid) {
+      console.error(`Validation failed for project ${id}:`, validation.errors);
+      return {
+        success: false,
+        isCorrupted: true,
+        validationErrors: formatValidationErrors(validation.errors),
+      };
+    }
+    
+    const project = parsedData as Project;
+    return { success: true, project };
   } catch (error) {
     console.error(`Failed to load project ${id}:`, error);
-    return null;
+    return {
+      success: false,
+      isCorrupted: true,
+      validationErrors: error instanceof Error ? error.message : '加载项目时发生未知错误',
+    };
   }
 };
 
@@ -99,15 +138,17 @@ export const listProjects = (): ProjectMetadata[] => {
   const projects: ProjectMetadata[] = [];
 
   for (const id of projectIds) {
-    const project = loadProject(id);
-    if (project) {
+    const result = loadProject(id);
+    if (result.success && result.project) {
       projects.push({
-        id: project.id,
-        name: project.name,
-        createdAt: project.createdAt,
-        updatedAt: project.updatedAt,
-        componentCount: project.components.length,
+        id: result.project.id,
+        name: result.project.name,
+        createdAt: result.project.createdAt,
+        updatedAt: result.project.updatedAt,
+        componentCount: result.project.components.length,
       });
+    } else if (result.isCorrupted) {
+      console.warn(`Project ${id} is corrupted and will be skipped in list:`, result.validationErrors);
     }
   }
 
@@ -131,15 +172,15 @@ export const deleteProject = (id: string): boolean => {
 };
 
 export const getProjectMetadata = (id: string): ProjectMetadata | null => {
-  const project = loadProject(id);
-  if (!project) return null;
+  const result = loadProject(id);
+  if (!result.success || !result.project) return null;
 
   return {
-    id: project.id,
-    name: project.name,
-    createdAt: project.createdAt,
-    updatedAt: project.updatedAt,
-    componentCount: project.components.length,
+    id: result.project.id,
+    name: result.project.name,
+    createdAt: result.project.createdAt,
+    updatedAt: result.project.updatedAt,
+    componentCount: result.project.components.length,
   };
 };
 
@@ -147,18 +188,19 @@ export const getLatestProject = (): Project | null => {
   const projects = listProjects();
   if (projects.length === 0) return null;
 
-  return loadProject(projects[0].id);
+  const result = loadProject(projects[0].id);
+  return result.success && result.project ? result.project : null;
 };
 
 export const renameProject = (id: string, newName: string): Project | null => {
-  const project = loadProject(id);
-  if (!project) return null;
+  const result = loadProject(id);
+  if (!result.success || !result.project) return null;
 
   return saveProject({
-    id: project.id,
+    id: result.project.id,
     name: newName,
-    components: project.components,
-    createdAt: project.createdAt,
+    components: result.project.components,
+    createdAt: result.project.createdAt,
   });
 };
 

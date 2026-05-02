@@ -96,7 +96,7 @@ const ToastContainer = ({ toasts, hideToast }: { toasts: ToastMessage[]; hideToa
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
       {toasts.map((toast) => (
         <div
           key={toast.id}
@@ -134,7 +134,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const showToast = useCallback(
-    (type: ToastType, message: string, duration: number = 4000) => {
+    (type: ToastType, message: string, duration: number = 3000) => {
       const id = `toast_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
       const newToast: ToastMessage = {

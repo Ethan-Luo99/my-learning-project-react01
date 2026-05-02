@@ -14,6 +14,7 @@ import {
 } from '@/utils/clipboard';
 import { ToastProvider, useToast } from '@/components/ui';
 import { downloadProject, calculateJSONSize, EXPORT_FILE_SIZE_WARNING_LIMIT } from '@/utils/import-export';
+import { getStorageWarningMessage, formatStorageSize, estimateLocalStorageUsage } from '@/utils/validation';
 import type { ComponentSchema } from '@/types/component';
 import type { Project } from '@/utils/storage';
 
@@ -58,6 +59,10 @@ function AppContent() {
   const moveToBottom = useBuilderStore((state) => state.moveToBottom);
   const canMoveUp = useBuilderStore((state) => state.canMoveUp);
   const canMoveDown = useBuilderStore((state) => state.canMoveDown);
+  
+  const loadError = useBuilderStore((state) => state.loadError);
+  const isProjectCorrupted = useBuilderStore((state) => state.isProjectCorrupted);
+  const clearLoadError = useBuilderStore((state) => state.clearLoadError);
 
   const toast = useToast();
 
@@ -120,6 +125,28 @@ function AppContent() {
       toast.error(saveErrorMessage);
     }
   }, [saveStatus, saveErrorMessage, toast]);
+
+  useEffect(() => {
+    if (loadError) {
+      if (isProjectCorrupted) {
+        toast.error(`项目数据损坏: ${loadError}，已创建新的空项目`);
+      } else {
+        toast.error(`加载失败: ${loadError}`);
+      }
+      clearLoadError();
+    }
+  }, [loadError, isProjectCorrupted, clearLoadError, toast]);
+
+  useEffect(() => {
+    const storageWarning = getStorageWarningMessage();
+    if (storageWarning) {
+      const usage = estimateLocalStorageUsage();
+      toast.warning(
+        `存储空间警告: 已使用 ${formatStorageSize(usage.usedBytes)} / ${formatStorageSize(usage.totalBytes)} (${(usage.usedPercentage * 100).toFixed(0)}%)`,
+        8000
+      );
+    }
+  }, [toast]);
 
   const handleUndo = useCallback(() => {
     undo();

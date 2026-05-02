@@ -11,7 +11,7 @@ import {
   deleteProject as deleteProjectFromStorage,
   createNewEmptyProject as createNewEmptyProjectInStorage,
 } from '@/utils/storage';
-import type { ProjectMetadata } from '@/utils/storage';
+import type { ProjectMetadata, LoadProjectResult } from '@/utils/storage';
 
 const MAX_HISTORY_LENGTH = 50;
 
@@ -99,6 +99,9 @@ interface BuilderState {
   saveStatus: SaveStatus;
   saveErrorMessage: string | null;
   lastSavedAt: string | null;
+  
+  loadError: string | null;
+  isProjectCorrupted: boolean;
 
   setSelectedComponentId: (id: string | null) => void;
 
@@ -130,6 +133,7 @@ interface BuilderState {
   createNewProject: (name?: string) => void;
   setProjectName: (name: string) => void;
   setSaveStatus: (status: SaveStatus, errorMessage?: string) => void;
+  clearLoadError: () => void;
 
   listProjects: () => ProjectMetadata[];
   renameCurrentProject: (newName: string) => void;
@@ -354,6 +358,9 @@ export const useBuilderStore = create<BuilderState>()(
       saveStatus: 'idle',
       saveErrorMessage: null,
       lastSavedAt: null,
+      
+      loadError: null,
+      isProjectCorrupted: false,
 
       setSaveStatus: (status, errorMessage) => {
         set(
@@ -406,22 +413,33 @@ export const useBuilderStore = create<BuilderState>()(
       },
 
       loadProject: (projectId) => {
-        const project = loadProjectFromStorage(projectId);
-        if (!project) {
+        const result = loadProjectFromStorage(projectId);
+        
+        if (!result.success || !result.project) {
+          set(
+            {
+              loadError: result.validationErrors || '无法加载项目',
+              isProjectCorrupted: result.isCorrupted || false,
+            },
+            false,
+            'loadProject_failed'
+          );
           return false;
         }
 
         const { setComponents } = get();
-        setComponents(project.components);
+        setComponents(result.project.components);
 
         set(
           {
-            currentProjectId: project.id,
-            projectName: project.name,
-            lastSavedAt: project.updatedAt,
+            currentProjectId: result.project.id,
+            projectName: result.project.name,
+            lastSavedAt: result.project.updatedAt,
             selectedComponentId: null,
             saveStatus: 'idle',
             saveErrorMessage: null,
+            loadError: null,
+            isProjectCorrupted: false,
           },
           false,
           'loadProject'
@@ -447,12 +465,25 @@ export const useBuilderStore = create<BuilderState>()(
             selectedComponentId: null,
             saveStatus: 'idle',
             saveErrorMessage: null,
+            loadError: null,
+            isProjectCorrupted: false,
           },
           false,
           'loadLatestProject'
         );
 
         return true;
+      },
+      
+      clearLoadError: () => {
+        set(
+          {
+            loadError: null,
+            isProjectCorrupted: false,
+          },
+          false,
+          'clearLoadError'
+        );
       },
 
       createNewProject: (name = '未命名项目') => {
