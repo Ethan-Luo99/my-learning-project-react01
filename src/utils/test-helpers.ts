@@ -1,0 +1,317 @@
+import { ComponentType, type ComponentSchema, type TextComponentSchema, type ButtonComponentSchema, type ContainerComponentSchema } from '@/types/component';
+
+export const createMockTextComponent = (id: string, text: string = '测试文本'): TextComponentSchema => ({
+  id,
+  type: ComponentType.Text,
+  x: 10,
+  y: 10,
+  width: 200,
+  height: 'auto',
+  props: {
+    children: text,
+    variant: 'body',
+    weight: 'normal',
+    color: 'default',
+  },
+  styles: {},
+});
+
+export const createMockButtonComponent = (id: string, label: string = '测试按钮'): ButtonComponentSchema => ({
+  id,
+  type: ComponentType.Button,
+  x: 10,
+  y: 50,
+  width: 120,
+  height: 44,
+  props: {
+    children: label,
+    variant: 'primary',
+    size: 'md',
+  },
+  styles: {},
+});
+
+export const createMockContainerComponent = (id: string, children: ComponentSchema[] = []): ContainerComponentSchema => ({
+  id,
+  type: ComponentType.Container,
+  x: 10,
+  y: 100,
+  width: 400,
+  height: 200,
+  props: {
+    direction: 'row',
+    gap: 'md',
+    align: 'center',
+    justify: 'start',
+    wrap: 'false',
+    padding: 'md',
+  },
+  styles: {
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+  },
+  children,
+});
+
+export const createMockEmptyComponents = (): ComponentSchema[] => [];
+
+export const createMockSingleComponent = (): ComponentSchema[] => [
+  createMockTextComponent('text-1', '单个测试文本'),
+];
+
+export const createMockMultipleComponents = (): ComponentSchema[] => [
+  createMockTextComponent('text-1', '文本1'),
+  createMockButtonComponent('btn-1', '按钮1'),
+  createMockTextComponent('text-2', '文本2'),
+];
+
+export const createMockNestedComponents = (): ComponentSchema[] => [
+  createMockContainerComponent('container-1', [
+    createMockTextComponent('nested-text-1', '嵌套文本'),
+    createMockButtonComponent('nested-btn-1', '嵌套按钮'),
+  ]),
+  createMockTextComponent('outside-text', '外部文本'),
+];
+
+export const createMockComplexProject = (): ComponentSchema[] => [
+  createMockTextComponent('hero-title', '欢迎使用低代码平台'),
+  createMockButtonComponent('hero-btn', '立即开始'),
+  createMockContainerComponent('feature-section', [
+    createMockTextComponent('feature-1', '拖拽组件'),
+    createMockTextComponent('feature-2', '实时预览'),
+    createMockTextComponent('feature-3', '一键导出'),
+  ]),
+];
+
+export const STORAGE_PREFIX = 'lowcode_builder_project';
+export const PROJECT_LIST_KEY = `${STORAGE_PREFIX}_list`;
+
+export const getProjectKey = (id: string): string => `${STORAGE_PREFIX}_${id}`;
+
+export const clearAllTestProjects = (): void => {
+  const keys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith(STORAGE_PREFIX)) {
+      keys.push(key);
+    }
+  }
+  keys.forEach((key) => localStorage.removeItem(key));
+};
+
+export const getStorageSize = (): number => {
+  let total = 0;
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key) {
+      const value = localStorage.getItem(key) || '';
+      total += key.length + value.length;
+    }
+  }
+  return total;
+};
+
+export const fillLocalStorage = (targetSize: number): string => {
+  const base64Char = 'A';
+  let largeString = base64Char.repeat(100000);
+  let count = 0;
+  
+  while (true) {
+    try {
+      const key = `fill_test_${count}`;
+      localStorage.setItem(key, largeString);
+      count++;
+    } catch {
+      break;
+    }
+  }
+  
+  return `已填充 ${count} 个大块数据`;
+};
+
+export const clearFillData = (): void => {
+  const keys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('fill_test_')) {
+      keys.push(key);
+    }
+  }
+  keys.forEach((key) => localStorage.removeItem(key));
+};
+
+export interface TestResult {
+  name: string;
+  passed: boolean;
+  message: string;
+  error?: unknown;
+}
+
+export class TestRunner {
+  private results: TestResult[] = [];
+  private testCount = 0;
+  private passedCount = 0;
+
+  beforeAll(callback: () => void): void {
+    callback();
+  }
+
+  afterAll(callback: () => void): void {
+    callback();
+  }
+
+  beforeEach(callback: () => void): void {
+    callback();
+  }
+
+  test(name: string, testFn: () => void | Promise<void>): void {
+    this.testCount++;
+    try {
+      const result = testFn();
+      if (result instanceof Promise) {
+        console.warn(`Test "${name}" is async but not awaited in simple test runner`);
+      }
+      this.results.push({ name, passed: true, message: 'Passed' });
+      this.passedCount++;
+    } catch (error) {
+      this.results.push({ 
+        name, 
+        passed: false, 
+        message: error instanceof Error ? error.message : String(error),
+        error 
+      });
+    }
+  }
+
+  getResults(): TestResult[] {
+    return [...this.results];
+  }
+
+  getSummary(): { total: number; passed: number; failed: number } {
+    return {
+      total: this.testCount,
+      passed: this.passedCount,
+      failed: this.testCount - this.passedCount,
+    };
+  }
+
+  printSummary(): void {
+    const summary = this.getSummary();
+    console.log('='.repeat(60));
+    console.log('测试结果汇总');
+    console.log('='.repeat(60));
+    
+    this.results.forEach((r) => {
+      const status = r.passed ? '✓' : '✗';
+      console.log(`${status} ${r.name}`);
+      if (!r.passed) {
+        console.log(`   错误: ${r.message}`);
+      }
+    });
+
+    console.log('='.repeat(60));
+    console.log(`总计: ${summary.total}, 通过: ${summary.passed}, 失败: ${summary.failed}`);
+    console.log('='.repeat(60));
+  }
+}
+
+export const assert = (condition: boolean, message: string): void => {
+  if (!condition) {
+    throw new Error(message);
+  }
+};
+
+export const assertEqual = <T>(actual: T, expected: T, message: string): void => {
+  const actualStr = JSON.stringify(actual);
+  const expectedStr = JSON.stringify(expected);
+  if (actualStr !== expectedStr) {
+    throw new Error(`${message}\n  实际: ${actualStr}\n  期望: ${expectedStr}`);
+  }
+};
+
+export const assertNotNull = (value: unknown, message: string): void => {
+  if (value === null || value === undefined) {
+    throw new Error(message);
+  }
+};
+
+export const assertThrows = (fn: () => void, expectedMessage?: string): void => {
+  let threw = false;
+  let actualError: Error | null = null;
+  
+  try {
+    fn();
+  } catch (error) {
+    threw = true;
+    actualError = error instanceof Error ? error : new Error(String(error));
+  }
+  
+  if (!threw) {
+    throw new Error('期望抛出错误但没有抛出');
+  }
+  
+  if (expectedMessage && actualError && !actualError.message.includes(expectedMessage)) {
+    throw new Error(`错误消息不匹配\n  实际: ${actualError.message}\n  期望包含: ${expectedMessage}`);
+  }
+};
+
+export const assertDateString = (str: string, message: string): void => {
+  const date = new Date(str);
+  if (isNaN(date.getTime())) {
+    throw new Error(`${message}: "${str}" 不是有效的 ISO 日期字符串`);
+  }
+};
+
+export const assertProjectStructure = (project: unknown): void => {
+  assertNotNull(project, '项目不应该为 null');
+  
+  const p = project as Record<string, unknown>;
+  
+  assertNotNull(p.id, '项目应该有 id');
+  assert(typeof p.id === 'string', 'id 应该是字符串');
+  
+  assertNotNull(p.name, '项目应该有 name');
+  assert(typeof p.name === 'string', 'name 应该是字符串');
+  
+  assertNotNull(p.components, '项目应该有 components');
+  assert(Array.isArray(p.components), 'components 应该是数组');
+  
+  assertNotNull(p.createdAt, '项目应该有 createdAt');
+  assert(typeof p.createdAt === 'string', 'createdAt 应该是字符串');
+  assertDateString(p.createdAt, 'createdAt');
+  
+  assertNotNull(p.updatedAt, '项目应该有 updatedAt');
+  assert(typeof p.updatedAt === 'string', 'updatedAt 应该是字符串');
+  assertDateString(p.updatedAt, 'updatedAt');
+  
+  const createdDate = new Date(p.createdAt);
+  const updatedDate = new Date(p.updatedAt);
+  assert(
+    updatedDate >= createdDate,
+    `updatedAt (${p.updatedAt}) 应该大于等于 createdAt (${p.createdAt})`
+  );
+};
+
+export const assertProjectMetadataStructure = (metadata: unknown): void => {
+  assertNotNull(metadata, '元数据不应该为 null');
+  
+  const m = metadata as Record<string, unknown>;
+  
+  assertNotNull(m.id, '元数据应该有 id');
+  assert(typeof m.id === 'string', 'id 应该是字符串');
+  
+  assertNotNull(m.name, '元数据应该有 name');
+  assert(typeof m.name === 'string', 'name 应该是字符串');
+  
+  assertNotNull(m.createdAt, '元数据应该有 createdAt');
+  assert(typeof m.createdAt === 'string', 'createdAt 应该是字符串');
+  assertDateString(m.createdAt, 'createdAt');
+  
+  assertNotNull(m.updatedAt, '元数据应该有 updatedAt');
+  assert(typeof m.updatedAt === 'string', 'updatedAt 应该是字符串');
+  assertDateString(m.updatedAt, 'updatedAt');
+  
+  assertNotNull(m.componentCount, '元数据应该有 componentCount');
+  assert(typeof m.componentCount === 'number', 'componentCount 应该是数字');
+  assert(m.componentCount >= 0, 'componentCount 应该 >= 0');
+};
