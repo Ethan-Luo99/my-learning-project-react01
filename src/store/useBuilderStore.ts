@@ -106,6 +106,7 @@ interface BuilderState {
   addComponentToParent: (parentId: string | null, component: ComponentSchema) => void;
 
   removeComponent: (id: string) => void;
+  moveComponentToParent: (componentId: string, newParentId: string | null) => void;
 
   updateComponent: (id: string, updates: Partial<ComponentSchema>) => void;
 
@@ -189,6 +190,60 @@ const addComponentToParentInTree = (
     }
     return comp;
   });
+};
+
+const findComponentInTree = (
+  components: ComponentSchema[],
+  id: string
+): ComponentSchema | null => {
+  for (const comp of components) {
+    if (comp.id === id) {
+      return comp;
+    }
+    if (isContainerComponent(comp) && comp.children && comp.children.length > 0) {
+      const found = findComponentInTree(comp.children, id);
+      if (found) {
+        return found;
+      }
+    }
+  }
+  return null;
+};
+
+interface ExtractResult {
+  components: ComponentSchema[];
+  extracted: ComponentSchema | null;
+}
+
+const extractComponentFromTree = (
+  components: ComponentSchema[],
+  id: string
+): ExtractResult => {
+  let extracted: ComponentSchema | null = null;
+
+  const newComponents = components
+    .filter((comp) => {
+      if (comp.id === id) {
+        extracted = comp;
+        return false;
+      }
+      return true;
+    })
+    .map((comp) => {
+      if (isContainerComponent(comp) && comp.children && comp.children.length > 0) {
+        const result = extractComponentFromTree(comp.children, id);
+        if (result.extracted) {
+          extracted = result.extracted;
+        }
+        return {
+          ...comp,
+          children: result.components,
+        };
+      }
+      return comp;
+    });
+
+  return { components: newComponents, extracted };
 };
 
 const createInitialHistory = (): HistoryState[] => [
@@ -567,6 +622,41 @@ export const useBuilderStore = create<BuilderState>()(
           }),
           false,
           { type: 'updateComponent', id, updates }
+        );
+      },
+
+      moveComponentToParent: (componentId, newParentId) => {
+        const { components, pushHistory } = get();
+        
+        const extractResult = extractComponentFromTree(components, componentId);
+        
+        if (!extractResult.extracted) {
+          logger.warn('moveComponentToParent: 未找到组件', componentId);
+          return;
+        }
+
+        const newComponents = addComponentToParentInTree(
+          extractResult.components,
+          newParentId,
+          extractResult.extracted
+        );
+
+        pushHistory(components, newComponents);
+        set(
+          (state) => {
+            const currentExtractResult = extractComponentFromTree(state.components, componentId);
+            if (!currentExtractResult.extracted) {
+              return state;
+            }
+            const movedComponents = addComponentToParentInTree(
+              currentExtractResult.components,
+              newParentId,
+              currentExtractResult.extracted
+            );
+            return { components: movedComponents };
+          },
+          false,
+          { type: 'moveComponentToParent', componentId, newParentId }
         );
       },
     }),

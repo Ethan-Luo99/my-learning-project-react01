@@ -7,6 +7,9 @@ import {
   ClickEventType
 } from '@/types/component';
 import { cn } from '@/utils/classname';
+import { useDroppable } from '@dnd-kit/core';
+import { createContainerDropZoneId } from '@/constants/dnd';
+import { logger } from '@/utils/logger';
 
 interface ComponentRendererProps {
   component: ComponentSchema;
@@ -72,6 +75,72 @@ const executeClickEvent = (eventConfig?: ClickEventConfig): void => {
       }
       break;
   }
+};
+
+interface ContainerDropZoneProps {
+  containerId: string;
+  children?: React.ReactNode;
+  isEmpty: boolean;
+  editable: boolean;
+}
+
+const ContainerDropZone: React.FC<ContainerDropZoneProps> = ({
+  containerId,
+  children,
+  isEmpty,
+  editable,
+}) => {
+  const dropZoneId = createContainerDropZoneId(containerId);
+
+  const { setNodeRef, isOver, active } = useDroppable({
+    id: dropZoneId,
+  });
+
+  logger.log('ContainerDropZone 渲染:', {
+    containerId,
+    dropZoneId,
+    isOver,
+    active: active ? String(active.id) : null,
+  });
+
+  if (!editable) {
+    return <>{children}</>;
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        'w-full h-full min-h-[40px] transition-all duration-200',
+        isOver && 'ring-2 ring-primary-500 ring-inset bg-primary-50/50',
+        isEmpty && 'flex items-center justify-center'
+      )}
+      data-container-drop-zone={containerId}
+    >
+      {isEmpty ? (
+        <div className="flex flex-col items-center justify-center gap-2 p-4 pointer-events-none">
+          <span className={cn(
+            'text-3xl transition-transform duration-300',
+            isOver && 'scale-110 animate-bounce'
+          )}>
+            {isOver ? '✅' : '📦'}
+          </span>
+          <Text
+            variant="caption"
+            color="muted"
+            className={cn(
+              'text-center',
+              isOver ? 'text-primary-600' : 'text-gray-400'
+            )}
+          >
+            {isOver ? '释放组件到这里' : '拖入组件到这里'}
+          </Text>
+        </div>
+      ) : (
+        children
+      )}
+    </div>
+  );
 };
 
 const ComponentRenderer: React.FC<ComponentRendererProps> = ({
@@ -178,6 +247,12 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 
     case ComponentType.Container: {
       const { className: containerClassName, ...restContainerProps } = props;
+      const isEmptyContainer = !isContainerComponent(component) || 
+        !component.children || 
+        component.children.length === 0;
+      
+      const containerChildren = isContainerComponent(component) ? component.children : [];
+      
       return (
         <div
           className={wrapperClassName}
@@ -193,7 +268,22 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             className={containerClassName}
             {...restContainerProps}
           >
-            {renderContainerChildren()}
+            <ContainerDropZone
+              containerId={component.id}
+              isEmpty={isEmptyContainer}
+              editable={editable}
+            >
+              {containerChildren && containerChildren.length > 0
+                ? containerChildren.map((child) => (
+                    <ComponentRenderer
+                      key={child.id}
+                      component={child}
+                      onClick={editable && onClick ? (e) => handleWrapperClick(e, onClick) : undefined}
+                      editable={editable}
+                    />
+                  ))
+                : null}
+            </ContainerDropZone>
           </Container>
         </div>
       );

@@ -26,6 +26,8 @@ import {
   COMPONENT_MIN_SIZE,
   isOverCanvas,
   clamp,
+  isContainerDropZone,
+  getContainerIdFromDropZone,
 } from '@/constants/dnd';
 import { generateId } from '@/utils/id';
 import { DEFAULT_COMPONENT_CONFIGS } from '@/constants/mockData';
@@ -120,7 +122,12 @@ interface DragPosition {
 }
 
 export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children }) => {
-  const { addComponent, updateComponent } = useBuilderStore();
+  const { 
+    addComponent, 
+    updateComponent, 
+    addComponentToParent,
+    moveComponentToParent,
+  } = useBuilderStore();
 
   const [activeDragItem, setActiveDragItem] = useState<ActiveDragItem | null>(null);
 
@@ -370,45 +377,115 @@ export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children
 
       logger.log('✅ 在画布上，准备放置组件');
 
+      // 判断目标放置位置类型
+      const isOverRootDropZone = effectiveOverId === DROP_ZONE_ID;
+      const isOverContainerDropZone = effectiveOverId ? isContainerDropZone(effectiveOverId) : false;
+      
+      // 获取目标 Container ID（如果拖到 Container 内部）
+      let targetContainerId: string | null = null;
+      if (isOverContainerDropZone && effectiveOverId) {
+        targetContainerId = getContainerIdFromDropZone(effectiveOverId);
+      }
+
+      logger.log('放置位置类型:', {
+        isOverRootDropZone,
+        isOverContainerDropZone,
+        targetContainerId,
+      });
+
+      // 处理从组件库拖拽的新组件
       if (isPanelItem(activeIdStr)) {
         const type = getPanelItemType(activeIdStr);
         logger.log('  - 从组件库拖拽，类型:', type);
 
         const position = getCanvasRelativePosition(mouseX, mouseY);
         const newComponent = createComponentFromType(type, position.x, position.y);
-        addComponent(newComponent);
 
-        logger.log(
-          '✅ 从组件库添加新组件:',
-          newComponent.type,
-          newComponent.id,
-          '位置:',
-          `(${newComponent.x}, ${newComponent.y})`
-        );
+        if (isOverContainerDropZone && targetContainerId) {
+          // 拖到 Container 内部
+          addComponentToParent(targetContainerId, newComponent);
+          logger.log(
+            '✅ 从组件库添加新组件到 Container:',
+            newComponent.type,
+            newComponent.id,
+            '父容器:',
+            targetContainerId
+          );
+        } else {
+          // 拖到根级别画布
+          addComponent(newComponent);
+          logger.log(
+            '✅ 从组件库添加新组件到根级别:',
+            newComponent.type,
+            newComponent.id,
+            '位置:',
+            `(${newComponent.x}, ${newComponent.y})`
+          );
+        }
+        
         isOverDropZoneRef.current = false;
         return;
       }
 
+      // 处理从画布拖拽的已有组件
       if (isCanvasItem(activeIdStr)) {
         const actualActiveId = getCanvasItemId(activeIdStr);
         const position = getCanvasRelativePosition(mouseX, mouseY);
 
+        // 防止将组件拖入自身（如果拖拽的是 Container）
+        if (targetContainerId === actualActiveId) {
+          logger.log('⚠️ 不能将组件拖入自身，取消操作');
+          isOverDropZoneRef.current = false;
+          return;
+        }
+
+        // 更新组件位置（无论拖到哪里，位置都需要更新）
         updateComponent(actualActiveId, {
           x: position.x,
           y: position.y,
         });
 
-        logger.log(
-          '移动组件:',
-          actualActiveId,
-          '新位置:',
-          `(${position.x}, ${position.y})`
-        );
+        // 处理父容器变化
+        if (isOverContainerDropZone && targetContainerId) {
+          // 拖到 Container 内部
+          moveComponentToParent(actualActiveId, targetContainerId);
+          logger.log(
+            '✅ 移动组件到 Container:',
+            actualActiveId,
+            '父容器:',
+            targetContainerId,
+            '位置:',
+            `(${position.x}, ${position.y})`
+          );
+        } else if (isOverRootDropZone) {
+          // 拖到根级别画布
+          moveComponentToParent(actualActiveId, null);
+          logger.log(
+            '✅ 移动组件到根级别:',
+            actualActiveId,
+            '位置:',
+            `(${position.x}, ${position.y})`
+          );
+        } else {
+          // 拖到其他组件上（只更新位置）
+          logger.log(
+            '移动组件位置:',
+            actualActiveId,
+            '新位置:',
+            `(${position.x}, ${position.y})`
+          );
+        }
       }
 
       isOverDropZoneRef.current = false;
     },
-    [addComponent, updateComponent, handleGlobalPointerMove]
+    [
+      addComponent, 
+      updateComponent, 
+      addComponentToParent, 
+      moveComponentToParent,
+      handleGlobalPointerMove
+    ]
   );
 
   const contextValue: CanvasContextValue = useMemo(

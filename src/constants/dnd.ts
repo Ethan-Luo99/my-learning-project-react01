@@ -1,6 +1,7 @@
 export const DND_PREFIX = {
   PANEL: 'panel',
   CANVAS: 'canvas',
+  CONTAINER: 'container-drop',
 } as const;
 
 export const DROP_ZONE_ID = 'canvas-drop-zone';
@@ -34,7 +35,7 @@ export const isCanvasItem = (id: string): boolean => {
 
 export const isOverCanvas = (overId: string | null): boolean => {
   if (!overId) return false;
-  return overId === DROP_ZONE_ID || isCanvasItem(overId);
+  return overId === DROP_ZONE_ID || isCanvasItem(overId) || isContainerDropZone(overId);
 };
 
 export const getPanelItemType = (id: string): string => {
@@ -51,6 +52,18 @@ export const createPanelItemId = (type: string): string => {
 
 export const createCanvasItemId = (id: string): string => {
   return `${DND_PREFIX.CANVAS}-${id}`;
+};
+
+export const createContainerDropZoneId = (containerId: string): string => {
+  return `${DND_PREFIX.CONTAINER}-${containerId}`;
+};
+
+export const isContainerDropZone = (id: string): boolean => {
+  return id.startsWith(`${DND_PREFIX.CONTAINER}-`);
+};
+
+export const getContainerIdFromDropZone = (dropZoneId: string): string => {
+  return dropZoneId.replace(`${DND_PREFIX.CONTAINER}-`, '');
 };
 
 export const snapToGrid = (value: number, gridSize: number = GRID_SIZE): number => {
