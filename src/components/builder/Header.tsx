@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui';
 import { cn } from '@/utils/classname';
 import type { SaveStatus } from '@/store/useBuilderStore';
+import { getKeyboardShortcutsInfo } from '@/hooks/useKeyboardShortcuts';
 
 interface HeaderProps {
   className?: string;
@@ -369,6 +370,9 @@ const Header = ({
         >
           <UndoIcon />
           <span className="hidden lg:inline">撤销</span>
+          <span className="hidden lg:inline text-xs text-gray-400 font-mono bg-gray-100 px-1.5 py-0.5 rounded">
+            {getKeyboardShortcutsInfo().undo.keyLabel}
+          </span>
         </Button>
         <Button
           variant="ghost"
@@ -380,6 +384,9 @@ const Header = ({
         >
           <RedoIcon />
           <span className="hidden lg:inline">重做</span>
+          <span className="hidden lg:inline text-xs text-gray-400 font-mono bg-gray-100 px-1.5 py-0.5 rounded">
+            {getKeyboardShortcutsInfo().redo.keyLabel}
+          </span>
         </Button>
       </div>
 

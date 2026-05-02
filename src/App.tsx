@@ -7,6 +7,7 @@ import { PropertyPanel } from '@/components/builder/PropertyPanel';
 import { DndContextProvider } from '@/components/builder/DndContext';
 import { useBuilderStore } from '@/store/useBuilderStore';
 import { useAutoSave } from '@/hooks/useAutoSave';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { ToastProvider, useToast } from '@/components/ui';
 import { downloadProject, calculateJSONSize, EXPORT_FILE_SIZE_WARNING_LIMIT } from '@/utils/import-export';
 import type { Project } from '@/utils/storage';
@@ -15,8 +16,10 @@ function AppContent() {
   const navigate = useNavigate();
   const undo = useBuilderStore((state) => state.undo);
   const redo = useBuilderStore((state) => state.redo);
+  const removeComponent = useBuilderStore((state) => state.removeComponent);
   const canUndo = useBuilderStore((state) => state.canUndo);
   const canRedo = useBuilderStore((state) => state.canRedo);
+  const selectedComponentId = useBuilderStore((state) => state.selectedComponentId);
   const saveCurrentProject = useBuilderStore((state) => state.saveCurrentProject);
   const loadLatestProject = useBuilderStore((state) => state.loadLatestProject);
   const projectName = useBuilderStore((state) => state.projectName);
@@ -29,6 +32,19 @@ function AppContent() {
   const toast = useToast();
 
   useAutoSave();
+
+  const handleDelete = useCallback(() => {
+    if (selectedComponentId) {
+      removeComponent(selectedComponentId);
+    }
+  }, [selectedComponentId, removeComponent]);
+
+  useKeyboardShortcuts({
+    onUndo: undo,
+    onRedo: redo,
+    onDelete: handleDelete,
+    enabled: true,
+  });
 
   useEffect(() => {
     const hasProject = loadLatestProject();
