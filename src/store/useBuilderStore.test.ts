@@ -473,6 +473,359 @@ export const runBuilderStoreTests = (): TestRunner => {
     assertEqual(inner.children!.length, 1, '重做3次后文本应该回到最终状态');
   });
 
+  runner.test('层级排序: 3个组件同时存在时上移/下移的索引变化验证', () => {
+    const state = useBuilderStore.getState();
+    
+    const text1 = createMockTextComponent('text-1', '文本1');
+    const text2 = createMockTextComponent('text-2', '文本2');
+    const text3 = createMockTextComponent('text-3', '文本3');
+    
+    state.addComponent(text1);
+    state.addComponent(text2);
+    state.addComponent(text3);
+    
+    let snapshot = getStoreSnapshot();
+    assertEqual(snapshot.components[0].id, 'text-1', '初始顺序: text-1 (索引0)');
+    assertEqual(snapshot.components[1].id, 'text-2', '初始顺序: text-2 (索引1)');
+    assertEqual(snapshot.components[2].id, 'text-3', '初始顺序: text-3 (索引2)');
+    
+    const layerInfo1 = state.getComponentLayerInfo('text-1');
+    const layerInfo2 = state.getComponentLayerInfo('text-2');
+    const layerInfo3 = state.getComponentLayerInfo('text-3');
+    
+    assertNotNull(layerInfo1, '应该能获取 text-1 的层级信息');
+    assertNotNull(layerInfo2, '应该能获取 text-2 的层级信息');
+    assertNotNull(layerInfo3, '应该能获取 text-3 的层级信息');
+    
+    assertEqual(layerInfo1!.currentLayer, 1, 'text-1 当前层级应为 1');
+    assertEqual(layerInfo2!.currentLayer, 2, 'text-2 当前层级应为 2');
+    assertEqual(layerInfo3!.currentLayer, 3, 'text-3 当前层级应为 3');
+    assertEqual(layerInfo1!.totalLayers, 3, '总层级应为 3');
+    
+    state.moveUp('text-1');
+    snapshot = getStoreSnapshot();
+    assertEqual(snapshot.components[0].id, 'text-2', 'text-1 上移后，text-2 应该在索引0');
+    assertEqual(snapshot.components[1].id, 'text-1', 'text-1 上移后，应该在索引1');
+    assertEqual(snapshot.components[2].id, 'text-3', 'text-3 位置不变');
+    
+    state.moveDown('text-3');
+    snapshot = getStoreSnapshot();
+    assertEqual(snapshot.components[0].id, 'text-2', 'text-2 位置不变');
+    assertEqual(snapshot.components[1].id, 'text-3', 'text-3 下移后，应该在索引1');
+    assertEqual(snapshot.components[2].id, 'text-1', 'text-1 应该在索引2');
+  });
+
+  runner.test('层级排序: 5个组件时置顶/置底的索引验证', () => {
+    const state = useBuilderStore.getState();
+    
+    const text1 = createMockTextComponent('text-1', '文本1');
+    const text2 = createMockTextComponent('text-2', '文本2');
+    const text3 = createMockTextComponent('text-3', '文本3');
+    const text4 = createMockTextComponent('text-4', '文本4');
+    const text5 = createMockTextComponent('text-5', '文本5');
+    
+    state.addComponent(text1);
+    state.addComponent(text2);
+    state.addComponent(text3);
+    state.addComponent(text4);
+    state.addComponent(text5);
+    
+    let snapshot = getStoreSnapshot();
+    assertEqual(snapshot.components[0].id, 'text-1', '初始顺序: text-1 (索引0)');
+    assertEqual(snapshot.components[4].id, 'text-5', '初始顺序: text-5 (索引4)');
+    
+    const layerInfo1 = state.getComponentLayerInfo('text-1');
+    const layerInfo5 = state.getComponentLayerInfo('text-5');
+    
+    assertEqual(layerInfo1!.currentLayer, 1, 'text-1 当前层级应为 1（最底层）');
+    assertEqual(layerInfo5!.currentLayer, 5, 'text-5 当前层级应为 5（最顶层）');
+    
+    state.moveToTop('text-1');
+    snapshot = getStoreSnapshot();
+    assertEqual(snapshot.components[4].id, 'text-1', 'text-1 置顶后应该在索引4（最顶层）');
+    
+    const layerInfo1AfterTop = state.getComponentLayerInfo('text-1');
+    assertEqual(layerInfo1AfterTop!.currentLayer, 5, 'text-1 置顶后层级应为 5');
+    
+    state.moveToBottom('text-5');
+    snapshot = getStoreSnapshot();
+    assertEqual(snapshot.components[0].id, 'text-5', 'text-5 置底后应该在索引0（最底层）');
+    
+    const layerInfo5AfterBottom = state.getComponentLayerInfo('text-5');
+    assertEqual(layerInfo5AfterBottom!.currentLayer, 1, 'text-5 置底后层级应为 1');
+    
+    state.moveToTop('text-3');
+    snapshot = getStoreSnapshot();
+    assertEqual(snapshot.components[4].id, 'text-3', 'text-3 置顶后应该在索引4');
+  });
+
+  runner.test('层级排序: 组件已经在最顶层时上移和置顶按钮不生效', () => {
+    const state = useBuilderStore.getState();
+    
+    const text1 = createMockTextComponent('text-1', '文本1');
+    const text2 = createMockTextComponent('text-2', '文本2');
+    const text3 = createMockTextComponent('text-3', '文本3');
+    
+    state.addComponent(text1);
+    state.addComponent(text2);
+    state.addComponent(text3);
+    
+    let snapshot = getStoreSnapshot();
+    assertEqual(snapshot.components.length, 3, '应该有3个组件');
+    
+    assert(state.canMoveUp('text-1') === true, 'text-1 (索引0) 应该可以上移');
+    assert(state.canMoveUp('text-2') === true, 'text-2 (索引1) 应该可以上移');
+    assert(state.canMoveUp('text-3') === false, 'text-3 (索引2，最顶层) 不应该可以上移');
+    
+    const originalComponents = [...snapshot.components];
+    state.moveUp('text-3');
+    snapshot = getStoreSnapshot();
+    
+    assertEqual(
+      JSON.stringify(snapshot.components.map(c => c.id)),
+      JSON.stringify(originalComponents.map(c => c.id)),
+      'text-3 已经在最顶层，moveUp 不应该改变顺序'
+    );
+    
+    state.moveToTop('text-3');
+    snapshot = getStoreSnapshot();
+    
+    assertEqual(
+      JSON.stringify(snapshot.components.map(c => c.id)),
+      JSON.stringify(originalComponents.map(c => c.id)),
+      'text-3 已经在最顶层，moveToTop 不应该改变顺序'
+    );
+  });
+
+  runner.test('层级排序: 组件已经在最底层时下移和置底按钮不生效', () => {
+    const state = useBuilderStore.getState();
+    
+    const text1 = createMockTextComponent('text-1', '文本1');
+    const text2 = createMockTextComponent('text-2', '文本2');
+    const text3 = createMockTextComponent('text-3', '文本3');
+    
+    state.addComponent(text1);
+    state.addComponent(text2);
+    state.addComponent(text3);
+    
+    let snapshot = getStoreSnapshot();
+    assertEqual(snapshot.components.length, 3, '应该有3个组件');
+    
+    assert(state.canMoveDown('text-1') === false, 'text-1 (索引0，最底层) 不应该可以下移');
+    assert(state.canMoveDown('text-2') === true, 'text-2 (索引1) 应该可以下移');
+    assert(state.canMoveDown('text-3') === true, 'text-3 (索引2) 应该可以下移');
+    
+    const originalComponents = [...snapshot.components];
+    state.moveDown('text-1');
+    snapshot = getStoreSnapshot();
+    
+    assertEqual(
+      JSON.stringify(snapshot.components.map(c => c.id)),
+      JSON.stringify(originalComponents.map(c => c.id)),
+      'text-1 已经在最底层，moveDown 不应该改变顺序'
+    );
+    
+    state.moveToBottom('text-1');
+    snapshot = getStoreSnapshot();
+    
+    assertEqual(
+      JSON.stringify(snapshot.components.map(c => c.id)),
+      JSON.stringify(originalComponents.map(c => c.id)),
+      'text-1 已经在最底层，moveToBottom 不应该改变顺序'
+    );
+  });
+
+  runner.test('层级排序: Container内子组件的层级调整只能在该Container的children范围内', () => {
+    const state = useBuilderStore.getState();
+    
+    const child1 = createMockTextComponent('child-1', '子组件1');
+    const child2 = createMockTextComponent('child-2', '子组件2');
+    const child3 = createMockTextComponent('child-3', '子组件3');
+    const container = createMockContainerComponent('container-1', [child1, child2, child3]);
+    
+    const outside1 = createMockTextComponent('outside-1', '外部组件1');
+    const outside2 = createMockTextComponent('outside-2', '外部组件2');
+    
+    state.addComponent(container);
+    state.addComponent(outside1);
+    state.addComponent(outside2);
+    
+    let snapshot = getStoreSnapshot();
+    assertEqual(snapshot.components.length, 3, '根级别应该有3个组件: container, outside1, outside2');
+    
+    const containerInStore = findComponentById(snapshot.components, 'container-1') as ContainerComponentSchema;
+    assertEqual(containerInStore.children!.length, 3, 'Container 应该有3个子组件');
+    assertEqual(containerInStore.children![0].id, 'child-1', '初始顺序: child-1');
+    assertEqual(containerInStore.children![1].id, 'child-2', '初始顺序: child-2');
+    assertEqual(containerInStore.children![2].id, 'child-3', '初始顺序: child-3');
+    
+    const child1LayerInfo = state.getComponentLayerInfo('child-1');
+    const outside1LayerInfo = state.getComponentLayerInfo('outside-1');
+    
+    assertEqual(child1LayerInfo!.totalLayers, 3, 'child-1 的同级总数应为 3（Container 内的子组件）');
+    assertEqual(outside1LayerInfo!.totalLayers, 3, 'outside-1 的同级总数应为 3（根级别组件）');
+    
+    state.moveUp('child-1');
+    
+    snapshot = getStoreSnapshot();
+    const containerAfterMoveUp = findComponentById(snapshot.components, 'container-1') as ContainerComponentSchema;
+    
+    assertEqual(containerAfterMoveUp.children![0].id, 'child-2', 'child-1 上移后，child-2 应该在索引0');
+    assertEqual(containerAfterMoveUp.children![1].id, 'child-1', 'child-1 上移后，应该在索引1');
+    assertEqual(containerAfterMoveUp.children![2].id, 'child-3', 'child-3 位置不变');
+    
+    assertEqual(snapshot.components[1].id, 'outside-1', '外部组件 outside-1 位置不变');
+    assertEqual(snapshot.components[2].id, 'outside-2', '外部组件 outside-2 位置不变');
+    
+    state.moveToTop('child-2');
+    
+    snapshot = getStoreSnapshot();
+    const containerAfterMoveToTop = findComponentById(snapshot.components, 'container-1') as ContainerComponentSchema;
+    
+    assertEqual(containerAfterMoveToTop.children![2].id, 'child-2', 'child-2 置顶后应该在索引2（Container 内最顶层）');
+    assertEqual(snapshot.components.length, 3, '根级别组件数量不变');
+  });
+
+  runner.test('层级排序: 撤销/重做对层级变更的恢复', () => {
+    const state = useBuilderStore.getState();
+    
+    const text1 = createMockTextComponent('text-1', '文本1');
+    const text2 = createMockTextComponent('text-2', '文本2');
+    const text3 = createMockTextComponent('text-3', '文本3');
+    
+    state.addComponent(text1);
+    state.addComponent(text2);
+    state.addComponent(text3);
+    
+    let snapshot = getStoreSnapshot();
+    const originalOrder = ['text-1', 'text-2', 'text-3'];
+    assertEqual(
+      JSON.stringify(snapshot.components.map(c => c.id)),
+      JSON.stringify(originalOrder),
+      '初始顺序正确'
+    );
+    
+    state.moveUp('text-1');
+    state.moveToTop('text-3');
+    state.moveDown('text-2');
+    
+    snapshot = getStoreSnapshot();
+    assert(snapshot.canUndo, '应该可以撤销');
+    
+    const orderAfterMoves = snapshot.components.map(c => c.id);
+    assert(orderAfterMoves.length === 3, '组件数量不变');
+    
+    state.undo();
+    snapshot = getStoreSnapshot();
+    assert(snapshot.canUndo, '仍然可以撤销');
+    assert(snapshot.canRedo, '可以重做');
+    
+    state.undo();
+    snapshot = getStoreSnapshot();
+    assert(snapshot.canUndo, '仍然可以撤销');
+    
+    state.undo();
+    snapshot = getStoreSnapshot();
+    assertEqual(
+      JSON.stringify(snapshot.components.map(c => c.id)),
+      JSON.stringify(originalOrder),
+      '撤销3次后应该回到初始顺序'
+    );
+    assert(snapshot.canRedo, '可以重做');
+    
+    state.redo();
+    state.redo();
+    state.redo();
+    
+    snapshot = getStoreSnapshot();
+    assertEqual(
+      JSON.stringify(snapshot.components.map(c => c.id)),
+      JSON.stringify(orderAfterMoves),
+      '重做3次后应该回到移动后的顺序'
+    );
+  });
+
+  runner.test('层级排序: 添加/删除组件后层级的显示数字自动更新', () => {
+    const state = useBuilderStore.getState();
+    
+    const text1 = createMockTextComponent('text-1', '文本1');
+    const text2 = createMockTextComponent('text-2', '文本2');
+    
+    state.addComponent(text1);
+    state.addComponent(text2);
+    
+    let layerInfo1 = state.getComponentLayerInfo('text-1');
+    let layerInfo2 = state.getComponentLayerInfo('text-2');
+    
+    assertEqual(layerInfo1!.totalLayers, 2, '添加2个组件后，总层级应为 2');
+    assertEqual(layerInfo1!.currentLayer, 1, 'text-1 层级应为 1');
+    assertEqual(layerInfo2!.currentLayer, 2, 'text-2 层级应为 2');
+    
+    const text3 = createMockTextComponent('text-3', '文本3');
+    state.addComponent(text3);
+    
+    layerInfo1 = state.getComponentLayerInfo('text-1');
+    layerInfo2 = state.getComponentLayerInfo('text-2');
+    let layerInfo3 = state.getComponentLayerInfo('text-3');
+    
+    assertEqual(layerInfo1!.totalLayers, 3, '添加第3个组件后，总层级应为 3');
+    assertEqual(layerInfo1!.currentLayer, 1, 'text-1 层级应为 1');
+    assertEqual(layerInfo2!.currentLayer, 2, 'text-2 层级应为 2');
+    assertEqual(layerInfo3!.currentLayer, 3, 'text-3 层级应为 3');
+    
+    state.removeComponent('text-2');
+    
+    layerInfo1 = state.getComponentLayerInfo('text-1');
+    layerInfo3 = state.getComponentLayerInfo('text-3');
+    const layerInfo2AfterDelete = state.getComponentLayerInfo('text-2');
+    
+    assertEqual(layerInfo1!.totalLayers, 2, '删除 text-2 后，总层级应为 2');
+    assertEqual(layerInfo1!.currentLayer, 1, 'text-1 层级应为 1');
+    assertEqual(layerInfo3!.currentLayer, 2, 'text-3 层级应为 2（因为 text-2 被删除了）');
+    assertEqual(layerInfo2AfterDelete, null, 'text-2 被删除后，获取层级信息应返回 null');
+    
+    state.undo();
+    
+    layerInfo1 = state.getComponentLayerInfo('text-1');
+    layerInfo2 = state.getComponentLayerInfo('text-2');
+    layerInfo3 = state.getComponentLayerInfo('text-3');
+    
+    assertEqual(layerInfo1!.totalLayers, 3, '撤销删除后，总层级应为 3');
+    assertEqual(layerInfo1!.currentLayer, 1, 'text-1 层级应为 1');
+    assertEqual(layerInfo2!.currentLayer, 2, 'text-2 层级应为 2');
+    assertEqual(layerInfo3!.currentLayer, 3, 'text-3 层级应为 3');
+  });
+
+  runner.test('层级排序: 单个组件时所有移动操作都不生效', () => {
+    const state = useBuilderStore.getState();
+    
+    const text1 = createMockTextComponent('text-1', '文本1');
+    state.addComponent(text1);
+    
+    let snapshot = getStoreSnapshot();
+    assertEqual(snapshot.components.length, 1, '应该只有1个组件');
+    
+    assert(state.canMoveUp('text-1') === false, '只有1个组件时，不应该可以上移');
+    assert(state.canMoveDown('text-1') === false, '只有1个组件时，不应该可以下移');
+    
+    const layerInfo = state.getComponentLayerInfo('text-1');
+    assertEqual(layerInfo!.currentLayer, 1, '当前层级应为 1');
+    assertEqual(layerInfo!.totalLayers, 1, '总层级应为 1');
+    
+    const originalOrder = [...snapshot.components];
+    state.moveUp('text-1');
+    state.moveDown('text-1');
+    state.moveToTop('text-1');
+    state.moveToBottom('text-1');
+    
+    snapshot = getStoreSnapshot();
+    assertEqual(
+      JSON.stringify(snapshot.components.map(c => c.id)),
+      JSON.stringify(originalOrder.map(c => c.id)),
+      '所有移动操作都不应该改变顺序'
+    );
+  });
+
   return runner;
 };
 
