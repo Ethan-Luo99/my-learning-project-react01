@@ -7,6 +7,8 @@ interface KeyboardShortcutsProps {
   onUndo?: () => void;
   onRedo?: () => void;
   onDelete?: () => void;
+  onCopy?: () => void;
+  onPaste?: () => void;
   enabled?: boolean;
 }
 
@@ -22,6 +24,16 @@ interface KeyboardShortcutsInfo {
     keyLabel: string;
   };
   delete: {
+    key: string;
+    display: string;
+    keyLabel: string;
+  };
+  copy: {
+    key: string;
+    display: string;
+    keyLabel: string;
+  };
+  paste: {
     key: string;
     display: string;
     keyLabel: string;
@@ -67,6 +79,16 @@ export const getKeyboardShortcutsInfo = (): KeyboardShortcutsInfo => {
       display: 'Delete / Backspace',
       keyLabel: 'Del',
     },
+    copy: {
+      key: 'C',
+      display: `${modifierKeyDisplay} + C`,
+      keyLabel: `${modifierKeyLabel}C`,
+    },
+    paste: {
+      key: 'V',
+      display: `${modifierKeyDisplay} + V`,
+      keyLabel: `${modifierKeyLabel}V`,
+    },
   };
 };
 
@@ -74,12 +96,14 @@ export const useKeyboardShortcuts = ({
   onUndo,
   onRedo,
   onDelete,
+  onCopy,
+  onPaste,
   enabled = true,
 }: KeyboardShortcutsProps = {}) => {
   const location = useLocation();
   
   const handleKeyDown = useCallback(
-    (event: KeyboardEvent) => {
+    async (event: KeyboardEvent) => {
       if (!enabled) return;
       
       if (!isBuilderRoute(location.pathname)) {
@@ -101,6 +125,29 @@ export const useKeyboardShortcuts = ({
         if (key === 'delete' || key === 'backspace') {
           return;
         }
+        
+        if ((key === 'c' || key === 'v') && primaryModifierPressed) {
+          logger.debug('复制/粘贴：焦点在输入元素上，使用浏览器默认行为');
+          return;
+        }
+      }
+      
+      if (primaryModifierPressed && key === 'c' && !shiftPressed) {
+        if (onCopy) {
+          event.preventDefault();
+          logger.debug('快捷键触发：复制');
+          onCopy();
+        }
+        return;
+      }
+      
+      if (primaryModifierPressed && key === 'v' && !shiftPressed) {
+        if (onPaste) {
+          event.preventDefault();
+          logger.debug('快捷键触发：粘贴');
+          onPaste();
+        }
+        return;
       }
       
       if (primaryModifierPressed && key === 'z' && !shiftPressed) {
@@ -139,7 +186,7 @@ export const useKeyboardShortcuts = ({
         return;
       }
     },
-    [enabled, location.pathname, onUndo, onRedo, onDelete]
+    [enabled, location.pathname, onUndo, onRedo, onDelete, onCopy, onPaste]
   );
   
   useEffect(() => {

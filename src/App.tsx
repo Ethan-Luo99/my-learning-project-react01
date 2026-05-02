@@ -8,15 +8,38 @@ import { DndContextProvider } from '@/components/builder/DndContext';
 import { useBuilderStore } from '@/store/useBuilderStore';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { 
+  writeComponentToClipboard, 
+  readComponentFromClipboard 
+} from '@/utils/clipboard';
 import { ToastProvider, useToast } from '@/components/ui';
 import { downloadProject, calculateJSONSize, EXPORT_FILE_SIZE_WARNING_LIMIT } from '@/utils/import-export';
+import type { ComponentSchema } from '@/types/component';
 import type { Project } from '@/utils/storage';
+
+const findComponentById = (
+  components: ComponentSchema[],
+  id: string
+): ComponentSchema | null => {
+  for (const comp of components) {
+    if (comp.id === id) {
+      return comp;
+    }
+    if ('children' in comp && comp.children && comp.children.length > 0) {
+      const found = findComponentById(comp.children, id);
+      if (found) return found;
+    }
+  }
+  return null;
+};
 
 function AppContent() {
   const navigate = useNavigate();
   const undo = useBuilderStore((state) => state.undo);
   const redo = useBuilderStore((state) => state.redo);
   const removeComponent = useBuilderStore((state) => state.removeComponent);
+  const addComponent = useBuilderStore((state) => state.addComponent);
+  const setSelectedComponentId = useBuilderStore((state) => state.setSelectedComponentId);
   const canUndo = useBuilderStore((state) => state.canUndo);
   const canRedo = useBuilderStore((state) => state.canRedo);
   const selectedComponentId = useBuilderStore((state) => state.selectedComponentId);
@@ -39,10 +62,40 @@ function AppContent() {
     }
   }, [selectedComponentId, removeComponent]);
 
+  const handleCopy = useCallback(async () => {
+    if (!selectedComponentId) {
+      return;
+    }
+    
+    const componentToCopy = findComponentById(components, selectedComponentId);
+    if (!componentToCopy) {
+      return;
+    }
+    
+    const success = await writeComponentToClipboard(componentToCopy);
+    if (success) {
+      toast.success(`已复制: ${componentToCopy.type}`);
+    }
+  }, [selectedComponentId, components, toast]);
+
+  const handlePaste = useCallback(async () => {
+    const pastedComponent = await readComponentFromClipboard();
+    if (!pastedComponent) {
+      return;
+    }
+    
+    addComponent(pastedComponent);
+    setSelectedComponentId(pastedComponent.id);
+    
+    toast.success(`已粘贴: ${pastedComponent.type}`);
+  }, [addComponent, setSelectedComponentId, toast]);
+
   useKeyboardShortcuts({
     onUndo: undo,
     onRedo: redo,
     onDelete: handleDelete,
+    onCopy: handleCopy,
+    onPaste: handlePaste,
     enabled: true,
   });
 
