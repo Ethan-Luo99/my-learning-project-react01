@@ -1,8 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBuilderStore } from '@/store/useBuilderStore';
 import { useToast, ConfirmModal, InputModal, Button } from '@/components/ui';
 import { renameProject } from '@/utils/storage';
+import {
+  selectFileForImport,
+  readFileAsText,
+  importProjectFromJSON,
+  formatValidationErrors,
+  EXPORT_FILE_SIZE_ERROR_LIMIT,
+  EXPORT_FILE_SIZE_WARNING_LIMIT,
+} from '@/utils/import-export';
 import type { ProjectMetadata } from '@/utils/storage';
 import { cn } from '@/utils/classname';
 
@@ -255,12 +263,32 @@ const LoaderIcon = () => (
   </svg>
 );
 
+const ImportIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="17,8 12,13 7,8" />
+    <line x1="12" y1="13" x2="12" y2="3" />
+  </svg>
+);
+
 export const ProjectsPage: React.FC = () => {
   const navigate = useNavigate();
   const toast = useToast();
 
   const [projects, setProjects] = useState<ProjectMetadata[]>([]);
   const [isCreating, setIsCreating] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<ProjectMetadata | null>(null);
@@ -299,6 +327,75 @@ export const ProjectsPage: React.FC = () => {
       setIsCreating(false);
     }
   };
+
+  const handleImportProject = useCallback(async () => {
+    if (isImporting) return;
+
+    setIsImporting(true);
+
+    try {
+      const file = await selectFileForImport();
+
+      if (!file) {
+        setIsImporting(false);
+        return;
+      }
+
+      if (!file.name.toLowerCase().endsWith('.json')) {
+        toast.error('请选择 .json 格式的项目文件');
+        setIsImporting(false);
+        return;
+      }
+
+      if (file.size > EXPORT_FILE_SIZE_ERROR_LIMIT) {
+        toast.error(
+          `文件过大 (${(file.size / 1024 / 1024).toFixed(2)}MB)，最大限制 ${(EXPORT_FILE_SIZE_ERROR_LIMIT / 1024 / 1024).toFixed(0)}MB`
+        );
+        setIsImporting(false);
+        return;
+      }
+
+      if (file.size > EXPORT_FILE_SIZE_WARNING_LIMIT) {
+        toast.warning(
+          `文件较大 (${(file.size / 1024 / 1024).toFixed(2)}MB)，导入可能需要较长时间`
+        );
+      }
+
+      const jsonString = await readFileAsText(file);
+
+      const result = importProjectFromJSON(jsonString);
+
+      if (!result.success) {
+        const errorMessage = formatValidationErrors(result.errors);
+        toast.error(`导入失败: ${errorMessage || '无效的项目文件'}`);
+        setIsImporting(false);
+        return;
+      }
+
+      if (result.warnings.length > 0) {
+        result.warnings.forEach((warning) => {
+          toast.warning(warning);
+        });
+      }
+
+      const importedProject = result.project!;
+
+      toast.success(`导入成功: "${importedProject.name}"`);
+
+      const success = saveCurrentAndLoadProject(importedProject.id);
+      if (success) {
+        navigate('/builder');
+      } else {
+        refreshProjects();
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : '导入失败，请重试'
+      );
+    } finally {
+      setIsImporting(false);
+    }
+  }, [isImporting, toast, saveCurrentAndLoadProject, refreshProjects]);
 
   const handleOpenProject = (project: ProjectMetadata) => {
     const success = saveCurrentAndLoadProject(project.id);
@@ -385,14 +482,24 @@ export const ProjectsPage: React.FC = () => {
             </Button>
             <h1 className="text-xl font-bold text-gray-900">项目管理</h1>
           </div>
-          <Button
-            variant="primary"
-            onClick={handleNewProject}
-            disabled={isCreating}
-          >
-            {isCreating ? <LoaderIcon /> : <PlusIcon />}
-            {isCreating ? '创建中...' : '新建项目'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={handleImportProject}
+              disabled={isImporting}
+            >
+              {isImporting ? <LoaderIcon /> : <ImportIcon />}
+              <span className="hidden sm:inline">{isImporting ? '导入中...' : '导入项目'}</span>
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleNewProject}
+              disabled={isCreating}
+            >
+              {isCreating ? <LoaderIcon /> : <PlusIcon />}
+              <span className="hidden sm:inline">{isCreating ? '创建中...' : '新建项目'}</span>
+            </Button>
+          </div>
         </div>
       </header>
 

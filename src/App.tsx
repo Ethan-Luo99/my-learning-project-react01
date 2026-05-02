@@ -8,6 +8,8 @@ import { DndContextProvider } from '@/components/builder/DndContext';
 import { useBuilderStore } from '@/store/useBuilderStore';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { ToastProvider, useToast } from '@/components/ui';
+import { downloadProject, calculateJSONSize, EXPORT_FILE_SIZE_WARNING_LIMIT } from '@/utils/import-export';
+import type { Project } from '@/utils/storage';
 
 function AppContent() {
   const navigate = useNavigate();
@@ -20,6 +22,9 @@ function AppContent() {
   const projectName = useBuilderStore((state) => state.projectName);
   const saveStatus = useBuilderStore((state) => state.saveStatus);
   const saveErrorMessage = useBuilderStore((state) => state.saveErrorMessage);
+  const components = useBuilderStore((state) => state.components);
+  const currentProjectId = useBuilderStore((state) => state.currentProjectId);
+  const lastSavedAt = useBuilderStore((state) => state.lastSavedAt);
 
   const toast = useToast();
 
@@ -61,6 +66,35 @@ function AppContent() {
     navigate('/projects');
   }, [saveCurrentProject, navigate]);
 
+  const handleExport = useCallback(() => {
+    const now = new Date().toISOString();
+    const project: Project = {
+      id: currentProjectId || `export_${Date.now()}`,
+      name: projectName,
+      components: [...components],
+      createdAt: lastSavedAt || now,
+      updatedAt: now,
+    };
+
+    const jsonString = JSON.stringify(project, null, 2);
+    const fileSize = calculateJSONSize(jsonString);
+
+    if (fileSize > EXPORT_FILE_SIZE_WARNING_LIMIT) {
+      toast.warning(
+        `项目文件较大 (${(fileSize / 1024 / 1024).toFixed(2)}MB)，导出可能需要较长时间`
+      );
+    }
+
+    try {
+      downloadProject(project);
+      toast.success(`已导出: "${projectName}"`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : '导出失败，请重试'
+      );
+    }
+  }, [components, currentProjectId, projectName, lastSavedAt, toast]);
+
   return (
     <DndContextProvider>
       <BuilderLayout
@@ -74,6 +108,7 @@ function AppContent() {
         canRedo={canRedo}
         onPreview={handlePreview}
         onSave={handleSave}
+        onExport={handleExport}
         saveStatus={saveStatus}
         onClickProjectName={handleClickProjectName}
       />

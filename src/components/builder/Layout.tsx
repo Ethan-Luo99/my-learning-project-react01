@@ -24,6 +24,7 @@ interface BuilderLayoutProps {
   canRedo?: boolean;
   onPreview?: () => void;
   onSave?: () => void;
+  onExport?: () => void;
   saveStatus?: SaveStatus;
   onClickProjectName?: () => void;
 }
@@ -57,6 +58,7 @@ const BuilderLayout: React.FC<BuilderLayoutProps> = ({
   canRedo = false,
   onPreview,
   onSave,
+  onExport,
   saveStatus = 'idle',
   onClickProjectName,
 }) => {
@@ -118,6 +120,7 @@ const BuilderLayout: React.FC<BuilderLayoutProps> = ({
         canRedo={canRedo}
         onPreview={onPreview}
         onSave={onSave}
+        onExport={onExport}
         saveStatus={saveStatus}
         onClickProjectName={onClickProjectName}
         leftPanelVisible={leftPanelVisible}
