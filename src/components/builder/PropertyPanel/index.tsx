@@ -1,9 +1,14 @@
-import { useMemo, useState, useRef, useEffect } from 'react';
+import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { Text, Container, Button } from '@/components/ui';
 import { cn } from '@/utils/classname';
 import { generateId } from '@/utils/id';
 import { useBuilderStore } from '@/store/useBuilderStore';
-import { ComponentType, type ComponentSchema } from '@/types/component';
+import { 
+  ComponentType, 
+  type ComponentSchema, 
+  type ClickEventConfig, 
+  ClickEventType 
+} from '@/types/component';
 import { getComponentPropertyConfig, type PropertyConfig, SPACING_PROPERTY_KEYS } from '@/constants/propertyConfig';
 
 interface PropertyPanelProps {
@@ -208,6 +213,154 @@ const PropertyEditor: React.FC<PropertyEditorProps> = ({ config, value, onChange
         {config.label}
       </label>
       {renderEditor()}
+    </div>
+  );
+};
+
+interface EventConfigEditorProps {
+  eventConfig: ClickEventConfig | undefined;
+  onChange: (config: ClickEventConfig | undefined) => void;
+}
+
+const EventConfigEditor: React.FC<EventConfigEditorProps> = ({ eventConfig, onChange }) => {
+  const [localConfig, setLocalConfig] = useState<ClickEventConfig>({
+    type: eventConfig?.type || ClickEventType.None,
+    alertMessage: eventConfig?.alertMessage,
+    targetUrl: eventConfig?.targetUrl,
+    customCode: eventConfig?.customCode,
+  });
+
+  useEffect(() => {
+    setLocalConfig({
+      type: eventConfig?.type || ClickEventType.None,
+      alertMessage: eventConfig?.alertMessage,
+      targetUrl: eventConfig?.targetUrl,
+      customCode: eventConfig?.customCode,
+    });
+  }, [eventConfig]);
+
+  const handleEventTypeChange = (type: ClickEventType) => {
+    const newConfig: ClickEventConfig = {
+      ...localConfig,
+      type,
+    };
+    setLocalConfig(newConfig);
+    
+    if (type === ClickEventType.None) {
+      onChange(undefined);
+    } else {
+      onChange(newConfig);
+    }
+  };
+
+  const handleAlertMessageChange = (message: string) => {
+    const newConfig: ClickEventConfig = {
+      ...localConfig,
+      alertMessage: message,
+    };
+    setLocalConfig(newConfig);
+    onChange(newConfig);
+  };
+
+  const handleTargetUrlChange = (url: string) => {
+    const newConfig: ClickEventConfig = {
+      ...localConfig,
+      targetUrl: url,
+    };
+    setLocalConfig(newConfig);
+    onChange(newConfig);
+  };
+
+  const handleCustomCodeChange = (code: string) => {
+    const newConfig: ClickEventConfig = {
+      ...localConfig,
+      customCode: code,
+    };
+    setLocalConfig(newConfig);
+    onChange(newConfig);
+  };
+
+  const renderParameterInputs = () => {
+    switch (localConfig.type) {
+      case ClickEventType.Alert:
+        return (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              提示内容
+            </label>
+            <textarea
+              value={localConfig.alertMessage ?? ''}
+              onChange={(e) => handleAlertMessageChange(e.target.value)}
+              placeholder="请输入提示内容..."
+              rows={2}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white resize-none"
+            />
+          </div>
+        );
+
+      case ClickEventType.NavigateUrl:
+        return (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              目标 URL
+            </label>
+            <input
+              type="text"
+              value={localConfig.targetUrl ?? ''}
+              onChange={(e) => handleTargetUrlChange(e.target.value)}
+              placeholder="https://example.com"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              点击按钮将在新窗口打开此 URL
+            </p>
+          </div>
+        );
+
+      case ClickEventType.CustomCode:
+        return (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              自定义 JavaScript 代码
+            </label>
+            <textarea
+              value={localConfig.customCode ?? ''}
+              onChange={(e) => handleCustomCodeChange(e.target.value)}
+              placeholder="console.log('按钮被点击了');"
+              rows={4}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white resize-none font-mono"
+            />
+            <div className="mt-1 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+              <p className="text-xs text-yellow-700">
+                ⚠️ 安全警告：自定义代码将使用 eval 执行。仅在预览模式下执行，不会影响真实部署。
+              </p>
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          点击事件类型
+        </label>
+        <select
+          value={localConfig.type}
+          onChange={(e) => handleEventTypeChange(e.target.value as ClickEventType)}
+          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white appearance-none cursor-pointer"
+        >
+          <option value={ClickEventType.None}>无（禁用点击）</option>
+          <option value={ClickEventType.Alert}>弹窗提示</option>
+          <option value={ClickEventType.NavigateUrl}>跳转到 URL</option>
+          <option value={ClickEventType.CustomCode}>执行自定义代码</option>
+        </select>
+      </div>
+      {renderParameterInputs()}
     </div>
   );
 };
@@ -434,6 +587,18 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
     }
   };
 
+  const handleEventChange = useCallback((eventConfig: ClickEventConfig | undefined) => {
+    if (!selectedComponentId || !selectedComponent) return;
+
+    updateComponent(selectedComponentId, {
+      events: eventConfig
+        ? {
+            onClick: eventConfig,
+          }
+        : undefined,
+    });
+  }, [selectedComponentId, selectedComponent, updateComponent]);
+
   const handleDelete = () => {
     if (!selectedComponentId) return;
 
@@ -617,6 +782,15 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
           </CollapsibleSection>
         )}
       </PropertySection>
+
+      {selectedComponent.type === ComponentType.Button && (
+        <PropertySection title="事件配置" isEmpty={false}>
+          <EventConfigEditor
+            eventConfig={selectedComponent.events?.onClick}
+            onChange={handleEventChange}
+          />
+        </PropertySection>
+      )}
     </div>
   );
 };

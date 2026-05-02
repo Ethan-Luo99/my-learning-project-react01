@@ -1,5 +1,11 @@
 import { Text, Button, Image, Container } from '@/components/ui';
-import { ComponentType, type ComponentSchema, type ContainerComponentSchema } from '@/types/component';
+import { 
+  ComponentType, 
+  type ComponentSchema, 
+  type ContainerComponentSchema, 
+  type ClickEventConfig,
+  ClickEventType
+} from '@/types/component';
 import { cn } from '@/utils/classname';
 
 interface ComponentRendererProps {
@@ -32,6 +38,39 @@ const handleWrapperClick = (
   e.stopPropagation();
   if (onClick) {
     (onClick as (e?: React.MouseEvent) => void)(e);
+  }
+};
+
+const executeClickEvent = (eventConfig?: ClickEventConfig): void => {
+  if (!eventConfig || eventConfig.type === ClickEventType.None) {
+    return;
+  }
+
+  switch (eventConfig.type) {
+    case ClickEventType.Alert:
+      if (eventConfig.alertMessage) {
+        alert(eventConfig.alertMessage);
+      } else {
+        alert('按钮被点击了');
+      }
+      break;
+
+    case ClickEventType.NavigateUrl:
+      if (eventConfig.targetUrl) {
+        window.open(eventConfig.targetUrl, '_blank');
+      }
+      break;
+
+    case ClickEventType.CustomCode:
+      if (eventConfig.customCode) {
+        try {
+          eval(eventConfig.customCode);
+        } catch (error) {
+          console.error('自定义代码执行错误:', error);
+          alert(`代码执行错误: ${error}`);
+        }
+      }
+      break;
   }
 };
 
@@ -89,14 +128,24 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 
     case ComponentType.Button: {
       const { className: buttonClassName, ...restButtonProps } = props;
+      
+      const handlePreviewClick = (e: React.MouseEvent) => {
+        if (editable) {
+          handleWrapperClick(e, onClick);
+        } else {
+          executeClickEvent(component.events?.onClick);
+        }
+      };
+
       return (
         <div
           className={wrapperClassName}
-          onClick={handleClick}
+          onClick={editable ? handleClick : undefined}
         >
           <Button
             style={styles}
             className={cn(editable && 'pointer-events-none', buttonClassName)}
+            onClick={!editable ? handlePreviewClick : undefined}
             {...restButtonProps}
           >
             {getButtonContent(component)}

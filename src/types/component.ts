@@ -7,6 +7,24 @@ export enum ComponentType {
   Container = 'Container',
 }
 
+export enum ClickEventType {
+  None = 'none',
+  Alert = 'alert',
+  NavigateUrl = 'navigate_url',
+  CustomCode = 'custom_code',
+}
+
+export interface ClickEventConfig {
+  type: ClickEventType;
+  alertMessage?: string;
+  targetUrl?: string;
+  customCode?: string;
+}
+
+export interface ComponentEvents {
+  onClick?: ClickEventConfig;
+}
+
 export type ComponentVariant =
   | ButtonProps['variant']
   | TextProps['variant']
@@ -24,6 +42,7 @@ export interface ComponentBaseSchema {
   y?: number;
   width?: number | string;
   height?: number | string;
+  events?: ComponentEvents;
 }
 
 export interface TextComponentSchema extends ComponentBaseSchema {
