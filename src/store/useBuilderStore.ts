@@ -6,7 +6,12 @@ import {
   saveProject as saveProjectToStorage,
   loadProject as loadProjectFromStorage,
   getLatestProject,
+  listProjects as listProjectsFromStorage,
+  renameProject as renameProjectInStorage,
+  deleteProject as deleteProjectFromStorage,
+  createNewEmptyProject as createNewEmptyProjectInStorage,
 } from '@/utils/storage';
+import type { ProjectMetadata } from '@/utils/storage';
 
 const MAX_HISTORY_LENGTH = 50;
 
@@ -115,6 +120,13 @@ interface BuilderState {
   createNewProject: (name?: string) => void;
   setProjectName: (name: string) => void;
   setSaveStatus: (status: SaveStatus, errorMessage?: string) => void;
+
+  listProjects: () => ProjectMetadata[];
+  renameCurrentProject: (newName: string) => void;
+  deleteProjectById: (projectId: string) => boolean;
+  saveCurrentAndCreateNewProject: (name?: string) => string;
+  saveCurrentAndLoadProject: (projectId: string) => boolean;
+  isCurrentProject: (projectId: string) => boolean;
 }
 
 const updateComponentInTree = (
@@ -220,9 +232,7 @@ export const useBuilderStore = create<BuilderState>()(
         get().saveCurrentProject(true);
       },
 
-      saveCurrentProject: (immediate = false) => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        void immediate;
+      saveCurrentProject: (_immediate = false) => {
         const { components, currentProjectId, projectName, setSaveStatus } = get();
 
         setSaveStatus('saving');
@@ -323,6 +333,73 @@ export const useBuilderStore = create<BuilderState>()(
           false,
           'createNewProject'
         );
+      },
+
+      listProjects: () => {
+        return listProjectsFromStorage();
+      },
+
+      renameCurrentProject: (newName) => {
+        const { currentProjectId } = get();
+        if (!currentProjectId) {
+          get().saveCurrentProject(true);
+          return;
+        }
+
+        const updatedProject = renameProjectInStorage(currentProjectId, newName);
+        if (updatedProject) {
+          set(
+            {
+              projectName: newName,
+              lastSavedAt: updatedProject.updatedAt,
+            },
+            false,
+            'renameCurrentProject'
+          );
+        }
+      },
+
+      deleteProjectById: (projectId) => {
+        return deleteProjectFromStorage(projectId);
+      },
+
+      saveCurrentAndCreateNewProject: (name) => {
+        const { saveCurrentProject, createNewProject } = get();
+        saveCurrentProject(true);
+
+        const newProject = createNewEmptyProjectInStorage(name);
+        
+        createNewProject(newProject.name);
+        set(
+          {
+            currentProjectId: newProject.id,
+            projectName: newProject.name,
+            lastSavedAt: newProject.updatedAt,
+          },
+          false,
+          'saveCurrentAndCreateNewProject'
+        );
+
+        return newProject.id;
+      },
+
+      saveCurrentAndLoadProject: (projectId) => {
+        const { currentProjectId, saveCurrentProject, loadProject } = get();
+
+        if (currentProjectId && currentProjectId !== projectId) {
+          saveCurrentProject(true);
+        }
+
+        if (currentProjectId === projectId) {
+          return true;
+        }
+
+        return loadProject(projectId);
+      },
+
+      isCurrentProject: (projectId) => {
+        const { currentProjectId } = get();
+        return currentProjectId === projectId;
       },
 
       pushHistory: (previousComponents, nextComponents) => {

@@ -17,6 +17,7 @@ interface HeaderProps {
   onToggleRightPanel?: () => void;
   isSmallScreen?: boolean;
   saveStatus?: SaveStatus;
+  onClickProjectName?: () => void;
 }
 
 const UndoIcon = () => (
@@ -175,6 +176,22 @@ const SettingsIcon = () => (
   </svg>
 );
 
+const ChevronDownIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
 const LoaderIcon = () => (
   <svg
     className="animate-spin"
@@ -299,12 +316,25 @@ const Header = ({
           </Button>
         )}
         <LogoIcon />
-        <span className={cn(
-          'font-semibold text-gray-900 truncate',
-          isSmallScreen ? 'text-sm max-w-[120px]' : 'text-lg'
-        )}>
-          {projectName}
-        </span>
+        <button
+          type="button"
+          onClick={onClickProjectName}
+          className={cn(
+            'flex items-center gap-1.5 hover:bg-gray-100 active:bg-gray-200 rounded-lg px-2 py-1 transition-colors',
+            onClickProjectName ? 'cursor-pointer' : 'cursor-default'
+          )}
+          disabled={!onClickProjectName}
+        >
+          <span className={cn(
+            'font-semibold text-gray-900 truncate',
+            isSmallScreen ? 'text-sm max-w-[120px]' : 'text-lg'
+          )}>
+            {projectName}
+          </span>
+          {onClickProjectName && (
+            <ChevronDownIcon className="text-gray-400 flex-shrink-0" />
+          )}
+        </button>
       </div>
 
       <div className="flex-1 flex items-center justify-center gap-1 hidden md:flex">

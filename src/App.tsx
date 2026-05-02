@@ -1,4 +1,5 @@
 import { useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BuilderLayout } from '@/components/builder/Layout';
 import { ComponentPanel } from '@/components/builder/ComponentPanel';
 import { Canvas } from '@/components/builder/Canvas';
@@ -9,6 +10,7 @@ import { useAutoSave } from '@/hooks/useAutoSave';
 import { ToastProvider, useToast } from '@/components/ui';
 
 function AppContent() {
+  const navigate = useNavigate();
   const undo = useBuilderStore((state) => state.undo);
   const redo = useBuilderStore((state) => state.redo);
   const canUndo = useBuilderStore((state) => state.canUndo);
@@ -54,6 +56,11 @@ function AppContent() {
     saveCurrentProject(true);
   }, [saveCurrentProject]);
 
+  const handleClickProjectName = useCallback(() => {
+    saveCurrentProject(true);
+    navigate('/projects');
+  }, [saveCurrentProject, navigate]);
+
   return (
     <DndContextProvider>
       <BuilderLayout
@@ -68,6 +75,7 @@ function AppContent() {
         onPreview={handlePreview}
         onSave={handleSave}
         saveStatus={saveStatus}
+        onClickProjectName={handleClickProjectName}
       />
     </DndContextProvider>
   );

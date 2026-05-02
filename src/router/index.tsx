@@ -2,7 +2,7 @@ import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
 import App from '@/App';
 import { lazy, Suspense } from 'react';
 
-const BuilderPage = lazy(() => import('@/App'));
+const ProjectsPage = lazy(() => import('@/pages/ProjectsPage'));
 
 const Layout = () => {
   return (
@@ -19,7 +19,11 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="/builder" replace />,
+        element: <Navigate to="/projects" replace />,
+      },
+      {
+        path: 'projects',
+        element: <ProjectsPage />,
       },
       {
         path: 'builder',
@@ -31,7 +35,7 @@ export const router = createBrowserRouter([
       },
       {
         path: '*',
-        element: <Navigate to="/builder" replace />,
+        element: <Navigate to="/projects" replace />,
       },
     ],
   },

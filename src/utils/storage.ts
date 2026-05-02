@@ -149,3 +149,22 @@ export const getLatestProject = (): Project | null => {
 
   return loadProject(projects[0].id);
 };
+
+export const renameProject = (id: string, newName: string): Project | null => {
+  const project = loadProject(id);
+  if (!project) return null;
+
+  return saveProject({
+    id: project.id,
+    name: newName,
+    components: project.components,
+    createdAt: project.createdAt,
+  });
+};
+
+export const createNewEmptyProject = (name?: string): Project => {
+  return saveProject({
+    name: name || '未命名项目',
+    components: [],
+  });
+};

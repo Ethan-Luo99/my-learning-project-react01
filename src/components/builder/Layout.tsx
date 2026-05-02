@@ -25,6 +25,7 @@ interface BuilderLayoutProps {
   onPreview?: () => void;
   onSave?: () => void;
   saveStatus?: SaveStatus;
+  onClickProjectName?: () => void;
 }
 
 const CloseIcon = () => (
@@ -57,6 +58,7 @@ const BuilderLayout: React.FC<BuilderLayoutProps> = ({
   onPreview,
   onSave,
   saveStatus = 'idle',
+  onClickProjectName,
 }) => {
   const isLargeScreen = useMediaQuery(BREAKPOINTS.lg);
   const isMediumScreen = useMediaQuery(BREAKPOINTS.md);
@@ -117,6 +119,7 @@ const BuilderLayout: React.FC<BuilderLayoutProps> = ({
         onPreview={onPreview}
         onSave={onSave}
         saveStatus={saveStatus}
+        onClickProjectName={onClickProjectName}
         leftPanelVisible={leftPanelVisible}
         rightPanelVisible={rightPanelVisible}
         onToggleLeftPanel={handleToggleLeftPanel}
