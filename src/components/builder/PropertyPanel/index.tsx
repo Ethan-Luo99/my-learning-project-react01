@@ -537,7 +537,21 @@ const regenerateComponentIds = (component: ComponentSchema): ComponentSchema => 
 };
 
 const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
-  const { components, selectedComponentId, updateComponent, removeComponent, setSelectedComponentId, addComponent } = useBuilderStore();
+  const { 
+    components, 
+    selectedComponentId, 
+    updateComponent, 
+    removeComponent, 
+    setSelectedComponentId, 
+    addComponent,
+    moveUp,
+    moveDown,
+    moveToTop,
+    moveToBottom,
+    canMoveUp,
+    canMoveDown,
+    getComponentLayerInfo,
+  } = useBuilderStore();
 
   const selectedComponent = useMemo(() => {
     if (!selectedComponentId) return null;
@@ -726,6 +740,74 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
             删除组件
           </Button>
         </div>
+
+        {selectedComponentId && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-between mb-3">
+              <Text variant="caption" color="muted" weight="medium">
+              层级控制
+            </Text>
+              {(() => {
+                const layerInfo = getComponentLayerInfo(selectedComponentId);
+                return layerInfo ? (
+                  <Text variant="caption" color="muted">
+                    层级：{layerInfo.currentLayer} / {layerInfo.totalLayers}
+                  </Text>
+                ) : null;
+              })()}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => selectedComponentId && moveToTop(selectedComponentId)}
+                disabled={!selectedComponentId || !canMoveUp(selectedComponentId)}
+                className={cn(
+                  'flex-1',
+                  (!selectedComponentId || !canMoveUp(selectedComponentId)) && 'opacity-50 cursor-not-allowed'
+                )}
+              >
+                置顶
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => selectedComponentId && moveUp(selectedComponentId)}
+                disabled={!selectedComponentId || !canMoveUp(selectedComponentId)}
+                className={cn(
+                  'flex-1',
+                  (!selectedComponentId || !canMoveUp(selectedComponentId)) && 'opacity-50 cursor-not-allowed'
+                )}
+              >
+                上移
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => selectedComponentId && moveDown(selectedComponentId)}
+                disabled={!selectedComponentId || !canMoveDown(selectedComponentId)}
+                className={cn(
+                  'flex-1',
+                  (!selectedComponentId || !canMoveDown(selectedComponentId)) && 'opacity-50 cursor-not-allowed'
+                )}
+              >
+                下移
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => selectedComponentId && moveToBottom(selectedComponentId)}
+                disabled={!selectedComponentId || !canMoveDown(selectedComponentId)}
+                className={cn(
+                  'flex-1',
+                  (!selectedComponentId || !canMoveDown(selectedComponentId)) && 'opacity-50 cursor-not-allowed'
+                )}
+              >
+                置底
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <PropertySection

@@ -115,6 +115,15 @@ interface BuilderState {
   canUndo: boolean;
   canRedo: boolean;
 
+  moveUp: (id: string) => void;
+  moveDown: (id: string) => void;
+  moveToTop: (id: string) => void;
+  moveToBottom: (id: string) => void;
+
+  canMoveUp: (id: string) => boolean;
+  canMoveDown: (id: string) => boolean;
+  getComponentLayerInfo: (id: string) => { currentLayer: number; totalLayers: number } | null;
+
   saveCurrentProject: (immediate?: boolean) => void;
   loadProject: (projectId: string) => boolean;
   loadLatestProject: () => boolean;
@@ -254,6 +263,22 @@ const findComponentLocation = (
   return null;
 };
 
+const getSiblingsList = (
+  components: ComponentSchema[],
+  parentId: string | null
+): ComponentSchema[] => {
+  if (parentId === null) {
+    return components;
+  }
+
+  const parent = findComponentById(components, parentId);
+  if (parent && isContainerComponent(parent) && parent.children) {
+    return parent.children;
+  }
+
+  return [];
+};
+
 const extractComponentFromTree = (
   components: ComponentSchema[],
   id: string
@@ -283,6 +308,27 @@ const extractComponentFromTree = (
     });
 
   return { components: newComponents, extracted };
+};
+
+const reorderComponentInTree = (
+  components: ComponentSchema[],
+  id: string,
+  newIndex: number
+): ComponentSchema[] => {
+  const location = findComponentLocation(components, id);
+  if (!location) return components;
+
+  const { parentId, index } = location;
+
+  const extractResult = extractComponentFromTree(components, id);
+  if (!extractResult.extracted) return components;
+
+  return addComponentToParentInTree(
+    extractResult.components,
+    parentId,
+    extractResult.extracted,
+    newIndex
+  );
 };
 
 const createInitialHistory = (): HistoryState[] => [
@@ -698,6 +744,120 @@ export const useBuilderStore = create<BuilderState>()(
           },
           false,
           { type: 'moveComponentToParent', componentId, newParentId, index }
+        );
+      },
+
+      canMoveUp: (id) => {
+        const { components } = get();
+        const location = findComponentLocation(components, id);
+        if (!location) return false;
+
+        const siblings = getSiblingsList(components, location.parentId);
+        return location.index < siblings.length - 1;
+      },
+
+      canMoveDown: (id) => {
+        const { components } = get();
+        const location = findComponentLocation(components, id);
+        if (!location) return false;
+
+        return location.index > 0;
+      },
+
+      getComponentLayerInfo: (id) => {
+        const { components } = get();
+        const location = findComponentLocation(components, id);
+        if (!location) return null;
+
+        const siblings = getSiblingsList(components, location.parentId);
+        return {
+          currentLayer: location.index + 1,
+          totalLayers: siblings.length,
+        };
+      },
+
+      moveUp: (id) => {
+        const { components, pushHistory, canMoveUp } = get();
+        
+        if (!canMoveUp(id)) return;
+
+        const location = findComponentLocation(components, id);
+        if (!location) return;
+
+        const newIndex = location.index + 1;
+        const newComponents = reorderComponentInTree(components, id, newIndex);
+        
+        pushHistory(components, newComponents);
+        set(
+          (state) => ({
+            components: reorderComponentInTree(state.components, id, newIndex),
+          }),
+          false,
+          { type: 'moveUp', id, newIndex }
+        );
+      },
+
+      moveDown: (id) => {
+        const { components, pushHistory, canMoveDown } = get();
+        
+        if (!canMoveDown(id)) return;
+
+        const location = findComponentLocation(components, id);
+        if (!location) return;
+
+        const newIndex = location.index - 1;
+        const newComponents = reorderComponentInTree(components, id, newIndex);
+        
+        pushHistory(components, newComponents);
+        set(
+          (state) => ({
+            components: reorderComponentInTree(state.components, id, newIndex),
+          }),
+          false,
+          { type: 'moveDown', id, newIndex }
+        );
+      },
+
+      moveToTop: (id) => {
+        const { components, pushHistory, canMoveUp } = get();
+        
+        if (!canMoveUp(id)) return;
+
+        const location = findComponentLocation(components, id);
+        if (!location) return;
+
+        const siblings = getSiblingsList(components, location.parentId);
+        const newIndex = siblings.length - 1;
+        const newComponents = reorderComponentInTree(components, id, newIndex);
+        
+        pushHistory(components, newComponents);
+        set(
+          (state) => ({
+            components: reorderComponentInTree(state.components, id, newIndex),
+          }),
+          false,
+          { type: 'moveToTop', id, newIndex }
+        );
+      },
+
+      moveToBottom: (id) => {
+        const { components, pushHistory, canMoveDown } = get();
+        
+        if (!canMoveDown(id)) return;
+
+        const location = findComponentLocation(components, id);
+        if (!location) return;
+
+        const newIndex = 0;
+        const newComponents = reorderComponentInTree(components, id, newIndex);
+        
+        pushHistory(components, newComponents);
+        set(
+          (state) => ({
+            components: reorderComponentInTree(state.components, id, newIndex),
+          }),
+          false,
+          { type: 'moveToBottom', id, newIndex }
         );
       },
     }),

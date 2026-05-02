@@ -51,6 +51,13 @@ function AppContent() {
   const components = useBuilderStore((state) => state.components);
   const currentProjectId = useBuilderStore((state) => state.currentProjectId);
   const lastSavedAt = useBuilderStore((state) => state.lastSavedAt);
+  
+  const moveUp = useBuilderStore((state) => state.moveUp);
+  const moveDown = useBuilderStore((state) => state.moveDown);
+  const moveToTop = useBuilderStore((state) => state.moveToTop);
+  const moveToBottom = useBuilderStore((state) => state.moveToBottom);
+  const canMoveUp = useBuilderStore((state) => state.canMoveUp);
+  const canMoveDown = useBuilderStore((state) => state.canMoveDown);
 
   const toast = useToast();
 
@@ -164,6 +171,34 @@ function AppContent() {
     }
   }, [components, currentProjectId, projectName, lastSavedAt, toast]);
 
+  const handleMoveUp = useCallback(() => {
+    if (selectedComponentId) {
+      moveUp(selectedComponentId);
+    }
+  }, [selectedComponentId, moveUp]);
+
+  const handleMoveDown = useCallback(() => {
+    if (selectedComponentId) {
+      moveDown(selectedComponentId);
+    }
+  }, [selectedComponentId, moveDown]);
+
+  const handleMoveToTop = useCallback(() => {
+    if (selectedComponentId) {
+      moveToTop(selectedComponentId);
+    }
+  }, [selectedComponentId, moveToTop]);
+
+  const handleMoveToBottom = useCallback(() => {
+    if (selectedComponentId) {
+      moveToBottom(selectedComponentId);
+    }
+  }, [selectedComponentId, moveToBottom]);
+
+  const hasSelectedComponent = selectedComponentId !== null;
+  const canMoveUpCurrent = selectedComponentId ? canMoveUp(selectedComponentId) : false;
+  const canMoveDownCurrent = selectedComponentId ? canMoveDown(selectedComponentId) : false;
+
   return (
     <DndContextProvider>
       <BuilderLayout
@@ -175,6 +210,13 @@ function AppContent() {
         onRedo={handleRedo}
         canUndo={canUndo}
         canRedo={canRedo}
+        onMoveUp={handleMoveUp}
+        onMoveDown={handleMoveDown}
+        onMoveToTop={handleMoveToTop}
+        onMoveToBottom={handleMoveToBottom}
+        canMoveUp={canMoveUpCurrent}
+        canMoveDown={canMoveDownCurrent}
+        hasSelectedComponent={hasSelectedComponent}
         onPreview={handlePreview}
         onSave={handleSave}
         onExport={handleExport}

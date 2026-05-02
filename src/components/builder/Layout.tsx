@@ -22,6 +22,13 @@ interface BuilderLayoutProps {
   onRedo?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  onMoveToTop?: () => void;
+  onMoveToBottom?: () => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
+  hasSelectedComponent?: boolean;
   onPreview?: () => void;
   onSave?: () => void;
   onExport?: () => void;
@@ -56,6 +63,13 @@ const BuilderLayout: React.FC<BuilderLayoutProps> = ({
   onRedo,
   canUndo = false,
   canRedo = false,
+  onMoveUp,
+  onMoveDown,
+  onMoveToTop,
+  onMoveToBottom,
+  canMoveUp = false,
+  canMoveDown = false,
+  hasSelectedComponent = false,
   onPreview,
   onSave,
   onExport,
@@ -212,6 +226,13 @@ const BuilderLayout: React.FC<BuilderLayoutProps> = ({
                 onRedo={onRedo}
                 canUndo={canUndo}
                 canRedo={canRedo}
+                onMoveUp={onMoveUp}
+                onMoveDown={onMoveDown}
+                onMoveToTop={onMoveToTop}
+                onMoveToBottom={onMoveToBottom}
+                canMoveUp={canMoveUp}
+                canMoveDown={canMoveDown}
+                hasSelectedComponent={hasSelectedComponent}
                 onPreview={onPreview}
                 onSave={onSave}
               />
