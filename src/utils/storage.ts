@@ -19,7 +19,7 @@ export interface ProjectMetadata {
 const STORAGE_KEY_PREFIX = 'lowcode_builder_project';
 const PROJECT_LIST_KEY = `${STORAGE_KEY_PREFIX}_list`;
 
-const generateProjectId = (): string => {
+export const generateProjectId = (): string => {
   return `project_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 };
 

@@ -3,6 +3,7 @@ import App from '@/App';
 import { lazy, Suspense } from 'react';
 
 const ProjectsPage = lazy(() => import('@/pages/ProjectsPage'));
+const PreviewPage = lazy(() => import('@/pages/PreviewPage'));
 
 const Layout = () => {
   return (
@@ -31,7 +32,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'preview',
-        element: <App />,
+        element: <PreviewPage />,
       },
       {
         path: '*',

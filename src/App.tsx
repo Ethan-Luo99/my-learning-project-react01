@@ -54,8 +54,8 @@ function AppContent() {
   }, [redo]);
 
   const handlePreview = useCallback(() => {
-    console.log('预览操作');
-  }, []);
+    navigate('/preview');
+  }, [navigate]);
 
   const handleSave = useCallback(() => {
     saveCurrentProject(true);

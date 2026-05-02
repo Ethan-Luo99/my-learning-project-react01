@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBuilderStore } from '@/store/useBuilderStore';
-import { useToast, ConfirmModal, InputModal, Button } from '@/components/ui';
+import { ToastProvider, useToast, ConfirmModal, InputModal, Button } from '@/components/ui';
 import { renameProject } from '@/utils/storage';
 import {
   selectFileForImport,
@@ -38,6 +38,7 @@ interface ProjectCardProps {
   project: ProjectMetadata;
   isCurrent: boolean;
   onOpen: () => void;
+  onPreview: () => void;
   onRename: () => void;
   onDelete: () => void;
 }
@@ -46,6 +47,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   project,
   isCurrent,
   onOpen,
+  onPreview,
   onRename,
   onDelete,
 }) => {
@@ -81,6 +83,18 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();
+                onPreview();
+              }}
+              className="p-1.5 h-auto"
+              title="预览"
+            >
+              <PreviewIcon />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
                 onRename();
               }}
               className="p-1.5 h-auto"
@@ -108,17 +122,29 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             <ClockIcon />
             <span>{formatDate(project.updatedAt)}</span>
           </div>
-          <Button
-            variant={isCurrent ? 'secondary' : 'primary'}
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpen();
-            }}
-            className={cn(isCurrent && 'bg-primary-50 text-primary-700')}
-          >
-            {isCurrent ? '继续编辑' : '打开'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onPreview();
+              }}
+            >
+              预览
+            </Button>
+            <Button
+              variant={isCurrent ? 'secondary' : 'primary'}
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpen();
+              }}
+              className={cn(isCurrent && 'bg-primary-50 text-primary-700')}
+            >
+              {isCurrent ? '继续编辑' : '打开'}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
@@ -281,7 +307,24 @@ const ImportIcon = () => (
   </svg>
 );
 
-export const ProjectsPage: React.FC = () => {
+const PreviewIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const ProjectsPageContent: React.FC = () => {
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -407,6 +450,10 @@ export const ProjectsPage: React.FC = () => {
     }
   };
 
+  const handlePreviewProject = (project: ProjectMetadata) => {
+    navigate(`/preview?project=${project.id}`);
+  };
+
   const handleRenameClick = (project: ProjectMetadata) => {
     setProjectToRename(project);
     setRenameModalOpen(true);
@@ -514,6 +561,7 @@ export const ProjectsPage: React.FC = () => {
                 project={project}
                 isCurrent={isCurrentProject(project.id)}
                 onOpen={() => handleOpenProject(project)}
+                onPreview={() => handlePreviewProject(project)}
                 onRename={() => handleRenameClick(project)}
                 onDelete={() => handleDeleteClick(project)}
               />
@@ -567,6 +615,14 @@ export const ProjectsPage: React.FC = () => {
         }}
       />
     </div>
+  );
+};
+
+export const ProjectsPage: React.FC = () => {
+  return (
+    <ToastProvider>
+      <ProjectsPageContent />
+    </ToastProvider>
   );
 };
 

@@ -6,6 +6,7 @@ interface ComponentRendererProps {
   component: ComponentSchema;
   isSelected?: boolean;
   onClick?: ((e: React.MouseEvent) => void) | (() => void);
+  editable?: boolean;
 }
 
 const isContainerComponent = (
@@ -38,12 +39,13 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
   component,
   isSelected = false,
   onClick,
+  editable = true,
 }) => {
   const { type, props, styles } = component;
 
   const wrapperClassName = cn(
     'relative',
-    isSelected && 'ring-2 ring-primary-500 ring-offset-2 rounded-lg'
+    editable && isSelected && 'ring-2 ring-primary-500 ring-offset-2 rounded-lg'
   );
 
   const renderContainerChildren = () => {
@@ -58,10 +60,13 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       <ComponentRenderer
         key={child.id}
         component={child}
-        onClick={onClick ? (e) => handleWrapperClick(e, onClick) : undefined}
+        onClick={editable && onClick ? (e) => handleWrapperClick(e, onClick) : undefined}
+        editable={editable}
       />
     ));
   };
+
+  const handleClick = editable && onClick ? (e: React.MouseEvent) => handleWrapperClick(e, onClick) : undefined;
 
   switch (type) {
     case ComponentType.Text: {
@@ -69,11 +74,11 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       return (
         <div
           className={wrapperClassName}
-          onClick={(e) => handleWrapperClick(e, onClick)}
+          onClick={handleClick}
         >
           <Text
             style={styles}
-            className={cn('pointer-events-none', textClassName)}
+            className={cn(editable && 'pointer-events-none', textClassName)}
             {...restTextProps}
           >
             {getTextContent(component)}
@@ -87,11 +92,11 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       return (
         <div
           className={wrapperClassName}
-          onClick={(e) => handleWrapperClick(e, onClick)}
+          onClick={handleClick}
         >
           <Button
             style={styles}
-            className={cn('pointer-events-none', buttonClassName)}
+            className={cn(editable && 'pointer-events-none', buttonClassName)}
             {...restButtonProps}
           >
             {getButtonContent(component)}
@@ -105,7 +110,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       return (
         <div
           className={wrapperClassName}
-          onClick={(e) => handleWrapperClick(e, onClick)}
+          onClick={handleClick}
         >
           <Image
             src={
@@ -115,7 +120,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             alt={props.alt || '图片'}
             style={styles}
             rounded={props.rounded || 'md'}
-            className={cn('pointer-events-none', imageClassName)}
+            className={cn(editable && 'pointer-events-none', imageClassName)}
             {...restImageProps}
           />
         </div>
@@ -127,7 +132,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       return (
         <div
           className={wrapperClassName}
-          onClick={(e) => handleWrapperClick(e, onClick)}
+          onClick={handleClick}
         >
           <Container
             direction={props.direction || 'column'}
@@ -150,5 +155,18 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
   }
 };
 
-export { ComponentRenderer, isContainerComponent, handleWrapperClick };
+const PreviewRenderer: React.FC<Omit<ComponentRendererProps, 'isSelected' | 'onClick' | 'editable'>> = ({
+  component,
+}) => {
+  return (
+    <ComponentRenderer
+      component={component}
+      isSelected={false}
+      onClick={undefined}
+      editable={false}
+    />
+  );
+};
+
+export { ComponentRenderer, PreviewRenderer, isContainerComponent, handleWrapperClick };
 export type { ComponentRendererProps };
