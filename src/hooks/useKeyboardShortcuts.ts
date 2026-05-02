@@ -28,7 +28,7 @@ interface KeyboardShortcutsInfo {
   };
 }
 
-const isInputElement = (element: HTMLElement | null): boolean => {
+export const isInputElement = (element: HTMLElement | null): boolean => {
   if (!element) return false;
   
   const tagName = element.tagName.toLowerCase();
@@ -43,7 +43,7 @@ const isInputElement = (element: HTMLElement | null): boolean => {
   return false;
 };
 
-const isBuilderRoute = (pathname: string): boolean => {
+export const isBuilderRoute = (pathname: string): boolean => {
   return pathname === '/builder' || pathname.startsWith('/builder/');
 };
 
