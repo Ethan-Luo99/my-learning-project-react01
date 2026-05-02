@@ -4,6 +4,7 @@ import { Header } from '@/components/builder/Header';
 import { Toolbar } from '@/components/builder/Toolbar';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { PANEL_WIDTH_PX } from '@/constants/layout';
+import type { SaveStatus } from '@/store/useBuilderStore';
 
 const BREAKPOINTS = {
   lg: '(min-width: 1024px)',
@@ -23,6 +24,7 @@ interface BuilderLayoutProps {
   canRedo?: boolean;
   onPreview?: () => void;
   onSave?: () => void;
+  saveStatus?: SaveStatus;
 }
 
 const CloseIcon = () => (
@@ -54,6 +56,7 @@ const BuilderLayout: React.FC<BuilderLayoutProps> = ({
   canRedo = false,
   onPreview,
   onSave,
+  saveStatus = 'idle',
 }) => {
   const isLargeScreen = useMediaQuery(BREAKPOINTS.lg);
   const isMediumScreen = useMediaQuery(BREAKPOINTS.md);
@@ -113,6 +116,7 @@ const BuilderLayout: React.FC<BuilderLayoutProps> = ({
         canRedo={canRedo}
         onPreview={onPreview}
         onSave={onSave}
+        saveStatus={saveStatus}
         leftPanelVisible={leftPanelVisible}
         rightPanelVisible={rightPanelVisible}
         onToggleLeftPanel={handleToggleLeftPanel}

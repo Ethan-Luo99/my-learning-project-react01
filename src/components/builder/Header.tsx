@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui';
 import { cn } from '@/utils/classname';
+import type { SaveStatus } from '@/store/useBuilderStore';
 
 interface HeaderProps {
   className?: string;
@@ -15,6 +16,7 @@ interface HeaderProps {
   onToggleLeftPanel?: () => void;
   onToggleRightPanel?: () => void;
   isSmallScreen?: boolean;
+  saveStatus?: SaveStatus;
 }
 
 const UndoIcon = () => (
@@ -173,6 +175,39 @@ const SettingsIcon = () => (
   </svg>
 );
 
+const LoaderIcon = () => (
+  <svg
+    className="animate-spin"
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+  </svg>
+);
+
+const CheckIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M5 13l4 4L19 7" />
+  </svg>
+);
+
 const Header = ({
   className,
   projectName = '未命名项目',
@@ -187,7 +222,51 @@ const Header = ({
   onToggleLeftPanel,
   onToggleRightPanel,
   isSmallScreen = false,
+  saveStatus = 'idle',
 }: HeaderProps) => {
+  const getSaveButtonContent = () => {
+    switch (saveStatus) {
+      case 'saving':
+        return (
+          <>
+            <LoaderIcon />
+            <span className="hidden sm:inline">保存中...</span>
+          </>
+        );
+      case 'saved':
+        return (
+          <>
+            <CheckIcon />
+            <span className="hidden sm:inline">已保存</span>
+          </>
+        );
+      case 'error':
+        return (
+          <>
+            <SaveIcon />
+            <span className="hidden sm:inline">重试</span>
+          </>
+        );
+      default:
+        return (
+          <>
+            <SaveIcon />
+            <span className="hidden sm:inline">保存</span>
+          </>
+        );
+    }
+  };
+
+  const getSaveButtonColor = () => {
+    if (saveStatus === 'error') return 'danger' as const;
+    return 'default' as const;
+  };
+
+  const getSaveButtonVariant = () => {
+    if (saveStatus === 'saved') return 'outline' as const;
+    return 'primary' as const;
+  };
+
   return (
     <header
       className={cn(
@@ -287,14 +366,19 @@ const Header = ({
           <span className="hidden sm:inline">预览</span>
         </Button>
         <Button
-          variant="primary"
+          variant={getSaveButtonVariant()}
+          color={getSaveButtonColor()}
           size="sm"
           onClick={onSave}
-          className={cn('gap-1.5', isSmallScreen && 'px-2 py-1')}
-          aria-label="保存"
+          disabled={saveStatus === 'saving'}
+          className={cn(
+            'gap-1.5',
+            isSmallScreen && 'px-2 py-1',
+            saveStatus === 'saving' && 'opacity-70 cursor-not-allowed'
+          )}
+          aria-label={saveStatus === 'saving' ? '保存中' : saveStatus === 'error' ? '重试保存' : '保存'}
         >
-          <SaveIcon />
-          <span className="hidden sm:inline">保存</span>
+          {getSaveButtonContent()}
         </Button>
       </div>
     </header>

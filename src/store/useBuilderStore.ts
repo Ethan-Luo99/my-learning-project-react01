@@ -2,6 +2,11 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { ComponentType, type ComponentSchema, type ContainerComponentSchema } from '@/types/component';
 import { MOCK_EMPTY_CANVAS } from '@/constants/mockData';
+import {
+  saveProject as saveProjectToStorage,
+  loadProject as loadProjectFromStorage,
+  getLatestProject,
+} from '@/utils/storage';
 
 const MAX_HISTORY_LENGTH = 50;
 
@@ -75,12 +80,20 @@ const findNextComponentAfterDelete = (
   return result || { nextId: null };
 };
 
+export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+
 interface BuilderState {
   components: ComponentSchema[];
   selectedComponentId: string | null;
 
   history: HistoryState[];
   currentIndex: number;
+
+  currentProjectId: string | null;
+  projectName: string;
+  saveStatus: SaveStatus;
+  saveErrorMessage: string | null;
+  lastSavedAt: string | null;
 
   setSelectedComponentId: (id: string | null) => void;
 
@@ -95,6 +108,13 @@ interface BuilderState {
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+
+  saveCurrentProject: (immediate?: boolean) => void;
+  loadProject: (projectId: string) => boolean;
+  loadLatestProject: () => boolean;
+  createNewProject: (name?: string) => void;
+  setProjectName: (name: string) => void;
+  setSaveStatus: (status: SaveStatus, errorMessage?: string) => void;
 }
 
 const updateComponentInTree = (
@@ -176,6 +196,134 @@ export const useBuilderStore = create<BuilderState>()(
       currentIndex: 0,
       canUndo: false,
       canRedo: false,
+
+      currentProjectId: null,
+      projectName: '未命名项目',
+      saveStatus: 'idle',
+      saveErrorMessage: null,
+      lastSavedAt: null,
+
+      setSaveStatus: (status, errorMessage) => {
+        set(
+          {
+            saveStatus: status,
+            saveErrorMessage: errorMessage || null,
+            ...(status === 'saved' ? { lastSavedAt: new Date().toISOString() } : {}),
+          },
+          false,
+          'setSaveStatus'
+        );
+      },
+
+      setProjectName: (name) => {
+        set({ projectName: name }, false, 'setProjectName');
+        get().saveCurrentProject(true);
+      },
+
+      saveCurrentProject: (immediate = false) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        void immediate;
+        const { components, currentProjectId, projectName, setSaveStatus } = get();
+
+        setSaveStatus('saving');
+
+        try {
+          const savedProject = saveProjectToStorage({
+            id: currentProjectId || undefined,
+            name: projectName,
+            components: structuredClone(components),
+          });
+
+          set(
+            {
+              currentProjectId: savedProject.id,
+              lastSavedAt: savedProject.updatedAt,
+            },
+            false,
+            'saveCurrentProject'
+          );
+          setSaveStatus('saved');
+
+          setTimeout(() => {
+            setSaveStatus('idle');
+          }, 2000);
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : '保存失败，请重试';
+          setSaveStatus('error', errorMessage);
+          console.error('Save project failed:', error);
+        }
+      },
+
+      loadProject: (projectId) => {
+        const project = loadProjectFromStorage(projectId);
+        if (!project) {
+          return false;
+        }
+
+        const { setComponents } = get();
+        setComponents(project.components);
+
+        set(
+          {
+            currentProjectId: project.id,
+            projectName: project.name,
+            lastSavedAt: project.updatedAt,
+            selectedComponentId: null,
+            saveStatus: 'idle',
+            saveErrorMessage: null,
+          },
+          false,
+          'loadProject'
+        );
+
+        return true;
+      },
+
+      loadLatestProject: () => {
+        const project = getLatestProject();
+        if (!project) {
+          return false;
+        }
+
+        const { setComponents } = get();
+        setComponents(project.components);
+
+        set(
+          {
+            currentProjectId: project.id,
+            projectName: project.name,
+            lastSavedAt: project.updatedAt,
+            selectedComponentId: null,
+            saveStatus: 'idle',
+            saveErrorMessage: null,
+          },
+          false,
+          'loadLatestProject'
+        );
+
+        return true;
+      },
+
+      createNewProject: (name = '未命名项目') => {
+        set(
+          {
+            components: MOCK_EMPTY_CANVAS,
+            selectedComponentId: null,
+            history: createInitialHistory(),
+            currentIndex: 0,
+            canUndo: false,
+            canRedo: false,
+            currentProjectId: null,
+            projectName: name,
+            saveStatus: 'idle',
+            saveErrorMessage: null,
+            lastSavedAt: null,
+          },
+          false,
+          'createNewProject'
+        );
+      },
 
       pushHistory: (previousComponents, nextComponents) => {
         const { history, currentIndex, selectedComponentId } = get();
