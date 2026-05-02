@@ -83,6 +83,74 @@ export const createMockComplexProject = (): ComponentSchema[] => [
   ]),
 ];
 
+export const createMock3LevelNestedContainer = (): ComponentSchema[] => [
+  createMockContainerComponent('level-1-container', [
+    createMockTextComponent('level-1-text', '第一层文本'),
+    createMockContainerComponent('level-2-container', [
+      createMockButtonComponent('level-2-btn', '第二层按钮'),
+      createMockContainerComponent('level-3-container', [
+        createMockTextComponent('level-3-text', '第三层文本'),
+        createMockButtonComponent('level-3-btn', '第三层按钮'),
+      ]),
+    ]),
+    createMockTextComponent('level-1-text-2', '第一层底部文本'),
+  ]),
+];
+
+export const createMockEmptyContainer = (): ComponentSchema[] => [
+  createMockContainerComponent('empty-container', []),
+];
+
+export const createMockContainerWithMixedChildren = (): ComponentSchema[] => [
+  createMockContainerComponent('mixed-container', [
+    createMockTextComponent('text-1', '文本1'),
+    createMockContainerComponent('nested-container', [
+      createMockButtonComponent('btn-1', '嵌套按钮'),
+    ]),
+    createMockTextComponent('text-2', '文本2'),
+  ]),
+];
+
+export const countComponents = (components: ComponentSchema[]): number => {
+  let count = components.length;
+  for (const comp of components) {
+    if ('children' in comp && comp.children) {
+      count += countComponents(comp.children);
+    }
+  }
+  return count;
+};
+
+export const findComponentById = (
+  components: ComponentSchema[],
+  id: string
+): ComponentSchema | null => {
+  for (const comp of components) {
+    if (comp.id === id) {
+      return comp;
+    }
+    if ('children' in comp && comp.children) {
+      const found = findComponentById(comp.children, id);
+      if (found) return found;
+    }
+  }
+  return null;
+};
+
+export const countContainerDepth = (components: ComponentSchema[]): number => {
+  let maxDepth = 0;
+  const countDepth = (comps: ComponentSchema[], currentDepth: number): void => {
+    for (const comp of comps) {
+      if ('children' in comp && comp.children && comp.children.length > 0) {
+        maxDepth = Math.max(maxDepth, currentDepth + 1);
+        countDepth(comp.children, currentDepth + 1);
+      }
+    }
+  };
+  countDepth(components, 1);
+  return maxDepth;
+};
+
 export const STORAGE_PREFIX = 'lowcode_builder_project';
 export const PROJECT_LIST_KEY = `${STORAGE_PREFIX}_list`;
 
