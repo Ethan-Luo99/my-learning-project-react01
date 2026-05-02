@@ -103,10 +103,10 @@ interface BuilderState {
   setSelectedComponentId: (id: string | null) => void;
 
   addComponent: (component: ComponentSchema) => void;
-  addComponentToParent: (parentId: string | null, component: ComponentSchema) => void;
+  addComponentToParent: (parentId: string | null, component: ComponentSchema, index?: number) => void;
 
   removeComponent: (id: string) => void;
-  moveComponentToParent: (componentId: string, newParentId: string | null) => void;
+  moveComponentToParent: (componentId: string, newParentId: string | null, index?: number) => void;
 
   updateComponent: (id: string, updates: Partial<ComponentSchema>) => void;
 
@@ -169,23 +169,35 @@ const removeComponentFromTree = (
 const addComponentToParentInTree = (
   components: ComponentSchema[],
   parentId: string | null,
-  component: ComponentSchema
+  component: ComponentSchema,
+  index?: number
 ): ComponentSchema[] => {
   if (parentId === null) {
+    if (index !== undefined && index >= 0) {
+      const newComponents = [...components];
+      newComponents.splice(index, 0, component);
+      return newComponents;
+    }
     return [...components, component];
   }
 
   return components.map((comp) => {
     if (comp.id === parentId && isContainerComponent(comp)) {
+      const children = [...(comp.children || [])];
+      if (index !== undefined && index >= 0) {
+        children.splice(index, 0, component);
+      } else {
+        children.push(component);
+      }
       return {
         ...comp,
-        children: [...(comp.children || []), component],
+        children,
       };
     }
     if (isContainerComponent(comp) && comp.children && comp.children.length > 0) {
       return {
         ...comp,
-        children: addComponentToParentInTree(comp.children, parentId, component),
+        children: addComponentToParentInTree(comp.children, parentId, component, index),
       };
     }
     return comp;
@@ -214,6 +226,33 @@ interface ExtractResult {
   components: ComponentSchema[];
   extracted: ComponentSchema | null;
 }
+
+interface ComponentLocation {
+  parentId: string | null;
+  index: number;
+}
+
+const findComponentLocation = (
+  components: ComponentSchema[],
+  id: string,
+  parentId: string | null = null
+): ComponentLocation | null => {
+  const index = components.findIndex((c) => c.id === id);
+  if (index !== -1) {
+    return { parentId, index };
+  }
+
+  for (const comp of components) {
+    if (isContainerComponent(comp) && comp.children && comp.children.length > 0) {
+      const location = findComponentLocation(comp.children, id, comp.id);
+      if (location) {
+        return location;
+      }
+    }
+  }
+
+  return null;
+};
 
 const extractComponentFromTree = (
   components: ComponentSchema[],
@@ -578,16 +617,16 @@ export const useBuilderStore = create<BuilderState>()(
         );
       },
 
-      addComponentToParent: (parentId, component) => {
+      addComponentToParent: (parentId, component, index) => {
         const { components, pushHistory } = get();
-        const newComponents = addComponentToParentInTree(components, parentId, component);
+        const newComponents = addComponentToParentInTree(components, parentId, component, index);
         pushHistory(components, newComponents);
         set(
           (state) => ({
-            components: addComponentToParentInTree(state.components, parentId, component),
+            components: addComponentToParentInTree(state.components, parentId, component, index),
           }),
           false,
-          { type: 'addComponentToParent', parentId, component }
+          { type: 'addComponentToParent', parentId, component, index }
         );
       },
 
@@ -625,7 +664,7 @@ export const useBuilderStore = create<BuilderState>()(
         );
       },
 
-      moveComponentToParent: (componentId, newParentId) => {
+      moveComponentToParent: (componentId, newParentId, index) => {
         const { components, pushHistory } = get();
         
         const extractResult = extractComponentFromTree(components, componentId);
@@ -638,7 +677,8 @@ export const useBuilderStore = create<BuilderState>()(
         const newComponents = addComponentToParentInTree(
           extractResult.components,
           newParentId,
-          extractResult.extracted
+          extractResult.extracted,
+          index
         );
 
         pushHistory(components, newComponents);
@@ -651,12 +691,13 @@ export const useBuilderStore = create<BuilderState>()(
             const movedComponents = addComponentToParentInTree(
               currentExtractResult.components,
               newParentId,
-              currentExtractResult.extracted
+              currentExtractResult.extracted,
+              index
             );
             return { components: movedComponents };
           },
           false,
-          { type: 'moveComponentToParent', componentId, newParentId }
+          { type: 'moveComponentToParent', componentId, newParentId, index }
         );
       },
     }),

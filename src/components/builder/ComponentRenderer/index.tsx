@@ -8,7 +8,9 @@ import {
 } from '@/types/component';
 import { cn } from '@/utils/classname';
 import { useDroppable } from '@dnd-kit/core';
-import { createContainerDropZoneId } from '@/constants/dnd';
+import { SortableContext, useSortable, rectSortingStrategy, verticalListSortingStrategy, horizontalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { createContainerDropZoneId, createSortableItemId } from '@/constants/dnd';
 import { logger } from '@/utils/logger';
 
 interface ComponentRendererProps {
@@ -77,18 +79,84 @@ const executeClickEvent = (eventConfig?: ClickEventConfig): void => {
   }
 };
 
+interface SortableContainerChildProps {
+  component: ComponentSchema;
+  isSelected: boolean;
+  onClick?: () => void;
+  editable: boolean;
+  index: number;
+}
+
+const SortableContainerChild: React.FC<SortableContainerChildProps> = ({
+  component,
+  isSelected,
+  onClick,
+  editable,
+  index,
+}) => {
+  const sortableId = createSortableItemId(component.id);
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: sortableId,
+  });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.3 : 1,
+    zIndex: isDragging ? 50 : (isSelected ? 10 : 1),
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className={cn(
+        'cursor-grab active:cursor-grabbing transition-all duration-200 relative',
+        isDragging && 'scale-95'
+      )}
+    >
+      {isDragging && (
+        <div className="absolute -inset-1 border-2 border-dashed border-primary-400 rounded-lg pointer-events-none" />
+      )}
+      <ComponentRenderer
+        component={component}
+        isSelected={isSelected}
+        onClick={onClick}
+        editable={editable}
+      />
+    </div>
+  );
+};
+
 interface ContainerDropZoneProps {
   containerId: string;
   children?: React.ReactNode;
   isEmpty: boolean;
   editable: boolean;
+  childComponents?: ComponentSchema[];
+  selectedComponentId?: string | null;
+  onComponentClick?: (id: string) => void;
+  direction?: 'row' | 'column';
 }
 
 const ContainerDropZone: React.FC<ContainerDropZoneProps> = ({
   containerId,
-  children,
   isEmpty,
   editable,
+  childComponents = [],
+  selectedComponentId,
+  onComponentClick,
+  direction = 'column',
 }) => {
   const dropZoneId = createContainerDropZoneId(containerId);
 
@@ -101,10 +169,26 @@ const ContainerDropZone: React.FC<ContainerDropZoneProps> = ({
     dropZoneId,
     isOver,
     active: active ? String(active.id) : null,
+    childCount: childComponents.length,
   });
 
+  const sortableIds = childComponents.map((child) => createSortableItemId(child.id));
+
+  const sortingStrategy = direction === 'row' ? horizontalListSortingStrategy : verticalListSortingStrategy;
+
   if (!editable) {
-    return <>{children}</>;
+    return (
+      <>
+        {childComponents.map((child) => (
+          <ComponentRenderer
+            key={child.id}
+            component={child}
+            isSelected={false}
+            editable={false}
+          />
+        ))}
+      </>
+    );
   }
 
   return (
@@ -137,7 +221,18 @@ const ContainerDropZone: React.FC<ContainerDropZoneProps> = ({
           </Text>
         </div>
       ) : (
-        children
+        <SortableContext items={sortableIds} strategy={sortingStrategy}>
+          {childComponents.map((child, index) => (
+            <SortableContainerChild
+              key={child.id}
+              component={child}
+              isSelected={child.id === selectedComponentId}
+              onClick={onComponentClick ? () => onComponentClick(child.id) : undefined}
+              editable={editable}
+              index={index}
+            />
+          ))}
+        </SortableContext>
       )}
     </div>
   );
@@ -252,6 +347,13 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
         component.children.length === 0;
       
       const containerChildren = isContainerComponent(component) ? component.children : [];
+      const direction = (props.direction as 'row' | 'column') || 'column';
+      
+      const handleChildClick = (childId: string) => {
+        if (editable && onClick) {
+          onClick();
+        }
+      };
       
       return (
         <div
@@ -259,7 +361,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
           onClick={handleClick}
         >
           <Container
-            direction={props.direction || 'column'}
+            direction={direction}
             gap={props.gap || 'md'}
             align={props.align || 'stretch'}
             justify={props.justify || 'start'}
@@ -272,18 +374,11 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
               containerId={component.id}
               isEmpty={isEmptyContainer}
               editable={editable}
-            >
-              {containerChildren && containerChildren.length > 0
-                ? containerChildren.map((child) => (
-                    <ComponentRenderer
-                      key={child.id}
-                      component={child}
-                      onClick={editable && onClick ? (e) => handleWrapperClick(e, onClick) : undefined}
-                      editable={editable}
-                    />
-                  ))
-                : null}
-            </ContainerDropZone>
+              childComponents={containerChildren}
+              selectedComponentId={isSelected ? null : undefined}
+              onComponentClick={handleChildClick}
+              direction={direction}
+            />
           </Container>
         </div>
       );
