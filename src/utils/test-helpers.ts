@@ -1,4 +1,28 @@
-import { ComponentType, type ComponentSchema, type TextComponentSchema, type ButtonComponentSchema, type ContainerComponentSchema, type InputComponentSchema, type TextareaComponentSchema, type SelectComponentSchema, type CheckboxComponentSchema, type CheckboxGroupComponentSchema, type RadioComponentSchema, type RadioGroupComponentSchema, type SwitchComponentSchema, type FormComponentSchema, type FormItemComponentSchema } from '@/types/component';
+import { 
+  ComponentType, 
+  ClickEventType,
+  type ComponentSchema, 
+  type TextComponentSchema, 
+  type ButtonComponentSchema, 
+  type ContainerComponentSchema, 
+  type InputComponentSchema, 
+  type TextareaComponentSchema, 
+  type SelectComponentSchema, 
+  type CheckboxComponentSchema, 
+  type CheckboxGroupComponentSchema, 
+  type RadioComponentSchema, 
+  type RadioGroupComponentSchema, 
+  type SwitchComponentSchema, 
+  type FormComponentSchema, 
+  type FormItemComponentSchema,
+  ActionType,
+  EventType,
+  type ComponentEvents,
+  type EventConfig,
+  type ActionConfig,
+  type ClickEventConfig,
+} from '@/types/component';
+import { generateId } from './id';
 
 export const createMockTextComponent = (id: string, text: string = '测试文本'): TextComponentSchema => ({
   id,
@@ -615,4 +639,174 @@ export const assertProjectMetadataStructure = (metadata: unknown): void => {
   assertNotNull(m.componentCount, '元数据应该有 componentCount');
   assert(typeof m.componentCount === 'number', 'componentCount 应该是数字');
   assert(m.componentCount >= 0, 'componentCount 应该 >= 0');
+};
+
+export const createMockActionConfig = (
+  type: ActionType,
+  params: Partial<ActionConfig['params']> = {},
+  enabled: boolean = true
+): ActionConfig => ({
+  id: `action-${generateId()}`,
+  type,
+  params: {
+    alertMessage: params.alertMessage,
+    targetUrl: params.targetUrl,
+    navigateTarget: params.navigateTarget,
+    pageId: params.pageId,
+    logMessage: params.logMessage,
+    customScript: params.customScript,
+    formId: params.formId,
+  },
+  enabled,
+});
+
+export const createMockEventConfig = (
+  eventType: EventType,
+  actions: ActionConfig[] = [],
+  enabled: boolean = true
+): EventConfig => ({
+  type: eventType,
+  actions,
+  enabled,
+});
+
+export const createMockClickEventConfig = (
+  type: ClickEventType,
+  params: Partial<{
+    alertMessage?: string;
+    targetUrl?: string;
+    formId?: string;
+  }> = {}
+): ClickEventConfig => ({
+  type,
+  ...params,
+});
+
+export const createMockComponentEvents = (
+  configs: {
+    onClick?: ClickEventConfig;
+    onClickActions?: EventConfig;
+    onChangeActions?: EventConfig;
+    onSubmitActions?: EventConfig;
+    onFocusActions?: EventConfig;
+    onBlurActions?: EventConfig;
+  } = {}
+): ComponentEvents => ({
+  ...configs,
+});
+
+export const createMockButtonWithEvents = (
+  id: string,
+  label: string = '测试按钮',
+  events?: ComponentEvents
+): ButtonComponentSchema => ({
+  id,
+  type: ComponentType.Button,
+  x: 10,
+  y: 50,
+  width: 120,
+  height: 44,
+  props: {
+    children: label,
+    variant: 'primary',
+    size: 'md',
+  },
+  styles: {},
+  events,
+});
+
+export const createMockInputWithEvents = (
+  id: string,
+  props: Partial<InputComponentSchema['props']> = {},
+  events?: ComponentEvents
+): InputComponentSchema => ({
+  id,
+  type: ComponentType.Input,
+  x: 10,
+  y: 10,
+  width: 300,
+  height: 44,
+  props: {
+    type: 'text',
+    placeholder: '请输入内容',
+    value: '',
+    disabled: false,
+    readOnly: false,
+    clearable: false,
+    error: false,
+    ...props,
+  },
+  styles: {},
+  events,
+});
+
+export const assertActionConfigEquals = (
+  actual: ActionConfig,
+  expected: ActionConfig,
+  message: string
+): void => {
+  assertEqual(actual.id, expected.id, `${message}: id 应该匹配`);
+  assertEqual(actual.type, expected.type, `${message}: type 应该匹配`);
+  assertEqual(actual.enabled, expected.enabled, `${message}: enabled 应该匹配`);
+  assertEqual(
+    JSON.stringify(actual.params),
+    JSON.stringify(expected.params),
+    `${message}: params 应该匹配`
+  );
+};
+
+export const assertEventConfigEquals = (
+  actual: EventConfig,
+  expected: EventConfig,
+  message: string
+): void => {
+  assertEqual(actual.type, expected.type, `${message}: type 应该匹配`);
+  assertEqual(actual.enabled, expected.enabled, `${message}: enabled 应该匹配`);
+  assertEqual(
+    actual.actions.length,
+    expected.actions.length,
+    `${message}: actions 数量应该匹配`
+  );
+  for (let i = 0; i < actual.actions.length; i++) {
+    assertActionConfigEquals(
+      actual.actions[i],
+      expected.actions[i],
+      `${message}: 动作 ${i}`
+    );
+  }
+};
+
+export const assertComponentEventsEquals = (
+  actual: ComponentEvents,
+  expected: ComponentEvents,
+  message: string
+): void => {
+  if (expected.onClick) {
+    assertNotNull(actual.onClick, `${message}: onClick 应该存在`);
+    assertEqual(
+      JSON.stringify(actual.onClick),
+      JSON.stringify(expected.onClick),
+      `${message}: onClick 应该匹配`
+    );
+  }
+  if (expected.onClickActions) {
+    assertNotNull(actual.onClickActions, `${message}: onClickActions 应该存在`);
+    assertEventConfigEquals(actual.onClickActions, expected.onClickActions, `${message}: onClickActions`);
+  }
+  if (expected.onChangeActions) {
+    assertNotNull(actual.onChangeActions, `${message}: onChangeActions 应该存在`);
+    assertEventConfigEquals(actual.onChangeActions, expected.onChangeActions, `${message}: onChangeActions`);
+  }
+  if (expected.onSubmitActions) {
+    assertNotNull(actual.onSubmitActions, `${message}: onSubmitActions 应该存在`);
+    assertEventConfigEquals(actual.onSubmitActions, expected.onSubmitActions, `${message}: onSubmitActions`);
+  }
+  if (expected.onFocusActions) {
+    assertNotNull(actual.onFocusActions, `${message}: onFocusActions 应该存在`);
+    assertEventConfigEquals(actual.onFocusActions, expected.onFocusActions, `${message}: onFocusActions`);
+  }
+  if (expected.onBlurActions) {
+    assertNotNull(actual.onBlurActions, `${message}: onBlurActions 应该存在`);
+    assertEventConfigEquals(actual.onBlurActions, expected.onBlurActions, `${message}: onBlurActions`);
+  }
 };
