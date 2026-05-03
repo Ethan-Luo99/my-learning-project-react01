@@ -2,6 +2,8 @@ export { Button, type ButtonProps } from './Button';
 export { Text, type TextProps } from './Text';
 export { Image, type ImageProps } from './Image';
 export { Container, type ContainerProps } from './Container';
+export { Card, type CardProps } from './Card';
+export { Divider, type DividerProps } from './Divider';
 export { Input, type InputProps } from './Input';
 export { Textarea, type TextareaProps } from './Textarea';
 export { Select, type SelectProps, type SelectOption } from './Select';

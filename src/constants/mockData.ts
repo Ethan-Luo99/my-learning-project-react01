@@ -60,6 +60,36 @@ export const DEFAULT_COMPONENT_CONFIGS: Record<ComponentType, ComponentConfig> =
       borderRadius: '8px',
     },
   },
+  [ComponentType.Card]: {
+    type: ComponentType.Card,
+    label: '卡片',
+    defaultWidth: 350,
+    defaultHeight: 'auto',
+    defaultProps: {
+      shadow: 'md',
+      padding: 'md',
+      bordered: true,
+      headerTitle: '卡片标题',
+      hoverable: false,
+    },
+    defaultStyles: {
+      minHeight: '150px',
+    },
+  },
+  [ComponentType.Divider]: {
+    type: ComponentType.Divider,
+    label: '分割线',
+    defaultWidth: '100%',
+    defaultHeight: 'auto',
+    defaultProps: {
+      direction: 'horizontal',
+      textPosition: 'center',
+      dashed: false,
+      plain: false,
+      children: '',
+    },
+    defaultStyles: {},
+  },
   [ComponentType.Input]: {
     type: ComponentType.Input,
     label: '输入框',
@@ -237,6 +267,16 @@ export const COMPONENT_PANEL_ITEMS: ComponentPanelItem[] = [
   {
     type: ComponentType.Container,
     label: '容器',
+    category: 'layout',
+  },
+  {
+    type: ComponentType.Card,
+    label: '卡片',
+    category: 'layout',
+  },
+  {
+    type: ComponentType.Divider,
+    label: '分割线',
     category: 'layout',
   },
   {

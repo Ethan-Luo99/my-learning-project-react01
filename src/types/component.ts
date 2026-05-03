@@ -9,7 +9,7 @@
  * - 组件 Schema 定义
  */
 
-import type { ButtonProps, TextProps, ImageProps, ContainerProps, InputProps, TextareaProps, SelectProps, CheckboxProps, CheckboxGroupProps, RadioProps, RadioGroupProps, SwitchProps, FormProps, FormItemProps } from '@/components/ui';
+import type { ButtonProps, TextProps, ImageProps, ContainerProps, InputProps, TextareaProps, SelectProps, CheckboxProps, CheckboxGroupProps, RadioProps, RadioGroupProps, SwitchProps, FormProps, FormItemProps, CardProps, DividerProps } from '@/components/ui';
 import type { ValidationRule, ValidationResult } from '@/utils/formValidation';
 
 export enum ValidationTrigger {
@@ -79,6 +79,8 @@ export enum ComponentType {
   Button = 'Button',
   Image = 'Image',
   Container = 'Container',
+  Card = 'Card',
+  Divider = 'Divider',
   Input = 'Input',
   Textarea = 'Textarea',
   Select = 'Select',
@@ -202,6 +204,17 @@ export interface ContainerComponentSchema extends ComponentBaseSchema {
   children?: ComponentSchema[];
 }
 
+export interface CardComponentSchema extends ComponentBaseSchema {
+  type: ComponentType.Card;
+  props: Partial<CardProps>;
+  children?: ComponentSchema[];
+}
+
+export interface DividerComponentSchema extends ComponentBaseSchema {
+  type: ComponentType.Divider;
+  props: Partial<DividerProps>;
+}
+
 export interface InputComponentSchema extends ComponentBaseSchema {
   type: ComponentType.Input;
   props: Partial<InputProps>;
@@ -259,6 +272,8 @@ export type ComponentSchema =
   | ButtonComponentSchema
   | ImageComponentSchema
   | ContainerComponentSchema
+  | CardComponentSchema
+  | DividerComponentSchema
   | InputComponentSchema
   | TextareaComponentSchema
   | SelectComponentSchema

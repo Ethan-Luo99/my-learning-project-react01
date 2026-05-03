@@ -58,6 +58,7 @@ const isContainerComponent = (
 ): component is ContainerComponentSchema => {
   return (
     component.type === ComponentType.Container ||
+    component.type === ComponentType.Card ||
     component.type === ComponentType.Form ||
     component.type === ComponentType.FormItem
   );
@@ -81,6 +82,7 @@ const createComponentFromType = (type: string, x: number = DEFAULT_POSITION.X, y
 
   if (
     componentType === ComponentType.Container ||
+    componentType === ComponentType.Card ||
     componentType === ComponentType.Form ||
     componentType === ComponentType.FormItem
   ) {
@@ -108,6 +110,8 @@ const DragPreview: React.FC<{ item: ActiveDragItem }> = ({ item }) => {
       Button: '⬛',
       Image: '🖼️',
       Container: '📦',
+      Card: '🃏',
+      Divider: '━',
     };
     return item.type ? icons[item.type] || '?' : '?';
   };

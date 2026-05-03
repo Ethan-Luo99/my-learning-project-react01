@@ -9,7 +9,7 @@
  * - 表单组件（Input/Select/Checkbox 等）支持值变更触发绑定
  */
 
-import { Text, Button, Image, Container, Input, Textarea, Select, Checkbox, CheckboxGroup, Radio, RadioGroup, Switch, Form, FormItem } from '@/components/ui';
+import { Text, Button, Image, Container, Card, Divider, Input, Textarea, Select, Checkbox, CheckboxGroup, Radio, RadioGroup, Switch, Form, FormItem } from '@/components/ui';
 import { 
   ComponentType, 
   type ComponentSchema, 
@@ -48,6 +48,7 @@ const isContainerComponent = (
 ): component is ContainerComponentSchema => {
   return (
     component.type === ComponentType.Container ||
+    component.type === ComponentType.Card ||
     component.type === ComponentType.Form ||
     component.type === ComponentType.FormItem
   );
@@ -496,6 +497,83 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
               direction={direction}
             />
           </Container>
+        </div>
+      );
+    }
+
+    case ComponentType.Card: {
+      const { className: cardClassName, ...restCardProps } = props;
+      const isEmptyCard = !isContainerComponent(component) || 
+        !component.children || 
+        component.children.length === 0;
+      
+      const cardChildren = isContainerComponent(component) ? component.children : [];
+      
+      const handleChildClick = (childId: string) => {
+        if (editable && onClick) {
+          onClick();
+        }
+      };
+      
+      const shadow = (props.shadow as CardProps['shadow']) || 'md';
+      const padding = (props.padding as CardProps['padding']) || 'md';
+      const bordered = props.bordered === true || props.bordered === 'true';
+      const hoverable = props.hoverable === true || props.hoverable === 'true';
+      
+      return (
+        <div
+          className={wrapperClassName}
+          onClick={handleClick}
+        >
+          <Card
+            shadow={shadow}
+            padding={padding}
+            bordered={bordered}
+            headerTitle={props.headerTitle}
+            hoverable={hoverable}
+            style={styles}
+            className={cardClassName}
+            {...restCardProps}
+          >
+            <ContainerDropZone
+              containerId={component.id}
+              isEmpty={isEmptyCard}
+              editable={editable}
+              childComponents={cardChildren}
+              selectedComponentId={isSelected ? null : undefined}
+              onComponentClick={handleChildClick}
+              direction="column"
+            />
+          </Card>
+        </div>
+      );
+    }
+
+    case ComponentType.Divider: {
+      const { className: dividerClassName, ...restDividerProps } = props;
+      
+      const direction = (props.direction as DividerProps['direction']) || 'horizontal';
+      const textPosition = (props.textPosition as DividerProps['textPosition']) || 'center';
+      const dashed = props.dashed === true || props.dashed === 'true';
+      const plain = props.plain === true || props.plain === 'true';
+      const children = props.children;
+      
+      return (
+        <div
+          className={wrapperClassName}
+          onClick={handleClick}
+        >
+          <Divider
+            direction={direction}
+            textPosition={textPosition}
+            dashed={dashed}
+            plain={plain}
+            style={styles}
+            className={cn(editable && 'pointer-events-none', dividerClassName)}
+            {...restDividerProps}
+          >
+            {children}
+          </Divider>
         </div>
       );
     }

@@ -405,6 +405,131 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
     ],
   },
 
+  [ComponentType.Card]: {
+    type: ComponentType.Card,
+    label: '卡片',
+    properties: [
+      ...createCommonBasicProperties(),
+      {
+        key: 'shadow',
+        label: '阴影',
+        type: 'select',
+        options: [
+          { value: 'none', label: '无' },
+          { value: 'sm', label: '小' },
+          { value: 'md', label: '中' },
+          { value: 'lg', label: '大' },
+        ],
+        category: 'props',
+        defaultValue: 'md',
+      },
+      {
+        key: 'padding',
+        label: '内边距',
+        type: 'select',
+        options: [
+          { value: 'none', label: '无' },
+          { value: 'sm', label: '小' },
+          { value: 'md', label: '中' },
+          { value: 'lg', label: '大' },
+        ],
+        category: 'props',
+        defaultValue: 'md',
+      },
+      {
+        key: 'bordered',
+        label: '显示边框',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'true',
+      },
+      {
+        key: 'headerTitle',
+        label: '标题文本',
+        type: 'text',
+        placeholder: '请输入标题',
+        category: 'props',
+      },
+      {
+        key: 'hoverable',
+        label: '悬停效果',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
+      ...createCommonStyleProperties(),
+    ],
+  },
+
+  [ComponentType.Divider]: {
+    type: ComponentType.Divider,
+    label: '分割线',
+    properties: [
+      ...createCommonBasicProperties(),
+      {
+        key: 'direction',
+        label: '方向',
+        type: 'select',
+        options: [
+          { value: 'horizontal', label: '水平' },
+          { value: 'vertical', label: '垂直' },
+        ],
+        category: 'props',
+        defaultValue: 'horizontal',
+      },
+      {
+        key: 'textPosition',
+        label: '文字位置',
+        type: 'select',
+        options: [
+          { value: 'left', label: '左' },
+          { value: 'center', label: '中' },
+          { value: 'right', label: '右' },
+        ],
+        category: 'props',
+        defaultValue: 'center',
+      },
+      {
+        key: 'dashed',
+        label: '虚线样式',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
+      {
+        key: 'plain',
+        label: '朴素样式',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
+      {
+        key: 'children',
+        label: '分割线文字',
+        type: 'text',
+        placeholder: '分割线文字（可选）',
+        category: 'props',
+      },
+      ...createCommonStyleProperties(),
+    ],
+  },
+
   [ComponentType.Input]: {
     type: ComponentType.Input,
     label: '输入框',

@@ -33,7 +33,12 @@ interface HistoryState {
 const isContainerComponent = (
   component: ComponentSchema
 ): component is ContainerComponentSchema => {
-  return component.type === ComponentType.Container;
+  return (
+    component.type === ComponentType.Container ||
+    component.type === ComponentType.Card ||
+    component.type === ComponentType.Form ||
+    component.type === ComponentType.FormItem
+  );
 };
 
 const findComponentById = (
