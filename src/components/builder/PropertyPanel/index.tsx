@@ -254,6 +254,7 @@ const EventConfigEditor: React.FC<EventConfigEditorProps> = ({ eventConfig, onCh
     alertMessage: eventConfig?.alertMessage,
     targetUrl: eventConfig?.targetUrl,
     customCode: eventConfig?.customCode,
+    formId: eventConfig?.formId,
   });
 
   useEffect(() => {
@@ -262,6 +263,7 @@ const EventConfigEditor: React.FC<EventConfigEditorProps> = ({ eventConfig, onCh
       alertMessage: eventConfig?.alertMessage,
       targetUrl: eventConfig?.targetUrl,
       customCode: eventConfig?.customCode,
+      formId: eventConfig?.formId,
     });
   }, [eventConfig]);
 
@@ -301,6 +303,15 @@ const EventConfigEditor: React.FC<EventConfigEditorProps> = ({ eventConfig, onCh
     const newConfig: ClickEventConfig = {
       ...localConfig,
       customCode: code,
+    };
+    setLocalConfig(newConfig);
+    onChange(newConfig);
+  };
+
+  const handleFormIdChange = (formId: string) => {
+    const newConfig: ClickEventConfig = {
+      ...localConfig,
+      formId: formId || undefined,
     };
     setLocalConfig(newConfig);
     onChange(newConfig);
@@ -364,6 +375,26 @@ const EventConfigEditor: React.FC<EventConfigEditorProps> = ({ eventConfig, onCh
           </div>
         );
 
+      case ClickEventType.FormSubmit:
+      case ClickEventType.FormReset:
+        return (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              表单 ID
+            </label>
+            <input
+              type="text"
+              value={localConfig.formId ?? ''}
+              onChange={(e) => handleFormIdChange(e.target.value)}
+              placeholder="例如：loginForm"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              输入要操作的表单 ID。需要与 Form 组件的 ID 属性一致。
+            </p>
+          </div>
+        );
+
       default:
         return null;
     }
@@ -384,6 +415,8 @@ const EventConfigEditor: React.FC<EventConfigEditorProps> = ({ eventConfig, onCh
           <option value={ClickEventType.Alert}>弹窗提示</option>
           <option value={ClickEventType.NavigateUrl}>跳转到 URL</option>
           <option value={ClickEventType.CustomCode}>执行自定义代码</option>
+          <option value={ClickEventType.FormSubmit}>表单提交</option>
+          <option value={ClickEventType.FormReset}>表单重置</option>
         </select>
       </div>
       {renderParameterInputs()}

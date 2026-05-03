@@ -12,6 +12,7 @@ import { SortableContext, useSortable, rectSortingStrategy, verticalListSortingS
 import { CSS } from '@dnd-kit/utilities';
 import { createContainerDropZoneId, createSortableItemId } from '@/constants/dnd';
 import { logger } from '@/utils/logger';
+import { usePreviewFormSubmit, usePreviewFormReset } from '@/context/PreviewFormRegistry';
 
 interface ComponentRendererProps {
   component: ComponentSchema;
@@ -50,37 +51,50 @@ const handleWrapperClick = (
   }
 };
 
-const executeClickEvent = (eventConfig?: ClickEventConfig): void => {
-  if (!eventConfig || eventConfig.type === ClickEventType.None) {
-    return;
-  }
+const useClickEventExecutor = () => {
+  const submitForm = usePreviewFormSubmit();
+  const resetForm = usePreviewFormReset();
 
-  switch (eventConfig.type) {
-    case ClickEventType.Alert:
-      if (eventConfig.alertMessage) {
-        alert(eventConfig.alertMessage);
-      } else {
-        alert('按钮被点击了');
-      }
-      break;
+  return React.useCallback((eventConfig?: ClickEventConfig): void => {
+    if (!eventConfig || eventConfig.type === ClickEventType.None) {
+      return;
+    }
 
-    case ClickEventType.NavigateUrl:
-      if (eventConfig.targetUrl) {
-        window.open(eventConfig.targetUrl, '_blank');
-      }
-      break;
-
-    case ClickEventType.CustomCode:
-      if (eventConfig.customCode) {
-        try {
-          eval(eventConfig.customCode);
-        } catch (error) {
-          console.error('自定义代码执行错误:', error);
-          alert(`代码执行错误: ${error}`);
+    switch (eventConfig.type) {
+      case ClickEventType.Alert:
+        if (eventConfig.alertMessage) {
+          alert(eventConfig.alertMessage);
+        } else {
+          alert('按钮被点击了');
         }
-      }
-      break;
-  }
+        break;
+
+      case ClickEventType.NavigateUrl:
+        if (eventConfig.targetUrl) {
+          window.open(eventConfig.targetUrl, '_blank');
+        }
+        break;
+
+      case ClickEventType.CustomCode:
+        if (eventConfig.customCode) {
+          try {
+            eval(eventConfig.customCode);
+          } catch (error) {
+            console.error('自定义代码执行错误:', error);
+            alert(`代码执行错误: ${error}`);
+          }
+        }
+        break;
+
+      case ClickEventType.FormSubmit:
+        submitForm(eventConfig.formId);
+        break;
+
+      case ClickEventType.FormReset:
+        resetForm(eventConfig.formId);
+        break;
+    }
+  }, [submitForm, resetForm]);
 };
 
 interface SortableContainerChildProps {
@@ -249,6 +263,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
   editable = true,
 }) => {
   const { type, props, styles } = component;
+  const executeClickEvent = useClickEventExecutor();
 
   const wrapperClassName = cn(
     'relative',

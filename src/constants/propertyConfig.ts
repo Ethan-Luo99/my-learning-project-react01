@@ -1049,6 +1049,14 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
     properties: [
       ...createCommonBasicProperties(),
       {
+        key: 'id',
+        label: '表单 ID',
+        type: 'text',
+        placeholder: '例如：loginForm',
+        category: 'props',
+        description: '用于按钮的表单提交/重置事件识别',
+      },
+      {
         key: 'layout',
         label: '布局方式',
         type: 'select',

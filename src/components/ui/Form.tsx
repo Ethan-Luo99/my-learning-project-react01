@@ -2,6 +2,8 @@ import * as React from 'react';
 import { cn } from '@/utils/classname';
 import type { ValidationRule, ValidationResult } from '@/utils/formValidation';
 import { validateField, isFormValid } from '@/utils/formValidation';
+import { usePreviewFormRegistry } from '@/context/PreviewFormRegistry';
+import { logger } from '@/utils/logger';
 
 export interface FormContextValue {
   layout: 'horizontal' | 'vertical' | 'inline';
@@ -164,6 +166,7 @@ export const useFormField = ({
 };
 
 export interface FormProps extends React.FormHTMLAttributes<HTMLFormElement> {
+  id?: string;
   layout?: 'horizontal' | 'vertical' | 'inline';
   labelWidth?: number | string;
   labelAlign?: 'left' | 'right' | 'top';
@@ -180,6 +183,7 @@ interface RegisteredField {
 }
 
 const Form: React.FC<FormProps> = ({
+  id,
   layout = 'vertical',
   labelWidth = 100,
   labelAlign = 'right',
@@ -197,8 +201,10 @@ const Form: React.FC<FormProps> = ({
   const [touched, setTouched] = React.useState<FormTouched>({});
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const registeredFieldsRef = React.useRef<Map<string, RegisteredField>>(new Map());
+  const initialValuesRef = React.useRef(initialValues);
 
   const registeredFields = registeredFieldsRef.current;
+  const previewFormRegistry = usePreviewFormRegistry();
 
   const getFieldRules = React.useCallback((name: string): ValidationRule[] => {
     return registeredFields.get(name)?.config.rules || [];
@@ -271,25 +277,60 @@ const Form: React.FC<FormProps> = ({
     return validateAllFields();
   }, [validateAllFields]);
 
+  const getValues = React.useCallback((): FormValues => {
+    const finalValues: FormValues = {};
+    registeredFields.forEach((field, name) => {
+      finalValues[name] = values[name] ?? field.config.initialValue;
+    });
+    return finalValues;
+  }, [values, registeredFields]);
+
+  const getErrors = React.useCallback((): FormErrors => {
+    return { ...errors };
+  }, [errors]);
+
   const resetForm = React.useCallback(() => {
-    setValues(initialValues);
+    setValues(initialValuesRef.current);
     setErrors({});
     setTouched({});
-  }, [initialValues]);
+    logger.log('表单已重置', { formId: id, initialValues: initialValuesRef.current });
+  }, [id]);
 
   const submitForm = React.useCallback(() => {
     setIsSubmitting(true);
     
     const isValid = validateAllFields();
     
-    const finalValues: FormValues = {};
-    registeredFields.forEach((field, name) => {
-      finalValues[name] = values[name] ?? field.config.initialValue;
-    });
+    const finalValues = getValues();
+
+    logger.log('表单提交', { formId: id, values: finalValues, isValid });
+    
+    if (!onSubmit) {
+      console.log('📋 表单提交数据:', JSON.stringify(finalValues, null, 2));
+      console.log('✅ 表单验证结果:', isValid ? '通过' : '失败');
+    }
 
     onSubmit?.(finalValues, isValid);
     setIsSubmitting(false);
-  }, [values, registeredFields, validateAllFields, onSubmit]);
+  }, [id, validateAllFields, getValues, onSubmit]);
+
+  React.useEffect(() => {
+    if (id && previewFormRegistry.registerForm) {
+      const formHandle = {
+        id,
+        submitForm,
+        resetForm,
+        validateForm: validateForm,
+        getValues,
+        getErrors,
+      };
+      previewFormRegistry.registerForm(formHandle);
+      
+      return () => {
+        previewFormRegistry.unregisterForm(id);
+      };
+    }
+  }, [id, submitForm, resetForm, validateForm, getValues, getErrors, previewFormRegistry]);
 
   const registerField = React.useCallback((config: FormFieldConfig) => {
     registeredFields.set(config.name, { config });

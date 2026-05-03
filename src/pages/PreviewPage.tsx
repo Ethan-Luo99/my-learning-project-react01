@@ -6,6 +6,7 @@ import { useBuilderStore } from '@/store/useBuilderStore';
 import { DEFAULT_POSITION } from '@/constants/dnd';
 import type { ComponentSchema } from '@/types/component';
 import { cn } from '@/utils/classname';
+import { PreviewFormRegistryProvider } from '@/context/PreviewFormRegistry';
 
 const getSizeValue = (value?: number | string): string | number | undefined => {
   if (value === undefined || value === null) return undefined;
@@ -192,14 +193,16 @@ export const PreviewPage: React.FC = () => {
               ) : components.length === 0 ? (
                 <EmptyState />
               ) : (
-                <div className="absolute inset-0 p-2">
-                  {components.map((component) => (
-                    <PreviewCanvasItem
-                      key={component.id}
-                      component={component}
-                    />
-                  ))}
-                </div>
+                <PreviewFormRegistryProvider>
+                  <div className="absolute inset-0 p-2">
+                    {components.map((component) => (
+                      <PreviewCanvasItem
+                        key={component.id}
+                        component={component}
+                      />
+                    ))}
+                  </div>
+                </PreviewFormRegistryProvider>
               )}
             </div>
           </div>

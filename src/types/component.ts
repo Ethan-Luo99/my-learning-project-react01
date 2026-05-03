@@ -43,6 +43,8 @@ export enum ClickEventType {
   Alert = 'alert',
   NavigateUrl = 'navigate_url',
   CustomCode = 'custom_code',
+  FormSubmit = 'form_submit',
+  FormReset = 'form_reset',
 }
 
 export interface ClickEventConfig {
@@ -50,6 +52,7 @@ export interface ClickEventConfig {
   alertMessage?: string;
   targetUrl?: string;
   customCode?: string;
+  formId?: string;
 }
 
 export interface ComponentEvents {
