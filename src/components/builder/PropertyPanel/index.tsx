@@ -22,6 +22,10 @@ import {
   type DataBindingRule,
   BindingTrigger,
   BindingPath,
+  ActionType,
+  EventType,
+  type EventConfig,
+  type ActionConfig,
 } from '@/types/component';
 import { 
   getComponentPropertyConfig, 
@@ -434,6 +438,443 @@ const EventConfigEditor: React.FC<EventConfigEditorProps> = ({ eventConfig, onCh
         </select>
       </div>
       {renderParameterInputs()}
+    </div>
+  );
+};
+
+interface ActionEditorProps {
+  action: ActionConfig;
+  onUpdate: (id: string, updates: Partial<ActionConfig>) => void;
+  onRemove: (id: string) => void;
+  onMoveUp: (id: string) => void;
+  onMoveDown: (id: string) => void;
+  isFirst: boolean;
+  isLast: boolean;
+}
+
+const ActionEditor: React.FC<ActionEditorProps> = ({
+  action,
+  onUpdate,
+  onRemove,
+  onMoveUp,
+  onMoveDown,
+  isFirst,
+  isLast,
+}) => {
+  const actionTypeOptions = [
+    { value: ActionType.ShowAlert, label: '弹窗提示 (SHOW_ALERT)' },
+    { value: ActionType.NavigateUrl, label: '跳转链接 (NAVIGATE_URL)' },
+    { value: ActionType.NavigatePage, label: '页面跳转 (NAVIGATE_PAGE)' },
+    { value: ActionType.ConsoleLog, label: '控制台输出 (CONSOLE_LOG)' },
+    { value: ActionType.CustomScript, label: '自定义脚本 (CUSTOM_SCRIPT)' },
+    { value: ActionType.FormSubmit, label: '表单提交 (FORM_SUBMIT)' },
+    { value: ActionType.FormReset, label: '表单重置 (FORM_RESET)' },
+  ];
+
+  const handleActionTypeChange = (type: ActionType) => {
+    onUpdate(action.id, { type });
+  };
+
+  const handleParamChange = (key: string, value: string) => {
+    onUpdate(action.id, {
+      params: {
+        ...action.params,
+        [key]: value,
+      },
+    });
+  };
+
+  const handleEnabledChange = (enabled: boolean) => {
+    onUpdate(action.id, { enabled });
+  };
+
+  const renderParamInputs = () => {
+    switch (action.type) {
+      case ActionType.ShowAlert:
+        return (
+          <div className="mb-3">
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              提示内容
+            </label>
+            <textarea
+              value={action.params.alertMessage ?? ''}
+              onChange={(e) => handleParamChange('alertMessage', e.target.value)}
+              placeholder="请输入提示内容..."
+              rows={2}
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 bg-white resize-none"
+            />
+          </div>
+        );
+
+      case ActionType.NavigateUrl:
+        return (
+          <div className="mb-3">
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              目标 URL
+            </label>
+            <input
+              type="text"
+              value={action.params.targetUrl ?? ''}
+              onChange={(e) => handleParamChange('targetUrl', e.target.value)}
+              placeholder="https://example.com"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 bg-white"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              将在新窗口打开此 URL
+            </p>
+          </div>
+        );
+
+      case ActionType.NavigatePage:
+        return (
+          <div className="mb-3">
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              目标页面 ID
+            </label>
+            <input
+              type="text"
+              value={action.params.pageId ?? ''}
+              onChange={(e) => handleParamChange('pageId', e.target.value)}
+              placeholder="例如：homePage"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 bg-white"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              项目内页面跳转（预留功能）
+            </p>
+          </div>
+        );
+
+      case ActionType.ConsoleLog:
+        return (
+          <div className="mb-3">
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              日志内容
+            </label>
+            <input
+              type="text"
+              value={action.params.logMessage ?? ''}
+              onChange={(e) => handleParamChange('logMessage', e.target.value)}
+              placeholder="例如：按钮被点击了"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 bg-white"
+            />
+          </div>
+        );
+
+      case ActionType.CustomScript:
+        return (
+          <div className="mb-3">
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              自定义 JavaScript 代码
+            </label>
+            <textarea
+              value={action.params.customScript ?? ''}
+              onChange={(e) => handleParamChange('customScript', e.target.value)}
+              placeholder="console.log('自定义脚本执行');"
+              rows={3}
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 bg-white resize-none font-mono"
+            />
+            <div className="mt-1 p-2 bg-yellow-50 border border-yellow-200 rounded">
+              <p className="text-xs text-yellow-700">
+                ⚠️ 安全警告：自定义代码将使用 eval 执行。仅在预览模式下执行。
+              </p>
+            </div>
+          </div>
+        );
+
+      case ActionType.FormSubmit:
+      case ActionType.FormReset:
+        return (
+          <div className="mb-3">
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              表单 ID
+            </label>
+            <input
+              type="text"
+              value={action.params.formId ?? ''}
+              onChange={(e) => handleParamChange('formId', e.target.value)}
+              placeholder="例如：loginForm"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 bg-white"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              需要与 Form 组件的 ID 属性一致
+            </p>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="p-3 mb-3 bg-gray-50 rounded-lg border border-gray-200">
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={action.enabled}
+            onChange={(e) => handleEnabledChange(e.target.checked)}
+            className="w-4 h-4 text-primary-600 rounded"
+          />
+          <select
+            value={action.type}
+            onChange={(e) => handleActionTypeChange(e.target.value as ActionType)}
+            className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 bg-white"
+          >
+            {actionTypeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => onMoveUp(action.id)}
+            disabled={isFirst}
+            className={cn(
+              'p-1 rounded transition-colors',
+              isFirst
+                ? 'text-gray-300 cursor-not-allowed'
+                : 'text-gray-500 hover:bg-gray-200'
+            )}
+            title="上移"
+          >
+            ▲
+          </button>
+          <button
+            type="button"
+            onClick={() => onMoveDown(action.id)}
+            disabled={isLast}
+            className={cn(
+              'p-1 rounded transition-colors',
+              isLast
+                ? 'text-gray-300 cursor-not-allowed'
+                : 'text-gray-500 hover:bg-gray-200'
+            )}
+            title="下移"
+          >
+            ▼
+          </button>
+          <button
+            type="button"
+            onClick={() => onRemove(action.id)}
+            className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
+            title="删除"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+      {renderParamInputs()}
+    </div>
+  );
+};
+
+interface AdvancedEventConfigEditorProps {
+  componentType: ComponentType;
+  events: {
+    onClickActions?: EventConfig;
+    onChangeActions?: EventConfig;
+    onSubmitActions?: EventConfig;
+    onFocusActions?: EventConfig;
+    onBlurActions?: EventConfig;
+  };
+  onEventChange: (eventType: EventType, config: EventConfig | undefined) => void;
+}
+
+const AdvancedEventConfigEditor: React.FC<AdvancedEventConfigEditorProps> = ({
+  componentType,
+  events,
+  onEventChange,
+}) => {
+  const supportedEvents = getSupportedEventTypes(componentType);
+  const [selectedEventType, setSelectedEventType] = useState<EventType | null>(
+    supportedEvents.length > 0 ? supportedEvents[0] : null
+  );
+
+  const getEventLabel = (eventType: EventType): string => {
+    const labels: Record<EventType, string> = {
+      [EventType.Click]: '点击事件 (onClick)',
+      [EventType.Change]: '变更事件 (onChange)',
+      [EventType.Submit]: '提交事件 (onSubmit)',
+      [EventType.Focus]: '聚焦事件 (onFocus)',
+      [EventType.Blur]: '失焦事件 (onBlur)',
+    };
+    return labels[eventType] || eventType;
+  };
+
+  const getEventConfig = (eventType: EventType): EventConfig | undefined => {
+    switch (eventType) {
+      case EventType.Click:
+        return events.onClickActions;
+      case EventType.Change:
+        return events.onChangeActions;
+      case EventType.Submit:
+        return events.onSubmitActions;
+      case EventType.Focus:
+        return events.onFocusActions;
+      case EventType.Blur:
+        return events.onBlurActions;
+    }
+  };
+
+  const handleAddAction = () => {
+    if (!selectedEventType) return;
+
+    const currentConfig = getEventConfig(selectedEventType);
+    const newAction: ActionConfig = {
+      id: generateId('action'),
+      type: ActionType.ShowAlert,
+      params: {},
+      enabled: true,
+    };
+
+    const newConfig: EventConfig = {
+      type: selectedEventType,
+      actions: currentConfig ? [...currentConfig.actions, newAction] : [newAction],
+      enabled: currentConfig?.enabled ?? true,
+    };
+
+    onEventChange(selectedEventType, newConfig);
+  };
+
+  const handleUpdateAction = (eventType: EventType, actionId: string, updates: Partial<ActionConfig>) => {
+    const currentConfig = getEventConfig(eventType);
+    if (!currentConfig) return;
+
+    const updatedActions = currentConfig.actions.map((action) =>
+      action.id === actionId ? { ...action, ...updates } : action
+    );
+
+    onEventChange(eventType, {
+      ...currentConfig,
+      actions: updatedActions,
+    });
+  };
+
+  const handleRemoveAction = (eventType: EventType, actionId: string) => {
+    const currentConfig = getEventConfig(eventType);
+    if (!currentConfig) return;
+
+    const updatedActions = currentConfig.actions.filter((action) => action.id !== actionId);
+
+    if (updatedActions.length === 0) {
+      onEventChange(eventType, undefined);
+    } else {
+      onEventChange(eventType, {
+        ...currentConfig,
+        actions: updatedActions,
+      });
+    }
+  };
+
+  const handleMoveAction = (eventType: EventType, actionId: string, direction: 'up' | 'down') => {
+    const currentConfig = getEventConfig(eventType);
+    if (!currentConfig || currentConfig.actions.length < 2) return;
+
+    const index = currentConfig.actions.findIndex((action) => action.id === actionId);
+    if (index === -1) return;
+
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= currentConfig.actions.length) return;
+
+    const updatedActions = [...currentConfig.actions];
+    const [removed] = updatedActions.splice(index, 1);
+    updatedActions.splice(newIndex, 0, removed);
+
+    onEventChange(eventType, {
+      ...currentConfig,
+      actions: updatedActions,
+    });
+  };
+
+  if (supportedEvents.length === 0) {
+    return (
+      <div className="text-sm text-gray-500 text-center py-4">
+        该组件不支持事件配置
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {supportedEvents.length > 1 && (
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            选择事件类型
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {supportedEvents.map((eventType) => (
+              <button
+                key={eventType}
+                type="button"
+                onClick={() => setSelectedEventType(eventType)}
+                className={cn(
+                  'px-3 py-1.5 text-sm rounded-md border transition-colors',
+                  selectedEventType === eventType
+                    ? 'bg-primary-500 text-white border-primary-500'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                )}
+              >
+                {getEventLabel(eventType)}
+                {getEventConfig(eventType) && (
+                  <span className="ml-1 text-xs">
+                    ({getEventConfig(eventType)?.actions.length || 0})
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {selectedEventType && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            {supportedEvents.length === 1 && (
+              <Text variant="body2" weight="medium" className="text-gray-700">
+                {getEventLabel(selectedEventType)}
+              </Text>
+            )}
+            <div className="flex-1" />
+          </div>
+
+          {getEventConfig(selectedEventType)?.actions.length === 0 ||
+          !getEventConfig(selectedEventType) ? (
+            <div className="text-sm text-gray-500 text-center py-4 mb-3 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+              暂无动作配置，点击下方按钮添加
+            </div>
+          ) : (
+            <div className="mb-3">
+              {getEventConfig(selectedEventType)!.actions.map((action, index) => (
+                <ActionEditor
+                  key={action.id}
+                  action={action}
+                  onUpdate={(id, updates) => handleUpdateAction(selectedEventType, id, updates)}
+                  onRemove={(id) => handleRemoveAction(selectedEventType, id)}
+                  onMoveUp={(id) => handleMoveAction(selectedEventType, id, 'up')}
+                  onMoveDown={(id) => handleMoveAction(selectedEventType, id, 'down')}
+                  isFirst={index === 0}
+                  isLast={index === getEventConfig(selectedEventType)!.actions.length - 1}
+                />
+              ))}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={handleAddAction}
+            className="w-full py-2 px-4 text-sm text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-lg border border-dashed border-primary-300 transition-colors flex items-center justify-center gap-1"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+            </svg>
+            添加动作
+          </button>
+        </div>
+      )}
     </div>
   );
 };
@@ -1096,6 +1537,56 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
     });
   }, [selectedComponentId, selectedComponent, updateComponent]);
 
+  const handleAdvancedEventChange = useCallback((eventType: EventType, config: EventConfig | undefined) => {
+    if (!selectedComponentId || !selectedComponent) return;
+
+    const currentEvents = selectedComponent.events || {};
+    let newEvents = { ...currentEvents };
+
+    switch (eventType) {
+      case EventType.Click:
+        if (config) {
+          newEvents.onClickActions = config;
+        } else {
+          delete newEvents.onClickActions;
+        }
+        break;
+      case EventType.Change:
+        if (config) {
+          newEvents.onChangeActions = config;
+        } else {
+          delete newEvents.onChangeActions;
+        }
+        break;
+      case EventType.Submit:
+        if (config) {
+          newEvents.onSubmitActions = config;
+        } else {
+          delete newEvents.onSubmitActions;
+        }
+        break;
+      case EventType.Focus:
+        if (config) {
+          newEvents.onFocusActions = config;
+        } else {
+          delete newEvents.onFocusActions;
+        }
+        break;
+      case EventType.Blur:
+        if (config) {
+          newEvents.onBlurActions = config;
+        } else {
+          delete newEvents.onBlurActions;
+        }
+        break;
+    }
+
+    const hasEvents = Object.keys(newEvents).length > 0;
+    updateComponent(selectedComponentId, {
+      events: hasEvents ? newEvents : undefined,
+    });
+  }, [selectedComponentId, selectedComponent, updateComponent]);
+
   const handleValidationRulesChange = useCallback((rules: (ValidationRule & { id: string })[]) => {
     if (!selectedComponentId || !selectedComponent) return;
 
@@ -1138,6 +1629,30 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
       ComponentType.RadioGroup,
       ComponentType.Switch,
     ].includes(type);
+  };
+
+  const getSupportedEventTypes = (type: ComponentType): EventType[] => {
+    const eventMap: Record<ComponentType, EventType[]> = {
+      [ComponentType.Text]: [],
+      [ComponentType.Button]: [EventType.Click],
+      [ComponentType.Image]: [],
+      [ComponentType.Container]: [],
+      [ComponentType.Input]: [EventType.Change, EventType.Focus, EventType.Blur],
+      [ComponentType.Textarea]: [EventType.Change, EventType.Focus, EventType.Blur],
+      [ComponentType.Select]: [EventType.Change, EventType.Focus, EventType.Blur],
+      [ComponentType.Checkbox]: [EventType.Change],
+      [ComponentType.CheckboxGroup]: [EventType.Change],
+      [ComponentType.Radio]: [EventType.Change],
+      [ComponentType.RadioGroup]: [EventType.Change],
+      [ComponentType.Switch]: [EventType.Change],
+      [ComponentType.Form]: [EventType.Submit],
+      [ComponentType.FormItem]: [],
+    };
+    return eventMap[type] || [];
+  };
+
+  const isInteractiveComponent = (type: ComponentType): boolean => {
+    return getSupportedEventTypes(type).length > 0;
   };
 
   const getAvailableComponents = useMemo(() => {
@@ -1481,11 +1996,18 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
         )}
       </PropertySection>
 
-      {selectedComponent.type === ComponentType.Button && (
+      {isInteractiveComponent(selectedComponent.type) && (
         <PropertySection title="事件配置" isEmpty={false}>
-          <EventConfigEditor
-            eventConfig={selectedComponent.events?.onClick}
-            onChange={handleEventChange}
+          <AdvancedEventConfigEditor
+            componentType={selectedComponent.type}
+            events={{
+              onClickActions: selectedComponent.events?.onClickActions,
+              onChangeActions: selectedComponent.events?.onChangeActions,
+              onSubmitActions: selectedComponent.events?.onSubmitActions,
+              onFocusActions: selectedComponent.events?.onFocusActions,
+              onBlurActions: selectedComponent.events?.onBlurActions,
+            }}
+            onEventChange={handleAdvancedEventChange}
           />
         </PropertySection>
       )}

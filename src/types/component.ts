@@ -108,8 +108,51 @@ export interface ClickEventConfig {
   formId?: string;
 }
 
+export enum ActionType {
+  ShowAlert = 'SHOW_ALERT',
+  NavigateUrl = 'NAVIGATE_URL',
+  NavigatePage = 'NAVIGATE_PAGE',
+  ConsoleLog = 'CONSOLE_LOG',
+  CustomScript = 'CUSTOM_SCRIPT',
+  FormSubmit = 'FORM_SUBMIT',
+  FormReset = 'FORM_RESET',
+}
+
+export interface ActionConfig {
+  id: string;
+  type: ActionType;
+  params: {
+    alertMessage?: string;
+    targetUrl?: string;
+    pageId?: string;
+    logMessage?: string;
+    customScript?: string;
+    formId?: string;
+  };
+  enabled: boolean;
+}
+
+export enum EventType {
+  Click = 'onClick',
+  Change = 'onChange',
+  Submit = 'onSubmit',
+  Focus = 'onFocus',
+  Blur = 'onBlur',
+}
+
+export interface EventConfig {
+  type: EventType;
+  actions: ActionConfig[];
+  enabled: boolean;
+}
+
 export interface ComponentEvents {
   onClick?: ClickEventConfig;
+  onClickActions?: EventConfig;
+  onChangeActions?: EventConfig;
+  onSubmitActions?: EventConfig;
+  onFocusActions?: EventConfig;
+  onBlurActions?: EventConfig;
 }
 
 export type ComponentVariant =

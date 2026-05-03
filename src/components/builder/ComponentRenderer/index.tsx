@@ -16,7 +16,11 @@ import {
   type ContainerComponentSchema, 
   type ClickEventConfig,
   ClickEventType,
-  BindingTrigger
+  BindingTrigger,
+  ActionType,
+  EventType,
+  type EventConfig,
+  type ActionConfig,
 } from '@/types/component';
 import { cn } from '@/utils/classname';
 import { useDroppable } from '@dnd-kit/core';
@@ -108,6 +112,98 @@ const useClickEventExecutor = () => {
         break;
     }
   }, [submitForm, resetForm]);
+};
+
+const useActionExecutor = () => {
+  const submitForm = usePreviewFormSubmit();
+  const resetForm = usePreviewFormReset();
+
+  const executeAction = React.useCallback((action: ActionConfig): void => {
+    if (!action.enabled) {
+      return;
+    }
+
+    switch (action.type) {
+      case ActionType.ShowAlert:
+        if (action.params.alertMessage) {
+          alert(action.params.alertMessage);
+        } else {
+          alert('事件触发了');
+        }
+        break;
+
+      case ActionType.NavigateUrl:
+        if (action.params.targetUrl) {
+          window.open(action.params.targetUrl, '_blank');
+        }
+        break;
+
+      case ActionType.NavigatePage:
+        if (action.params.pageId) {
+          console.log('页面跳转:', action.params.pageId);
+          alert(`页面跳转功能（预留）: ${action.params.pageId}`);
+        }
+        break;
+
+      case ActionType.ConsoleLog:
+        if (action.params.logMessage) {
+          console.log(action.params.logMessage);
+        } else {
+          console.log('事件触发了');
+        }
+        break;
+
+      case ActionType.CustomScript:
+        if (action.params.customScript) {
+          try {
+            eval(action.params.customScript);
+          } catch (error) {
+            console.error('自定义脚本执行错误:', error);
+            alert(`脚本执行错误: ${error}`);
+          }
+        }
+        break;
+
+      case ActionType.FormSubmit:
+        submitForm(action.params.formId);
+        break;
+
+      case ActionType.FormReset:
+        resetForm(action.params.formId);
+        break;
+    }
+  }, [submitForm, resetForm]);
+
+  const executeActions = React.useCallback((actions: ActionConfig[]): void => {
+    for (const action of actions) {
+      executeAction(action);
+    }
+  }, [executeAction]);
+
+  return { executeAction, executeActions };
+};
+
+interface EventExecutorProps {
+  events: {
+    onClickActions?: EventConfig;
+    onChangeActions?: EventConfig;
+    onSubmitActions?: EventConfig;
+    onFocusActions?: EventConfig;
+    onBlurActions?: EventConfig;
+  };
+}
+
+const useEventExecutor = () => {
+  const { executeActions } = useActionExecutor();
+
+  const executeEvent = React.useCallback((eventConfig: EventConfig | undefined): void => {
+    if (!eventConfig || !eventConfig.enabled || eventConfig.actions.length === 0) {
+      return;
+    }
+    executeActions(eventConfig.actions);
+  }, [executeActions]);
+
+  return { executeEvent };
 };
 
 interface SortableContainerChildProps {
@@ -275,8 +371,9 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
   onClick,
   editable = true,
 }) => {
-  const { type, props, styles } = component;
+  const { type, props, styles, events } = component;
   const executeClickEvent = useClickEventExecutor();
+  const { executeEvent } = useEventExecutor();
   const componentId = component.id;
 
   const previewBinding = React.useContext(PreviewBindingContext);
@@ -355,7 +452,8 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
         if (editable) {
           handleWrapperClick(e, onClick);
         } else {
-          executeClickEvent(component.events?.onClick);
+          executeClickEvent(events?.onClick);
+          executeEvent(events?.onClickActions);
         }
       };
 
@@ -462,8 +560,29 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       const handleValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newValue = e.target.value;
         triggerValueChange(newValue);
+        if (!editable) {
+          executeEvent(events?.onChangeActions);
+        }
         if (restInputProps.onChange) {
           restInputProps.onChange(e);
+        }
+      };
+
+      const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+        if (!editable) {
+          executeEvent(events?.onFocusActions);
+        }
+        if (restInputProps.onFocus) {
+          restInputProps.onFocus(e);
+        }
+      };
+
+      const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+        if (!editable) {
+          executeEvent(events?.onBlurActions);
+        }
+        if (restInputProps.onBlur) {
+          restInputProps.onBlur(e);
         }
       };
       
@@ -490,6 +609,8 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             maxLength={props.maxLength}
             onChange={handleValueChange}
             onInput={handleInputChange}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             {...restInputProps}
           />
         </div>
@@ -516,8 +637,29 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       const handleValueChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const newValue = e.target.value;
         triggerValueChange(newValue);
+        if (!editable) {
+          executeEvent(events?.onChangeActions);
+        }
         if (restTextareaProps.onChange) {
           restTextareaProps.onChange(e);
+        }
+      };
+
+      const handleFocus = (e: React.FocusEvent<HTMLTextAreaElement>) => {
+        if (!editable) {
+          executeEvent(events?.onFocusActions);
+        }
+        if (restTextareaProps.onFocus) {
+          restTextareaProps.onFocus(e);
+        }
+      };
+
+      const handleBlur = (e: React.FocusEvent<HTMLTextAreaElement>) => {
+        if (!editable) {
+          executeEvent(events?.onBlurActions);
+        }
+        if (restTextareaProps.onBlur) {
+          restTextareaProps.onBlur(e);
         }
       };
       
@@ -545,6 +687,8 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             defaultValue={props.defaultValue}
             onChange={handleValueChange}
             onInput={handleInputChange}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             {...restTextareaProps}
           />
         </div>
@@ -568,8 +712,29 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 
       const handleValueChange = (value: any) => {
         triggerValueChange(value);
+        if (!editable) {
+          executeEvent(events?.onChangeActions);
+        }
         if (restSelectProps.onChange) {
           restSelectProps.onChange(value);
+        }
+      };
+
+      const handleFocus = (e: React.FocusEvent<HTMLSelectElement>) => {
+        if (!editable) {
+          executeEvent(events?.onFocusActions);
+        }
+        if (restSelectProps.onFocus) {
+          restSelectProps.onFocus(e);
+        }
+      };
+
+      const handleBlur = (e: React.FocusEvent<HTMLSelectElement>) => {
+        if (!editable) {
+          executeEvent(events?.onBlurActions);
+        }
+        if (restSelectProps.onBlur) {
+          restSelectProps.onBlur(e);
         }
       };
       
@@ -595,6 +760,8 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             value={bindingValue !== undefined ? bindingValue : props.value}
             defaultValue={props.defaultValue}
             onChange={handleValueChange}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             {...restSelectProps}
           />
         </div>
@@ -612,6 +779,9 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 
       const handleChange = (checked: boolean) => {
         triggerValueChange(checked);
+        if (!editable) {
+          executeEvent(events?.onChangeActions);
+        }
         if (restCheckboxProps.onChange) {
           restCheckboxProps.onChange(checked);
         }
@@ -651,6 +821,9 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 
       const handleChange = (value: any[]) => {
         triggerValueChange(value);
+        if (!editable) {
+          executeEvent(events?.onChangeActions);
+        }
         if (restCheckboxGroupProps.onChange) {
           restCheckboxGroupProps.onChange(value);
         }
@@ -686,6 +859,9 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 
       const handleChange = (checked: boolean) => {
         triggerValueChange(checked);
+        if (!editable) {
+          executeEvent(events?.onChangeActions);
+        }
         if (restRadioProps.onChange) {
           restRadioProps.onChange(checked);
         }
@@ -725,6 +901,9 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 
       const handleChange = (value: any) => {
         triggerValueChange(value);
+        if (!editable) {
+          executeEvent(events?.onChangeActions);
+        }
         if (restRadioGroupProps.onChange) {
           restRadioGroupProps.onChange(value);
         }
@@ -761,6 +940,9 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 
       const handleChange = (checked: boolean) => {
         triggerValueChange(checked);
+        if (!editable) {
+          executeEvent(events?.onChangeActions);
+        }
         if (restSwitchProps.onChange) {
           restSwitchProps.onChange(checked);
         }
@@ -804,6 +986,15 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
         }
       };
       
+      const handleFormSubmit = (values: any, isValid: boolean) => {
+        if (!editable) {
+          executeEvent(events?.onSubmitActions);
+        }
+        if (restFormProps.onSubmit) {
+          restFormProps.onSubmit(values, isValid);
+        }
+      };
+      
       const layout = (props.layout as 'horizontal' | 'vertical' | 'inline') || 'vertical';
       const direction = layout === 'horizontal' ? 'row' : 'column';
       
@@ -820,6 +1011,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             disabled={props.disabled || editable}
             style={styles}
             className={formClassName}
+            onSubmit={handleFormSubmit}
             {...restFormProps}
           >
             <ContainerDropZone
