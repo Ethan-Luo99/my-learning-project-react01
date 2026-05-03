@@ -1,4 +1,4 @@
-import { ComponentType, type ComponentSchema, type TextComponentSchema, type ButtonComponentSchema, type ContainerComponentSchema } from '@/types/component';
+import { ComponentType, type ComponentSchema, type TextComponentSchema, type ButtonComponentSchema, type ContainerComponentSchema, type InputComponentSchema, type TextareaComponentSchema, type SelectComponentSchema, type CheckboxComponentSchema, type CheckboxGroupComponentSchema, type RadioComponentSchema, type RadioGroupComponentSchema, type SwitchComponentSchema, type FormComponentSchema, type FormItemComponentSchema } from '@/types/component';
 
 export const createMockTextComponent = (id: string, text: string = '测试文本'): TextComponentSchema => ({
   id,
@@ -50,6 +50,239 @@ export const createMockContainerComponent = (id: string, children: ComponentSche
     border: '1px solid #e5e7eb',
     borderRadius: '8px',
   },
+  children,
+});
+
+export const createMockInputComponent = (
+  id: string,
+  props: Partial<InputComponentSchema['props']> = {}
+): InputComponentSchema => ({
+  id,
+  type: ComponentType.Input,
+  x: 10,
+  y: 10,
+  width: 300,
+  height: 44,
+  props: {
+    type: 'text',
+    placeholder: '请输入内容',
+    value: '',
+    disabled: false,
+    readOnly: false,
+    clearable: false,
+    error: false,
+    ...props,
+  },
+  styles: {},
+});
+
+export const createMockTextareaComponent = (
+  id: string,
+  props: Partial<TextareaComponentSchema['props']> = {}
+): TextareaComponentSchema => ({
+  id,
+  type: ComponentType.Textarea,
+  x: 10,
+  y: 10,
+  width: 350,
+  height: 'auto',
+  props: {
+    rows: 4,
+    placeholder: '请输入内容',
+    resize: 'vertical',
+    value: '',
+    disabled: false,
+    readOnly: false,
+    showCount: false,
+    error: false,
+    ...props,
+  },
+  styles: {},
+});
+
+export const createMockSelectComponent = (
+  id: string,
+  props: Partial<SelectComponentSchema['props']> = {}
+): SelectComponentSchema => ({
+  id,
+  type: ComponentType.Select,
+  x: 10,
+  y: 10,
+  width: 300,
+  height: 44,
+  props: {
+    placeholder: '请选择',
+    disabled: false,
+    clearable: false,
+    searchable: false,
+    multiple: false,
+    options: [
+      { value: 'option1', label: '选项一' },
+      { value: 'option2', label: '选项二' },
+      { value: 'option3', label: '选项三' },
+    ],
+    value: undefined,
+    ...props,
+  },
+  styles: {},
+});
+
+export const createMockCheckboxComponent = (
+  id: string,
+  props: Partial<CheckboxComponentSchema['props']> = {}
+): CheckboxComponentSchema => ({
+  id,
+  type: ComponentType.Checkbox,
+  x: 10,
+  y: 10,
+  width: 'auto',
+  height: 'auto',
+  props: {
+    checked: false,
+    indeterminate: false,
+    disabled: false,
+    label: '选项',
+    ...props,
+  },
+  styles: {},
+});
+
+export const createMockCheckboxGroupComponent = (
+  id: string,
+  props: Partial<CheckboxGroupComponentSchema['props']> = {}
+): CheckboxGroupComponentSchema => ({
+  id,
+  type: ComponentType.CheckboxGroup,
+  x: 10,
+  y: 10,
+  width: 250,
+  height: 'auto',
+  props: {
+    options: [
+      { value: 'option1', label: '选项一' },
+      { value: 'option2', label: '选项二' },
+      { value: 'option3', label: '选项三' },
+    ],
+    value: [],
+    disabled: false,
+    direction: 'column',
+    gap: 'md',
+    ...props,
+  },
+  styles: {},
+});
+
+export const createMockRadioComponent = (
+  id: string,
+  props: Partial<RadioComponentSchema['props']> = {}
+): RadioComponentSchema => ({
+  id,
+  type: ComponentType.Radio,
+  x: 10,
+  y: 10,
+  width: 'auto',
+  height: 'auto',
+  props: {
+    checked: false,
+    disabled: false,
+    label: '选项',
+    value: 'radio1',
+    ...props,
+  },
+  styles: {},
+});
+
+export const createMockRadioGroupComponent = (
+  id: string,
+  props: Partial<RadioGroupComponentSchema['props']> = {}
+): RadioGroupComponentSchema => ({
+  id,
+  type: ComponentType.RadioGroup,
+  x: 10,
+  y: 10,
+  width: 250,
+  height: 'auto',
+  props: {
+    options: [
+      { value: 'option1', label: '选项一' },
+      { value: 'option2', label: '选项二' },
+      { value: 'option3', label: '选项三' },
+    ],
+    value: undefined,
+    disabled: false,
+    direction: 'column',
+    gap: 'md',
+    ...props,
+  },
+  styles: {},
+});
+
+export const createMockSwitchComponent = (
+  id: string,
+  props: Partial<SwitchComponentSchema['props']> = {}
+): SwitchComponentSchema => ({
+  id,
+  type: ComponentType.Switch,
+  x: 10,
+  y: 10,
+  width: 'auto',
+  height: 'auto',
+  props: {
+    checked: false,
+    defaultChecked: false,
+    disabled: false,
+    loading: false,
+    size: 'md',
+    ...props,
+  },
+  styles: {},
+});
+
+export const createMockFormComponent = (
+  id: string,
+  children: ComponentSchema[] = [],
+  props: Partial<FormComponentSchema['props']> = {}
+): FormComponentSchema => ({
+  id,
+  type: ComponentType.Form,
+  x: 10,
+  y: 10,
+  width: 500,
+  height: 'auto',
+  props: {
+    layout: 'vertical',
+    labelWidth: 100,
+    labelAlign: 'right',
+    size: 'md',
+    disabled: false,
+    ...props,
+  },
+  styles: {
+    padding: '16px',
+  },
+  children,
+});
+
+export const createMockFormItemComponent = (
+  id: string,
+  children: ComponentSchema[] = [],
+  props: Partial<FormItemComponentSchema['props']> = {}
+): FormItemComponentSchema => ({
+  id,
+  type: ComponentType.FormItem,
+  x: 10,
+  y: 10,
+  width: 'auto',
+  height: 'auto',
+  props: {
+    label: '标签',
+    required: false,
+    error: false,
+    help: '',
+    name: '',
+    ...props,
+  },
+  styles: {},
   children,
 });
 
