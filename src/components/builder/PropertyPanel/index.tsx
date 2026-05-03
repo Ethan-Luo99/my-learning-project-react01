@@ -24,6 +24,7 @@ import {
   BindingPath,
   ActionType,
   EventType,
+  NavigateTarget,
   type EventConfig,
   type ActionConfig,
 } from '@/types/component';
@@ -517,11 +518,19 @@ const ActionEditor: React.FC<ActionEditorProps> = ({
               value={action.params.targetUrl ?? ''}
               onChange={(e) => handleParamChange('targetUrl', e.target.value)}
               placeholder="https://example.com"
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 bg-white"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 bg-white mb-2"
             />
-            <p className="mt-1 text-xs text-gray-500">
-              将在新窗口打开此 URL
-            </p>
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              打开方式
+            </label>
+            <select
+              value={action.params.navigateTarget ?? NavigateTarget.NewWindow}
+              onChange={(e) => handleParamChange('navigateTarget', e.target.value as NavigateTarget)}
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 bg-white"
+            >
+              <option value={NavigateTarget.NewWindow}>新窗口打开</option>
+              <option value={NavigateTarget.CurrentWindow}>当前窗口跳转</option>
+            </select>
           </div>
         );
 

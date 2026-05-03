@@ -23,6 +23,11 @@ import {
   type ActionConfig,
 } from '@/types/component';
 import { cn } from '@/utils/classname';
+import { 
+  executeAction as executeActionFromEngine, 
+  executeActions as executeActionsFromEngine, 
+  type ActionExecutionContext,
+} from '@/utils/eventEngine';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, useSortable, rectSortingStrategy, verticalListSortingStrategy, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -118,67 +123,18 @@ const useActionExecutor = () => {
   const submitForm = usePreviewFormSubmit();
   const resetForm = usePreviewFormReset();
 
+  const actionContext: ActionExecutionContext = React.useMemo(() => ({
+    submitForm,
+    resetForm,
+  }), [submitForm, resetForm]);
+
   const executeAction = React.useCallback((action: ActionConfig): void => {
-    if (!action.enabled) {
-      return;
-    }
-
-    switch (action.type) {
-      case ActionType.ShowAlert:
-        if (action.params.alertMessage) {
-          alert(action.params.alertMessage);
-        } else {
-          alert('事件触发了');
-        }
-        break;
-
-      case ActionType.NavigateUrl:
-        if (action.params.targetUrl) {
-          window.open(action.params.targetUrl, '_blank');
-        }
-        break;
-
-      case ActionType.NavigatePage:
-        if (action.params.pageId) {
-          console.log('页面跳转:', action.params.pageId);
-          alert(`页面跳转功能（预留）: ${action.params.pageId}`);
-        }
-        break;
-
-      case ActionType.ConsoleLog:
-        if (action.params.logMessage) {
-          console.log(action.params.logMessage);
-        } else {
-          console.log('事件触发了');
-        }
-        break;
-
-      case ActionType.CustomScript:
-        if (action.params.customScript) {
-          try {
-            eval(action.params.customScript);
-          } catch (error) {
-            console.error('自定义脚本执行错误:', error);
-            alert(`脚本执行错误: ${error}`);
-          }
-        }
-        break;
-
-      case ActionType.FormSubmit:
-        submitForm(action.params.formId);
-        break;
-
-      case ActionType.FormReset:
-        resetForm(action.params.formId);
-        break;
-    }
-  }, [submitForm, resetForm]);
+    executeActionFromEngine(action, actionContext);
+  }, [actionContext]);
 
   const executeActions = React.useCallback((actions: ActionConfig[]): void => {
-    for (const action of actions) {
-      executeAction(action);
-    }
-  }, [executeAction]);
+    executeActionsFromEngine(actions, actionContext);
+  }, [actionContext]);
 
   return { executeAction, executeActions };
 };

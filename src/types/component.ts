@@ -118,12 +118,18 @@ export enum ActionType {
   FormReset = 'FORM_RESET',
 }
 
+export enum NavigateTarget {
+  NewWindow = '_blank',
+  CurrentWindow = '_self',
+}
+
 export interface ActionConfig {
   id: string;
   type: ActionType;
   params: {
     alertMessage?: string;
     targetUrl?: string;
+    navigateTarget?: NavigateTarget;
     pageId?: string;
     logMessage?: string;
     customScript?: string;
