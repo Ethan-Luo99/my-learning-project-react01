@@ -301,6 +301,28 @@ export const DEFAULT_COMPONENT_CONFIGS: Record<ComponentType, ComponentConfig> =
     },
     defaultStyles: {},
   },
+  [ComponentType.Modal]: {
+    type: ComponentType.Modal,
+    label: '弹窗',
+    defaultWidth: 520,
+    defaultHeight: 'auto',
+    defaultProps: {
+      visible: false,
+      title: '弹窗标题',
+      width: 520,
+      centered: true,
+      closable: true,
+      maskClosable: true,
+      closeOnEscape: true,
+      okText: '确定',
+      cancelText: '取消',
+      okVisible: true,
+      cancelVisible: true,
+      destroyOnClose: false,
+      zIndex: 1000,
+    },
+    defaultStyles: {},
+  },
 };
 
 export const COMPONENT_PANEL_ITEMS: ComponentPanelItem[] = [
@@ -342,6 +364,11 @@ export const COMPONENT_PANEL_ITEMS: ComponentPanelItem[] = [
   {
     type: ComponentType.Accordion,
     label: '折叠面板',
+    category: 'layout',
+  },
+  {
+    type: ComponentType.Modal,
+    label: '弹窗',
     category: 'layout',
   },
   {

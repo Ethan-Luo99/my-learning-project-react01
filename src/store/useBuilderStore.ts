@@ -40,6 +40,7 @@ const isContainerComponent = (
     component.type === ComponentType.TabPane ||
     component.type === ComponentType.Accordion ||
     component.type === ComponentType.AccordionItem ||
+    component.type === ComponentType.Modal ||
     component.type === ComponentType.Form ||
     component.type === ComponentType.FormItem
   );

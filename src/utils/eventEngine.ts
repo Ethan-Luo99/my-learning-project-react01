@@ -9,6 +9,8 @@ export interface ActionExecutionContext {
   submitForm?: (formId?: string) => void;
   resetForm?: (formId?: string) => void;
   navigateToPage?: (pageId: string) => void;
+  openModal?: (modalId: string) => void;
+  closeModal?: (modalId: string) => void;
 }
 
 export const executeShowAlert = (params: ActionConfig['params']): void => {
@@ -105,6 +107,40 @@ export const executeFormReset = (
   }
 };
 
+export const executeShowModal = (
+  params: ActionConfig['params'],
+  context?: ActionExecutionContext
+): void => {
+  if (!params.modalId) {
+    console.warn('SHOW_MODAL 动作缺少 modalId 参数');
+    return;
+  }
+
+  if (context?.openModal) {
+    context.openModal(params.modalId);
+  } else {
+    console.warn('SHOW_MODAL 动作缺少 openModal 上下文');
+    console.log('打开弹窗:', params.modalId);
+  }
+};
+
+export const executeHideModal = (
+  params: ActionConfig['params'],
+  context?: ActionExecutionContext
+): void => {
+  if (!params.modalId) {
+    console.warn('HIDE_MODAL 动作缺少 modalId 参数');
+    return;
+  }
+
+  if (context?.closeModal) {
+    context.closeModal(params.modalId);
+  } else {
+    console.warn('HIDE_MODAL 动作缺少 closeModal 上下文');
+    console.log('关闭弹窗:', params.modalId);
+  }
+};
+
 export const executeAction = (
   action: ActionConfig,
   context?: ActionExecutionContext
@@ -140,6 +176,14 @@ export const executeAction = (
 
     case ActionType.FormReset:
       executeFormReset(action.params, context);
+      break;
+
+    case ActionType.ShowModal:
+      executeShowModal(action.params, context);
+      break;
+
+    case ActionType.HideModal:
+      executeHideModal(action.params, context);
       break;
 
     default:

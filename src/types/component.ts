@@ -9,7 +9,7 @@
  * - 组件 Schema 定义
  */
 
-import type { ButtonProps, TextProps, ImageProps, ContainerProps, InputProps, TextareaProps, SelectProps, CheckboxProps, CheckboxGroupProps, RadioProps, RadioGroupProps, SwitchProps, FormProps, FormItemProps, CardProps, DividerProps, TabsProps, TabPaneProps, AccordionProps, AccordionItemProps } from '@/components/ui';
+import type { ButtonProps, TextProps, ImageProps, ContainerProps, InputProps, TextareaProps, SelectProps, CheckboxProps, CheckboxGroupProps, RadioProps, RadioGroupProps, SwitchProps, FormProps, FormItemProps, CardProps, DividerProps, TabsProps, TabPaneProps, AccordionProps, AccordionItemProps, ModalProps, ConfirmModalProps, InputModalProps } from '@/components/ui';
 import type { ValidationRule, ValidationResult } from '@/utils/formValidation';
 
 export enum ValidationTrigger {
@@ -95,6 +95,7 @@ export enum ComponentType {
   Switch = 'Switch',
   Form = 'Form',
   FormItem = 'FormItem',
+  Modal = 'Modal',
 }
 
 export enum ClickEventType {
@@ -122,6 +123,8 @@ export enum ActionType {
   CustomScript = 'CUSTOM_SCRIPT',
   FormSubmit = 'FORM_SUBMIT',
   FormReset = 'FORM_RESET',
+  ShowModal = 'SHOW_MODAL',
+  HideModal = 'HIDE_MODAL',
 }
 
 export enum NavigateTarget {
@@ -140,6 +143,7 @@ export interface ActionConfig {
     logMessage?: string;
     customScript?: string;
     formId?: string;
+    modalId?: string;
   };
   enabled: boolean;
 }
@@ -295,6 +299,12 @@ export interface FormItemComponentSchema extends ComponentBaseSchema {
   children?: ComponentSchema[];
 }
 
+export interface ModalComponentSchema extends ComponentBaseSchema {
+  type: ComponentType.Modal;
+  props: Partial<ModalProps>;
+  children?: ComponentSchema[];
+}
+
 export type ComponentSchema =
   | TextComponentSchema
   | ButtonComponentSchema
@@ -306,6 +316,7 @@ export type ComponentSchema =
   | TabPaneComponentSchema
   | AccordionComponentSchema
   | AccordionItemComponentSchema
+  | ModalComponentSchema
   | InputComponentSchema
   | TextareaComponentSchema
   | SelectComponentSchema

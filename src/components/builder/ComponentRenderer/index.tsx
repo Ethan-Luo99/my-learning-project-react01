@@ -9,7 +9,7 @@
  * - 表单组件（Input/Select/Checkbox 等）支持值变更触发绑定
  */
 
-import { Text, Button, Image, Container, Card, Divider, Tabs, TabPane, Accordion, AccordionItem, Input, Textarea, Select, Checkbox, CheckboxGroup, Radio, RadioGroup, Switch, Form, FormItem } from '@/components/ui';
+import { Text, Button, Image, Container, Card, Divider, Tabs, TabPane, Accordion, AccordionItem, Modal, Input, Textarea, Select, Checkbox, CheckboxGroup, Radio, RadioGroup, Switch, Form, FormItem } from '@/components/ui';
 import { 
   ComponentType, 
   type ComponentSchema, 
@@ -53,6 +53,7 @@ const isContainerComponent = (
     component.type === ComponentType.TabPane ||
     component.type === ComponentType.Accordion ||
     component.type === ComponentType.AccordionItem ||
+    component.type === ComponentType.Modal ||
     component.type === ComponentType.Form ||
     component.type === ComponentType.FormItem
   );
@@ -827,6 +828,141 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             />
           </AccordionItem>
         </div>
+      );
+    }
+
+    case ComponentType.Modal: {
+      const { className: modalClassName, ...restModalProps } = props;
+      const isEmptyModal = !isContainerComponent(component) || 
+        !component.children || 
+        component.children.length === 0;
+      
+      const modalChildren = isContainerComponent(component) ? component.children : [];
+      
+      const handleChildClick = (childId: string) => {
+        if (editable && onClick) {
+          onClick();
+        }
+      };
+      
+      const visible = props.visible === true || props.visible === 'true';
+      const title = props.title as string | undefined;
+      const centered = props.centered !== false && props.centered !== 'false';
+      const closable = props.closable !== false && props.closable !== 'false';
+      const maskClosable = props.maskClosable !== false && props.maskClosable !== 'false';
+      const closeOnEscape = props.closeOnEscape !== false && props.closeOnEscape !== 'false';
+      const okText = (props.okText as string) || '确定';
+      const cancelText = (props.cancelText as string) || '取消';
+      const okVisible = props.okVisible !== false && props.okVisible !== 'false';
+      const cancelVisible = props.cancelVisible !== false && props.cancelVisible !== 'false';
+      const destroyOnClose = props.destroyOnClose === true || props.destroyOnClose === 'true';
+      const zIndex = (props.zIndex as number) || 1000;
+      
+      let width = props.width;
+      if (typeof width === 'string' && !isNaN(Number(width))) {
+        width = Number(width);
+      }
+      let height = props.height;
+      if (typeof height === 'string' && !isNaN(Number(height))) {
+        height = Number(height);
+      }
+      
+      if (editable) {
+        return (
+          <div
+            className={wrapperClassName}
+            onClick={handleClick}
+          >
+            <div
+              className={cn(
+                'w-full p-4 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50',
+                'hover:border-primary-400 hover:bg-gray-100 transition-colors'
+              )}
+              style={styles}
+            >
+              <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-200">
+                <span className="text-sm font-medium text-gray-700">
+                  {title || '弹窗（点击编辑）'}
+                </span>
+                <span className="text-xs text-gray-400 bg-gray-200 px-2 py-1 rounded">
+                  Modal
+                </span>
+              </div>
+              <ContainerDropZone
+                containerId={component.id}
+                isEmpty={isEmptyModal}
+                editable={editable}
+                childComponents={modalChildren}
+                selectedComponentId={isSelected ? null : undefined}
+                onComponentClick={handleChildClick}
+                direction="column"
+              />
+              <div className="mt-3 pt-3 border-t border-gray-200 flex justify-end gap-2">
+                <span className="text-xs text-gray-400">
+                  {cancelVisible && `取消按钮: ${cancelText}`}
+                  {cancelVisible && okVisible && ' | '}
+                  {okVisible && `确定按钮: ${okText}`}
+                </span>
+              </div>
+            </div>
+          </div>
+        );
+      }
+      
+      const handleOk = () => {
+        executeEvent(events?.onOkActions);
+      };
+      
+      const handleCancel = () => {
+        executeEvent(events?.onCancelActions);
+      };
+      
+      return (
+        <>
+          <div
+            className={cn(wrapperClassName, 'hidden')}
+            onClick={handleClick}
+          >
+            <div
+              className="w-full p-4 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50"
+              style={styles}
+            >
+              <span className="text-sm text-gray-400">
+                Modal 已挂载（通过事件控制显示）
+              </span>
+            </div>
+          </div>
+          <Modal
+            visible={visible}
+            title={title}
+            width={width}
+            height={height}
+            centered={centered}
+            closable={closable}
+            maskClosable={maskClosable}
+            closeOnEscape={closeOnEscape}
+            okText={okText}
+            cancelText={cancelText}
+            okVisible={okVisible}
+            cancelVisible={cancelVisible}
+            destroyOnClose={destroyOnClose}
+            zIndex={zIndex}
+            className={modalClassName}
+            onOk={handleOk}
+            onCancel={handleCancel}
+            {...restModalProps}
+          >
+            <ContainerDropZone
+              containerId={component.id}
+              isEmpty={isEmptyModal}
+              editable={editable}
+              childComponents={modalChildren}
+              selectedComponentId={isSelected ? null : undefined}
+              onComponentClick={handleChildClick}
+              direction="column"
+            />
+          </Modal>
+        </>
       );
     }
 

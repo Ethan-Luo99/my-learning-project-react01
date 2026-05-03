@@ -63,6 +63,7 @@ const isContainerComponent = (
     component.type === ComponentType.TabPane ||
     component.type === ComponentType.Accordion ||
     component.type === ComponentType.AccordionItem ||
+    component.type === ComponentType.Modal ||
     component.type === ComponentType.Form ||
     component.type === ComponentType.FormItem
   );
@@ -91,6 +92,7 @@ const createComponentFromType = (type: string, x: number = DEFAULT_POSITION.X, y
     componentType === ComponentType.TabPane ||
     componentType === ComponentType.Accordion ||
     componentType === ComponentType.AccordionItem ||
+    componentType === ComponentType.Modal ||
     componentType === ComponentType.Form ||
     componentType === ComponentType.FormItem
   ) {
@@ -124,6 +126,7 @@ const DragPreview: React.FC<{ item: ActiveDragItem }> = ({ item }) => {
       TabPane: '📄',
       Accordion: '🗂️',
       AccordionItem: '📁',
+      Modal: '📋',
     };
     return item.type ? icons[item.type] || '?' : '?';
   };
