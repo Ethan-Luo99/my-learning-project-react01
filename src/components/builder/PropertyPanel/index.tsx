@@ -202,6 +202,26 @@ const PropertyEditor: React.FC<PropertyEditorProps> = ({ config, value, onChange
         );
       }
 
+      case 'options': {
+        return (
+          <div>
+            <textarea
+              value={value ?? ''}
+              onChange={(e) => {
+                const textValue = e.target.value;
+                debouncedChange(textValue === '' ? undefined : textValue);
+              }}
+              placeholder={placeholder ?? '每行一个选项，格式：value:label\n例如：\noption1:选项一\noption2:选项二'}
+              rows={5}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white resize-none font-mono text-xs leading-relaxed"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              格式说明：每行一个选项，使用 <code className="bg-gray-100 px-1 rounded">value:label</code> 格式
+            </p>
+          </div>
+        );
+      }
+
       default:
         return null;
     }
@@ -580,23 +600,29 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
   const handlePropertyChange = (config: PropertyConfig, value: any) => {
     if (!selectedComponentId || !selectedComponent) return;
 
+    let finalValue = value;
+
+    if (config.type === 'options') {
+      finalValue = optionsTextToArray(value);
+    }
+
     if (config.category === 'props') {
       updateComponent(selectedComponentId, {
         props: {
           ...selectedComponent.props,
-          [config.key]: value,
+          [config.key]: finalValue,
         },
       });
     } else if (config.category === 'styles') {
       updateComponent(selectedComponentId, {
         styles: {
           ...selectedComponent.styles,
-          [config.key]: value,
+          [config.key]: finalValue,
         },
       });
     } else if (config.category === 'basic') {
       updateComponent(selectedComponentId, {
-        [config.key]: value,
+        [config.key]: finalValue,
       } as Partial<ComponentSchema>);
     }
   };
@@ -668,6 +694,33 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
     return groups;
   }, [propertyConfig]);
 
+  const optionsArrayToText = (options: { value: string | number; label: string }[] | undefined): string => {
+    if (!options || !Array.isArray(options)) {
+      return '';
+    }
+    return options.map((opt) => `${opt.value}:${opt.label}`).join('\n');
+  };
+
+  const optionsTextToArray = (text: string | undefined): { value: string; label: string }[] | undefined => {
+    if (!text || typeof text !== 'string') {
+      return undefined;
+    }
+    const lines = text.split('\n').filter((line) => line.trim());
+    if (lines.length === 0) {
+      return undefined;
+    }
+    return lines.map((line) => {
+      const trimmed = line.trim();
+      const colonIndex = trimmed.indexOf(':');
+      if (colonIndex > 0) {
+        const value = trimmed.slice(0, colonIndex).trim();
+        const label = trimmed.slice(colonIndex + 1).trim();
+        return { value, label: label || value };
+      }
+      return { value: trimmed, label: trimmed };
+    });
+  };
+
   const getPropertyValue = (config: PropertyConfig): any => {
     if (!selectedComponent) return config.defaultValue;
 
@@ -679,6 +732,11 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
       value = selectedComponent.styles?.[config.key];
     } else if (config.category === 'basic') {
       value = (selectedComponent as any)[config.key];
+    }
+
+    if (config.type === 'options') {
+      const finalValue = value !== undefined ? value : config.defaultValue;
+      return optionsArrayToText(finalValue as { value: string | number; label: string }[]);
     }
 
     return value !== undefined ? value : config.defaultValue;

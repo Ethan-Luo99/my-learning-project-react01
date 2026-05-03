@@ -14,11 +14,11 @@ export const SPACING_PROPERTY_KEYS = [
 export interface PropertyConfig {
   key: string;
   label: string;
-  type: 'text' | 'number' | 'select' | 'textarea' | 'color';
+  type: 'text' | 'number' | 'select' | 'textarea' | 'color' | 'options';
   options?: { value: string; label: string }[];
   placeholder?: string;
   category: 'basic' | 'props' | 'styles';
-  defaultValue?: string | number | undefined;
+  defaultValue?: string | number | any[] | undefined;
 }
 
 export interface ComponentPropertyConfig {
@@ -397,13 +397,6 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
     properties: [
       ...createCommonBasicProperties(),
       {
-        key: 'placeholder',
-        label: '占位符',
-        type: 'text',
-        placeholder: '请输入占位符',
-        category: 'props',
-      },
-      {
         key: 'type',
         label: '输入类型',
         type: 'select',
@@ -417,10 +410,24 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
         defaultValue: 'text',
       },
       {
+        key: 'placeholder',
+        label: '占位符',
+        type: 'text',
+        placeholder: '请输入占位符',
+        category: 'props',
+      },
+      {
         key: 'value',
         label: '默认值',
         type: 'text',
         placeholder: '默认值',
+        category: 'props',
+      },
+      {
+        key: 'maxLength',
+        label: '最大长度',
+        type: 'number',
+        placeholder: '不限制',
         category: 'props',
       },
       {
@@ -593,8 +600,20 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
         category: 'props',
       },
       {
-        key: 'clearable',
-        label: '可清除',
+        key: 'options',
+        label: '选项列表',
+        type: 'options',
+        placeholder: '每行一个选项，格式：value:label\n例如：\noption1:选项一\noption2:选项二',
+        category: 'props',
+        defaultValue: [
+          { value: 'option1', label: '选项一' },
+          { value: 'option2', label: '选项二' },
+          { value: 'option3', label: '选项三' },
+        ],
+      },
+      {
+        key: 'multiple',
+        label: '多选',
         type: 'select',
         options: [
           { value: 'true', label: '是' },
@@ -615,8 +634,8 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
         defaultValue: 'false',
       },
       {
-        key: 'multiple',
-        label: '多选',
+        key: 'clearable',
+        label: '可清除',
         type: 'select',
         options: [
           { value: 'true', label: '是' },
@@ -713,6 +732,18 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
     properties: [
       ...createCommonBasicProperties(),
       {
+        key: 'options',
+        label: '选项列表',
+        type: 'options',
+        placeholder: '每行一个选项，格式：value:label\n例如：\noption1:选项一\noption2:选项二',
+        category: 'props',
+        defaultValue: [
+          { value: 'option1', label: '选项一' },
+          { value: 'option2', label: '选项二' },
+          { value: 'option3', label: '选项三' },
+        ],
+      },
+      {
         key: 'direction',
         label: '排列方向',
         type: 'select',
@@ -800,6 +831,18 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
     label: '单选框组',
     properties: [
       ...createCommonBasicProperties(),
+      {
+        key: 'options',
+        label: '选项列表',
+        type: 'options',
+        placeholder: '每行一个选项，格式：value:label\n例如：\noption1:选项一\noption2:选项二',
+        category: 'props',
+        defaultValue: [
+          { value: 'option1', label: '选项一' },
+          { value: 'option2', label: '选项二' },
+          { value: 'option3', label: '选项三' },
+        ],
+      },
       {
         key: 'direction',
         label: '排列方向',
