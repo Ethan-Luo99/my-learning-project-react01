@@ -1,3 +1,14 @@
+/**
+ * 表单系统类型定义
+ * 详细文档请参考：docs/architecture/form-system.md
+ * 
+ * 包含：
+ * - 组件类型枚举（ComponentType）
+ * - 验证规则类型（ValidationRuleType、ValidationTrigger）
+ * - 数据绑定类型（BindingTrigger、BindingPath、DataBindingRule）
+ * - 组件 Schema 定义
+ */
+
 import type { ButtonProps, TextProps, ImageProps, ContainerProps, InputProps, TextareaProps, SelectProps, CheckboxProps, CheckboxGroupProps, RadioProps, RadioGroupProps, SwitchProps, FormProps, FormItemProps } from '@/components/ui';
 import type { ValidationRule, ValidationResult } from '@/utils/formValidation';
 

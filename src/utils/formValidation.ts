@@ -1,3 +1,13 @@
+/**
+ * 表单验证引擎
+ * 详细文档请参考：docs/architecture/form-system.md
+ * 
+ * 功能：
+ * - 支持多种验证规则：required、minLength、maxLength、min、max、pattern、email、url、custom
+ * - 单字段验证和表单级验证
+ * - 验证规则序列化/反序列化（用于持久化）
+ */
+
 export type ValidationRuleType =
   | 'required'
   | 'minLength'

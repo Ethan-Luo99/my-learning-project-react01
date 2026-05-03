@@ -1,3 +1,14 @@
+/**
+ * 预览模式数据绑定上下文
+ * 详细文档请参考：docs/architecture/form-system.md
+ * 
+ * 功能：
+ * - 在预览模式下管理组件状态和绑定执行
+ * - 支持值变更时触发绑定规则
+ * - 支持动态更新组件的 options、disabled、placeholder 等属性
+ * - 防无限循环机制
+ */
+
 import * as React from 'react';
 import type { DataBindingRule, BindingTrigger } from '@/types/component';
 import { logger } from '@/utils/logger';

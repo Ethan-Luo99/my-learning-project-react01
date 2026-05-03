@@ -1,3 +1,14 @@
+/**
+ * 组件渲染器
+ * 详细文档请参考：docs/architecture/form-system.md
+ * 
+ * 功能：
+ * - 根据 ComponentSchema 动态渲染组件
+ * - 支持编辑模式和预览模式
+ * - 预览模式下集成数据绑定和表单验证
+ * - 表单组件（Input/Select/Checkbox 等）支持值变更触发绑定
+ */
+
 import { Text, Button, Image, Container, Input, Textarea, Select, Checkbox, CheckboxGroup, Radio, RadioGroup, Switch, Form, FormItem } from '@/components/ui';
 import { 
   ComponentType, 

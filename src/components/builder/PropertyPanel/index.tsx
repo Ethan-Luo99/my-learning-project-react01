@@ -1,3 +1,14 @@
+/**
+ * 属性面板
+ * 详细文档请参考：docs/architecture/form-system.md
+ * 
+ * 功能：
+ * - 组件属性编辑（基础属性、组件属性、样式属性）
+ * - 验证规则配置 UI
+ * - 数据绑定规则配置 UI
+ * - 事件配置 UI
+ */
+
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { Text, Container, Button } from '@/components/ui';
 import { cn } from '@/utils/classname';

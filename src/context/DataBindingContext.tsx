@@ -1,3 +1,14 @@
+/**
+ * 数据绑定上下文（编辑模式）
+ * 详细文档请参考：docs/architecture/form-system.md
+ * 
+ * 功能：
+ * - useFormBinding Hook：为组件提供数据绑定能力
+ * - 支持三种转换方式：direct、mapping、custom
+ * - 防无限循环机制：执行栈检测、循环依赖检测
+ * - 绑定规则的增删改查
+ */
+
 import * as React from 'react';
 import type { 
   DataBindingRule, 
