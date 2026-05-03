@@ -1,4 +1,4 @@
-import type { ButtonProps, TextProps, ImageProps, ContainerProps, InputProps, TextareaProps, SelectProps } from '@/components/ui';
+import type { ButtonProps, TextProps, ImageProps, ContainerProps, InputProps, TextareaProps, SelectProps, CheckboxProps, CheckboxGroupProps, RadioProps, RadioGroupProps, SwitchProps } from '@/components/ui';
 
 export enum ComponentType {
   Text = 'Text',
@@ -8,6 +8,11 @@ export enum ComponentType {
   Input = 'Input',
   Textarea = 'Textarea',
   Select = 'Select',
+  Checkbox = 'Checkbox',
+  CheckboxGroup = 'CheckboxGroup',
+  Radio = 'Radio',
+  RadioGroup = 'RadioGroup',
+  Switch = 'Switch',
 }
 
 export enum ClickEventType {
@@ -84,6 +89,31 @@ export interface SelectComponentSchema extends ComponentBaseSchema {
   props: Partial<SelectProps>;
 }
 
+export interface CheckboxComponentSchema extends ComponentBaseSchema {
+  type: ComponentType.Checkbox;
+  props: Partial<CheckboxProps>;
+}
+
+export interface CheckboxGroupComponentSchema extends ComponentBaseSchema {
+  type: ComponentType.CheckboxGroup;
+  props: Partial<CheckboxGroupProps>;
+}
+
+export interface RadioComponentSchema extends ComponentBaseSchema {
+  type: ComponentType.Radio;
+  props: Partial<RadioProps>;
+}
+
+export interface RadioGroupComponentSchema extends ComponentBaseSchema {
+  type: ComponentType.RadioGroup;
+  props: Partial<RadioGroupProps>;
+}
+
+export interface SwitchComponentSchema extends ComponentBaseSchema {
+  type: ComponentType.Switch;
+  props: Partial<SwitchProps>;
+}
+
 export type ComponentSchema =
   | TextComponentSchema
   | ButtonComponentSchema
@@ -91,7 +121,12 @@ export type ComponentSchema =
   | ContainerComponentSchema
   | InputComponentSchema
   | TextareaComponentSchema
-  | SelectComponentSchema;
+  | SelectComponentSchema
+  | CheckboxComponentSchema
+  | CheckboxGroupComponentSchema
+  | RadioComponentSchema
+  | RadioGroupComponentSchema
+  | SwitchComponentSchema;
 
 export interface ComponentConfig {
   type: ComponentType;

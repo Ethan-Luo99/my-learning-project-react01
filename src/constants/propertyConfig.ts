@@ -657,6 +657,268 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
       ...createCommonStyleProperties(),
     ],
   },
+
+  [ComponentType.Checkbox]: {
+    type: ComponentType.Checkbox,
+    label: '复选框',
+    properties: [
+      ...createCommonBasicProperties(),
+      {
+        key: 'label',
+        label: '标签文本',
+        type: 'text',
+        placeholder: '请输入标签文本',
+        category: 'props',
+      },
+      {
+        key: 'checked',
+        label: '是否选中',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
+      {
+        key: 'indeterminate',
+        label: '半选状态',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
+      {
+        key: 'disabled',
+        label: '禁用',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
+      ...createCommonStyleProperties(),
+    ],
+  },
+
+  [ComponentType.CheckboxGroup]: {
+    type: ComponentType.CheckboxGroup,
+    label: '复选框组',
+    properties: [
+      ...createCommonBasicProperties(),
+      {
+        key: 'direction',
+        label: '排列方向',
+        type: 'select',
+        options: [
+          { value: 'row', label: '横向' },
+          { value: 'column', label: '纵向' },
+        ],
+        category: 'props',
+        defaultValue: 'column',
+      },
+      {
+        key: 'gap',
+        label: '间距',
+        type: 'select',
+        options: [
+          { value: 'sm', label: '小' },
+          { value: 'md', label: '中' },
+          { value: 'lg', label: '大' },
+        ],
+        category: 'props',
+        defaultValue: 'md',
+      },
+      {
+        key: 'disabled',
+        label: '禁用',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
+      ...createCommonStyleProperties(),
+    ],
+  },
+
+  [ComponentType.Radio]: {
+    type: ComponentType.Radio,
+    label: '单选框',
+    properties: [
+      ...createCommonBasicProperties(),
+      {
+        key: 'label',
+        label: '标签文本',
+        type: 'text',
+        placeholder: '请输入标签文本',
+        category: 'props',
+      },
+      {
+        key: 'value',
+        label: '值',
+        type: 'text',
+        placeholder: '请输入值',
+        category: 'props',
+      },
+      {
+        key: 'checked',
+        label: '是否选中',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
+      {
+        key: 'disabled',
+        label: '禁用',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
+      ...createCommonStyleProperties(),
+    ],
+  },
+
+  [ComponentType.RadioGroup]: {
+    type: ComponentType.RadioGroup,
+    label: '单选框组',
+    properties: [
+      ...createCommonBasicProperties(),
+      {
+        key: 'direction',
+        label: '排列方向',
+        type: 'select',
+        options: [
+          { value: 'row', label: '横向' },
+          { value: 'column', label: '纵向' },
+        ],
+        category: 'props',
+        defaultValue: 'column',
+      },
+      {
+        key: 'gap',
+        label: '间距',
+        type: 'select',
+        options: [
+          { value: 'sm', label: '小' },
+          { value: 'md', label: '中' },
+          { value: 'lg', label: '大' },
+        ],
+        category: 'props',
+        defaultValue: 'md',
+      },
+      {
+        key: 'disabled',
+        label: '禁用',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
+      ...createCommonStyleProperties(),
+    ],
+  },
+
+  [ComponentType.Switch]: {
+    type: ComponentType.Switch,
+    label: '开关',
+    properties: [
+      ...createCommonBasicProperties(),
+      {
+        key: 'size',
+        label: '尺寸',
+        type: 'select',
+        options: [
+          { value: 'sm', label: '小' },
+          { value: 'md', label: '中' },
+          { value: 'lg', label: '大' },
+        ],
+        category: 'props',
+        defaultValue: 'md',
+      },
+      {
+        key: 'checked',
+        label: '是否开启',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
+      {
+        key: 'disabled',
+        label: '禁用',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
+      {
+        key: 'loading',
+        label: '加载状态',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
+      {
+        key: 'checkedText',
+        label: '开启时文本',
+        type: 'text',
+        placeholder: '开启时显示的文本',
+        category: 'props',
+      },
+      {
+        key: 'uncheckedText',
+        label: '关闭时文本',
+        type: 'text',
+        placeholder: '关闭时显示的文本',
+        category: 'props',
+      },
+      {
+        key: 'activeColor',
+        label: '开启颜色',
+        type: 'text',
+        placeholder: '#2563eb',
+        category: 'props',
+      },
+      {
+        key: 'inactiveColor',
+        label: '关闭颜色',
+        type: 'text',
+        placeholder: '#d1d5db',
+        category: 'props',
+      },
+      ...createCommonStyleProperties(),
+    ],
+  },
 };
 
 export const getComponentPropertyConfig = (type: ComponentType): ComponentPropertyConfig => {

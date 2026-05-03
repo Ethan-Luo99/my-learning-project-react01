@@ -1,4 +1,4 @@
-import { Text, Button, Image, Container, Input, Textarea, Select } from '@/components/ui';
+import { Text, Button, Image, Container, Input, Textarea, Select, Checkbox, CheckboxGroup, Radio, RadioGroup, Switch } from '@/components/ui';
 import { 
   ComponentType, 
   type ComponentSchema, 
@@ -456,6 +456,133 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             error={props.error || false}
             errorMessage={props.errorMessage}
             {...restSelectProps}
+          />
+        </div>
+      );
+    }
+
+    case ComponentType.Checkbox: {
+      const { className: checkboxClassName, ...restCheckboxProps } = props;
+      const isChecked = props.checked === true || props.checked === 'true';
+      const isIndeterminate = props.indeterminate === true || props.indeterminate === 'true';
+      const isDisabled = props.disabled === true || props.disabled === 'true';
+      return (
+        <div
+          className={wrapperClassName}
+          onClick={handleClick}
+        >
+          <Checkbox
+            style={styles}
+            className={cn(checkboxClassName)}
+            checked={isChecked}
+            indeterminate={isIndeterminate}
+            disabled={isDisabled || editable}
+            label={props.label}
+            {...restCheckboxProps}
+          />
+        </div>
+      );
+    }
+
+    case ComponentType.CheckboxGroup: {
+      const { className: checkboxGroupClassName, ...restCheckboxGroupProps } = props;
+      const options = props.options || [
+        { value: 'option1', label: '选项一' },
+        { value: 'option2', label: '选项二' },
+        { value: 'option3', label: '选项三' },
+      ];
+      const isDisabled = props.disabled === true || props.disabled === 'true';
+      return (
+        <div
+          className={wrapperClassName}
+          onClick={handleClick}
+        >
+          <CheckboxGroup
+            style={styles}
+            className={cn(checkboxGroupClassName)}
+            options={options}
+            value={props.value || []}
+            disabled={isDisabled || editable}
+            direction={props.direction || 'column'}
+            gap={props.gap || 'md'}
+            {...restCheckboxGroupProps}
+          />
+        </div>
+      );
+    }
+
+    case ComponentType.Radio: {
+      const { className: radioClassName, ...restRadioProps } = props;
+      const isChecked = props.checked === true || props.checked === 'true';
+      const isDisabled = props.disabled === true || props.disabled === 'true';
+      return (
+        <div
+          className={wrapperClassName}
+          onClick={handleClick}
+        >
+          <Radio
+            style={styles}
+            className={cn(radioClassName)}
+            checked={isChecked}
+            disabled={isDisabled || editable}
+            label={props.label}
+            value={props.value}
+            {...restRadioProps}
+          />
+        </div>
+      );
+    }
+
+    case ComponentType.RadioGroup: {
+      const { className: radioGroupClassName, ...restRadioGroupProps } = props;
+      const options = props.options || [
+        { value: 'option1', label: '选项一' },
+        { value: 'option2', label: '选项二' },
+        { value: 'option3', label: '选项三' },
+      ];
+      const isDisabled = props.disabled === true || props.disabled === 'true';
+      return (
+        <div
+          className={wrapperClassName}
+          onClick={handleClick}
+        >
+          <RadioGroup
+            style={styles}
+            className={cn(radioGroupClassName)}
+            options={options}
+            value={props.value}
+            disabled={isDisabled || editable}
+            direction={props.direction || 'column'}
+            gap={props.gap || 'md'}
+            {...restRadioGroupProps}
+          />
+        </div>
+      );
+    }
+
+    case ComponentType.Switch: {
+      const { className: switchClassName, ...restSwitchProps } = props;
+      const isChecked = props.checked === true || props.checked === 'true';
+      const isDisabled = props.disabled === true || props.disabled === 'true';
+      const isLoading = props.loading === true || props.loading === 'true';
+      return (
+        <div
+          className={wrapperClassName}
+          onClick={handleClick}
+        >
+          <Switch
+            style={styles}
+            className={cn(switchClassName)}
+            checked={isChecked}
+            defaultChecked={props.defaultChecked || false}
+            disabled={isDisabled || editable}
+            loading={isLoading}
+            size={props.size || 'md'}
+            activeColor={props.activeColor}
+            inactiveColor={props.inactiveColor}
+            checkedText={props.checkedText}
+            uncheckedText={props.uncheckedText}
+            {...restSwitchProps}
           />
         </div>
       );

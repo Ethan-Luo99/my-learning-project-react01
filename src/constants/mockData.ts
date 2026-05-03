@@ -110,6 +110,82 @@ export const DEFAULT_COMPONENT_CONFIGS: Record<ComponentType, ComponentConfig> =
     },
     defaultStyles: {},
   },
+  [ComponentType.Checkbox]: {
+    type: ComponentType.Checkbox,
+    label: '复选框',
+    defaultWidth: 'auto',
+    defaultHeight: 'auto',
+    defaultProps: {
+      checked: false,
+      indeterminate: false,
+      disabled: false,
+      label: '选项',
+    },
+    defaultStyles: {},
+  },
+  [ComponentType.CheckboxGroup]: {
+    type: ComponentType.CheckboxGroup,
+    label: '复选框组',
+    defaultWidth: 250,
+    defaultHeight: 'auto',
+    defaultProps: {
+      options: [
+        { value: 'option1', label: '选项一' },
+        { value: 'option2', label: '选项二' },
+        { value: 'option3', label: '选项三' },
+      ],
+      value: [],
+      disabled: false,
+      direction: 'column',
+      gap: 'md',
+    },
+    defaultStyles: {},
+  },
+  [ComponentType.Radio]: {
+    type: ComponentType.Radio,
+    label: '单选框',
+    defaultWidth: 'auto',
+    defaultHeight: 'auto',
+    defaultProps: {
+      checked: false,
+      disabled: false,
+      label: '选项',
+      value: 'radio1',
+    },
+    defaultStyles: {},
+  },
+  [ComponentType.RadioGroup]: {
+    type: ComponentType.RadioGroup,
+    label: '单选框组',
+    defaultWidth: 250,
+    defaultHeight: 'auto',
+    defaultProps: {
+      options: [
+        { value: 'option1', label: '选项一' },
+        { value: 'option2', label: '选项二' },
+        { value: 'option3', label: '选项三' },
+      ],
+      value: undefined,
+      disabled: false,
+      direction: 'column',
+      gap: 'md',
+    },
+    defaultStyles: {},
+  },
+  [ComponentType.Switch]: {
+    type: ComponentType.Switch,
+    label: '开关',
+    defaultWidth: 'auto',
+    defaultHeight: 'auto',
+    defaultProps: {
+      checked: false,
+      defaultChecked: false,
+      disabled: false,
+      loading: false,
+      size: 'md',
+    },
+    defaultStyles: {},
+  },
 };
 
 export const COMPONENT_PANEL_ITEMS: ComponentPanelItem[] = [
@@ -146,6 +222,31 @@ export const COMPONENT_PANEL_ITEMS: ComponentPanelItem[] = [
   {
     type: ComponentType.Select,
     label: '下拉选择',
+    category: 'form',
+  },
+  {
+    type: ComponentType.Checkbox,
+    label: '复选框',
+    category: 'form',
+  },
+  {
+    type: ComponentType.CheckboxGroup,
+    label: '复选框组',
+    category: 'form',
+  },
+  {
+    type: ComponentType.Radio,
+    label: '单选框',
+    category: 'form',
+  },
+  {
+    type: ComponentType.RadioGroup,
+    label: '单选框组',
+    category: 'form',
+  },
+  {
+    type: ComponentType.Switch,
+    label: '开关',
     category: 'form',
   },
 ];
