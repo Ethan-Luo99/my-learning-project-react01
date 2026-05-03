@@ -458,6 +458,12 @@ export const useBuilderStore = create<BuilderState>()(
       },
 
       loadLatestProject: () => {
+        const { currentProjectId } = get();
+        
+        if (currentProjectId) {
+          return false;
+        }
+
         const project = getLatestProject();
         if (!project) {
           return false;
@@ -553,16 +559,23 @@ export const useBuilderStore = create<BuilderState>()(
       },
 
       saveCurrentAndCreateNewProject: (name) => {
-        const { saveCurrentProject, createNewProject } = get();
+        const { saveCurrentProject } = get();
         saveCurrentProject(true);
 
         const newProject = createNewEmptyProjectInStorage(name);
         
-        createNewProject(newProject.name);
         set(
           {
+            components: MOCK_EMPTY_CANVAS,
+            selectedComponentId: null,
+            history: createInitialHistory(),
+            currentIndex: 0,
+            canUndo: false,
+            canRedo: false,
             currentProjectId: newProject.id,
             projectName: newProject.name,
+            saveStatus: 'idle',
+            saveErrorMessage: null,
             lastSavedAt: newProject.updatedAt,
           },
           false,

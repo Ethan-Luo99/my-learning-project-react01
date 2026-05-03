@@ -62,7 +62,6 @@ function AppContent() {
   
   const loadError = useBuilderStore((state) => state.loadError);
   const isProjectCorrupted = useBuilderStore((state) => state.isProjectCorrupted);
-  const clearLoadError = useBuilderStore((state) => state.clearLoadError);
 
   const toast = useToast();
   const hasLoadedInitialProject = useRef(false);
@@ -141,9 +140,9 @@ function AppContent() {
       } else {
         toast.error(`加载失败: ${loadError}`);
       }
-      clearLoadError();
+      useBuilderStore.getState().clearLoadError();
     }
-  }, [loadError, isProjectCorrupted, clearLoadError, toast]);
+  }, [loadError, isProjectCorrupted, toast]);
 
   useEffect(() => {
     const storageWarning = getStorageWarningMessage();
