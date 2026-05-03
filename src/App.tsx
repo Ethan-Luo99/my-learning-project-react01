@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BuilderLayout } from '@/components/builder/Layout';
 import { ComponentPanel } from '@/components/builder/ComponentPanel';
@@ -46,11 +46,11 @@ function AppContent() {
   const selectedComponentId = useBuilderStore((state) => state.selectedComponentId);
   const saveCurrentProject = useBuilderStore((state) => state.saveCurrentProject);
   const loadLatestProject = useBuilderStore((state) => state.loadLatestProject);
+  const currentProjectId = useBuilderStore((state) => state.currentProjectId);
   const projectName = useBuilderStore((state) => state.projectName);
   const saveStatus = useBuilderStore((state) => state.saveStatus);
   const saveErrorMessage = useBuilderStore((state) => state.saveErrorMessage);
   const components = useBuilderStore((state) => state.components);
-  const currentProjectId = useBuilderStore((state) => state.currentProjectId);
   const lastSavedAt = useBuilderStore((state) => state.lastSavedAt);
   
   const moveUp = useBuilderStore((state) => state.moveUp);
@@ -65,6 +65,7 @@ function AppContent() {
   const clearLoadError = useBuilderStore((state) => state.clearLoadError);
 
   const toast = useToast();
+  const hasLoadedInitialProject = useRef(false);
 
   useAutoSave();
 
@@ -112,11 +113,18 @@ function AppContent() {
   });
 
   useEffect(() => {
-    const hasProject = loadLatestProject();
-    if (hasProject) {
-      toast.info('已恢复上次编辑的项目');
+    if (hasLoadedInitialProject.current) {
+      return;
     }
-  }, [loadLatestProject, toast]);
+    hasLoadedInitialProject.current = true;
+    
+    if (!currentProjectId) {
+      const hasProject = loadLatestProject();
+      if (hasProject) {
+        toast.info('已恢复上次编辑的项目');
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (saveStatus === 'saved') {

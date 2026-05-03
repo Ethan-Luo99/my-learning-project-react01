@@ -427,11 +427,16 @@ export const useBuilderStore = create<BuilderState>()(
           return false;
         }
 
-        const { setComponents } = get();
-        setComponents(result.project.components);
+        const initialHistory: HistoryState[] = [
+          {
+            components: structuredClone(result.project.components),
+            selectedComponentId: null,
+          },
+        ];
 
         set(
           {
+            components: result.project.components,
             currentProjectId: result.project.id,
             projectName: result.project.name,
             lastSavedAt: result.project.updatedAt,
@@ -440,6 +445,10 @@ export const useBuilderStore = create<BuilderState>()(
             saveErrorMessage: null,
             loadError: null,
             isProjectCorrupted: false,
+            history: initialHistory,
+            currentIndex: 0,
+            canUndo: false,
+            canRedo: false,
           },
           false,
           'loadProject'
@@ -454,11 +463,16 @@ export const useBuilderStore = create<BuilderState>()(
           return false;
         }
 
-        const { setComponents } = get();
-        setComponents(project.components);
+        const initialHistory: HistoryState[] = [
+          {
+            components: structuredClone(project.components),
+            selectedComponentId: null,
+          },
+        ];
 
         set(
           {
+            components: project.components,
             currentProjectId: project.id,
             projectName: project.name,
             lastSavedAt: project.updatedAt,
@@ -467,6 +481,10 @@ export const useBuilderStore = create<BuilderState>()(
             saveErrorMessage: null,
             loadError: null,
             isProjectCorrupted: false,
+            history: initialHistory,
+            currentIndex: 0,
+            canUndo: false,
+            canRedo: false,
           },
           false,
           'loadLatestProject'
