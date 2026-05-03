@@ -7,6 +7,48 @@ export enum ValidationTrigger {
   Submit = 'submit',
 }
 
+export enum BindingTrigger {
+  Change = 'change',
+  Input = 'input',
+  Manual = 'manual',
+}
+
+export enum BindingPath {
+  Value = 'value',
+  Options = 'options',
+  Disabled = 'disabled',
+  Visible = 'visible',
+  Label = 'label',
+  Placeholder = 'placeholder',
+}
+
+export interface DataBindingRule {
+  id: string;
+  sourceId: string;
+  targetId: string;
+  sourcePath: string;
+  targetPath: string;
+  trigger: BindingTrigger;
+  transformType?: 'direct' | 'mapping' | 'custom';
+  mapping?: Record<string, any>;
+  customTransform?: string;
+  enabled: boolean;
+  label?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DataBindingContextValue {
+  bindings: DataBindingRule[];
+  addBinding: (binding: Omit<DataBindingRule, 'id' | 'createdAt' | 'updatedAt'>) => string;
+  updateBinding: (id: string, updates: Partial<DataBindingRule>) => void;
+  removeBinding: (id: string) => void;
+  getBindingsForSource: (sourceId: string) => DataBindingRule[];
+  getBindingsForTarget: (targetId: string) => DataBindingRule[];
+  triggerBinding: (sourceId: string, triggerType: BindingTrigger, sourceValue: any) => void;
+  isBindingInCycle: (bindingId: string) => boolean;
+}
+
 export interface FieldValidationConfig {
   rules: ValidationRule[];
   validateOnChange?: boolean;

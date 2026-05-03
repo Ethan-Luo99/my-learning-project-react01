@@ -19,6 +19,16 @@ const getComponentIcon = (type: ComponentType): string => {
     [ComponentType.Button]: '⬛',
     [ComponentType.Image]: '🖼️',
     [ComponentType.Container]: '📦',
+    [ComponentType.Input]: '📝',
+    [ComponentType.Textarea]: '📄',
+    [ComponentType.Select]: '📋',
+    [ComponentType.Checkbox]: '☑️',
+    [ComponentType.CheckboxGroup]: '☑️',
+    [ComponentType.Radio]: '🔘',
+    [ComponentType.RadioGroup]: '🔘',
+    [ComponentType.Switch]: '🔄',
+    [ComponentType.Form]: '📋',
+    [ComponentType.FormItem]: '📝',
   };
   return icons[type];
 };
@@ -185,11 +195,12 @@ const DraggableComponentItem: React.FC<DraggableComponentItemProps> = ({ type, l
 };
 
 const ComponentPanel: React.FC<ComponentPanelProps> = ({ className }) => {
-  const categories = ['basic', 'layout'] as const;
+  const categories = ['basic', 'layout', 'form'] as const;
 
   const categoryLabels: Record<string, string> = {
     basic: '基础组件',
     layout: '布局组件',
+    form: '表单组件',
   };
 
   return (

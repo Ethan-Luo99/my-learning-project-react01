@@ -7,6 +7,7 @@ import { DEFAULT_POSITION } from '@/constants/dnd';
 import type { ComponentSchema } from '@/types/component';
 import { cn } from '@/utils/classname';
 import { PreviewFormRegistryProvider } from '@/context/PreviewFormRegistry';
+import { PreviewBindingProvider } from '@/context/PreviewBindingContext';
 
 const getSizeValue = (value?: number | string): string | number | undefined => {
   if (value === undefined || value === null) return undefined;
@@ -94,6 +95,7 @@ export const PreviewPage: React.FC = () => {
   const projectName = useBuilderStore((state) => state.projectName);
   const loadProject = useBuilderStore((state) => state.loadProject);
   const isCurrentProject = useBuilderStore((state) => state.isCurrentProject);
+  const bindingRules = useBuilderStore((state) => state.bindings);
 
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -193,16 +195,18 @@ export const PreviewPage: React.FC = () => {
               ) : components.length === 0 ? (
                 <EmptyState />
               ) : (
-                <PreviewFormRegistryProvider>
-                  <div className="absolute inset-0 p-2">
-                    {components.map((component) => (
-                      <PreviewCanvasItem
-                        key={component.id}
-                        component={component}
-                      />
-                    ))}
-                  </div>
-                </PreviewFormRegistryProvider>
+                <PreviewBindingProvider bindingRules={bindingRules}>
+                  <PreviewFormRegistryProvider>
+                    <div className="absolute inset-0 p-2">
+                      {components.map((component) => (
+                        <PreviewCanvasItem
+                          key={component.id}
+                          component={component}
+                        />
+                      ))}
+                    </div>
+                  </PreviewFormRegistryProvider>
+                </PreviewBindingProvider>
               )}
             </div>
           </div>

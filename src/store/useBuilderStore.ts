@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { ComponentType, type ComponentSchema, type ContainerComponentSchema } from '@/types/component';
+import { ComponentType, type ComponentSchema, type ContainerComponentSchema, type DataBindingRule } from '@/types/component';
 import { MOCK_EMPTY_CANVAS } from '@/constants/mockData';
 import {
   saveProject as saveProjectToStorage,
@@ -12,6 +12,7 @@ import {
   createNewEmptyProject as createNewEmptyProjectInStorage,
 } from '@/utils/storage';
 import type { ProjectMetadata, LoadProjectResult } from '@/utils/storage';
+import { generateId } from '@/utils/id';
 
 const MAX_HISTORY_LENGTH = 50;
 
@@ -90,6 +91,7 @@ export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 interface BuilderState {
   components: ComponentSchema[];
   selectedComponentId: string | null;
+  bindings: DataBindingRule[];
 
   history: HistoryState[];
   currentIndex: number;
@@ -141,6 +143,13 @@ interface BuilderState {
   saveCurrentAndCreateNewProject: (name?: string) => string;
   saveCurrentAndLoadProject: (projectId: string) => boolean;
   isCurrentProject: (projectId: string) => boolean;
+
+  addBinding: (binding: Omit<DataBindingRule, 'id' | 'createdAt' | 'updatedAt'>) => string;
+  updateBinding: (id: string, updates: Partial<DataBindingRule>) => void;
+  removeBinding: (id: string) => void;
+  setBindings: (bindings: DataBindingRule[]) => void;
+  getBindingsForSource: (sourceId: string) => DataBindingRule[];
+  getBindingsForTarget: (targetId: string) => DataBindingRule[];
 }
 
 const updateComponentInTree = (
@@ -347,6 +356,7 @@ export const useBuilderStore = create<BuilderState>()(
     (set, get) => ({
       components: MOCK_EMPTY_CANVAS,
       selectedComponentId: null,
+      bindings: [],
 
       history: createInitialHistory(),
       currentIndex: 0,
@@ -380,7 +390,7 @@ export const useBuilderStore = create<BuilderState>()(
       },
 
       saveCurrentProject: (_immediate = false) => {
-        const { components, currentProjectId, projectName, setSaveStatus } = get();
+        const { components, bindings, currentProjectId, projectName, setSaveStatus } = get();
 
         setSaveStatus('saving');
 
@@ -389,6 +399,7 @@ export const useBuilderStore = create<BuilderState>()(
             id: currentProjectId || undefined,
             name: projectName,
             components: structuredClone(components),
+            bindings: structuredClone(bindings),
           });
 
           set(
@@ -437,6 +448,7 @@ export const useBuilderStore = create<BuilderState>()(
         set(
           {
             components: result.project.components,
+            bindings: result.project.bindings || [],
             currentProjectId: result.project.id,
             projectName: result.project.name,
             lastSavedAt: result.project.updatedAt,
@@ -479,6 +491,7 @@ export const useBuilderStore = create<BuilderState>()(
         set(
           {
             components: project.components,
+            bindings: project.bindings || [],
             currentProjectId: project.id,
             projectName: project.name,
             lastSavedAt: project.updatedAt,
@@ -515,6 +528,7 @@ export const useBuilderStore = create<BuilderState>()(
           {
             components: MOCK_EMPTY_CANVAS,
             selectedComponentId: null,
+            bindings: [],
             history: createInitialHistory(),
             currentIndex: 0,
             canUndo: false,
@@ -568,6 +582,7 @@ export const useBuilderStore = create<BuilderState>()(
           {
             components: MOCK_EMPTY_CANVAS,
             selectedComponentId: null,
+            bindings: [],
             history: createInitialHistory(),
             currentIndex: 0,
             canUndo: false,
@@ -921,6 +936,54 @@ export const useBuilderStore = create<BuilderState>()(
           false,
           { type: 'moveToBottom', id, newIndex }
         );
+      },
+
+      addBinding: (binding) => {
+        const { bindings, saveCurrentProject } = get();
+        const now = new Date().toISOString();
+        const newBinding: DataBindingRule = {
+          ...binding,
+          id: generateId(),
+          createdAt: now,
+          updatedAt: now,
+        };
+        const newBindings = [...bindings, newBinding];
+        set({ bindings: newBindings }, false, { type: 'addBinding', binding: newBinding });
+        saveCurrentProject(true);
+        return newBinding.id;
+      },
+
+      updateBinding: (id, updates) => {
+        const { bindings, saveCurrentProject } = get();
+        const now = new Date().toISOString();
+        const newBindings = bindings.map((b) =>
+          b.id === id ? { ...b, ...updates, updatedAt: now } : b
+        );
+        set({ bindings: newBindings }, false, { type: 'updateBinding', id, updates });
+        saveCurrentProject(true);
+      },
+
+      removeBinding: (id) => {
+        const { bindings, saveCurrentProject } = get();
+        const newBindings = bindings.filter((b) => b.id !== id);
+        set({ bindings: newBindings }, false, { type: 'removeBinding', id });
+        saveCurrentProject(true);
+      },
+
+      setBindings: (bindings) => {
+        const { saveCurrentProject } = get();
+        set({ bindings }, false, 'setBindings');
+        saveCurrentProject(true);
+      },
+
+      getBindingsForSource: (sourceId) => {
+        const { bindings } = get();
+        return bindings.filter((b) => b.sourceId === sourceId && b.enabled);
+      },
+
+      getBindingsForTarget: (targetId) => {
+        const { bindings } = get();
+        return bindings.filter((b) => b.targetId === targetId && b.enabled);
       },
     }),
     {

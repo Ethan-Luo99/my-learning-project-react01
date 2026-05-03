@@ -4,7 +4,8 @@ import {
   type ComponentSchema, 
   type ContainerComponentSchema, 
   type ClickEventConfig,
-  ClickEventType
+  ClickEventType,
+  BindingTrigger
 } from '@/types/component';
 import { cn } from '@/utils/classname';
 import { useDroppable } from '@dnd-kit/core';
@@ -13,6 +14,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { createContainerDropZoneId, createSortableItemId } from '@/constants/dnd';
 import { logger } from '@/utils/logger';
 import { usePreviewFormSubmit, usePreviewFormReset } from '@/context/PreviewFormRegistry';
+import { PreviewBindingContext } from '@/context/PreviewBindingContext';
 
 interface ComponentRendererProps {
   component: ComponentSchema;
@@ -264,11 +266,37 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 }) => {
   const { type, props, styles } = component;
   const executeClickEvent = useClickEventExecutor();
+  const componentId = component.id;
+
+  const previewBinding = React.useContext(PreviewBindingContext);
+  const isPreviewMode = !editable && previewBinding !== null;
 
   const wrapperClassName = cn(
     'relative',
     editable && isSelected && 'ring-2 ring-primary-500 ring-offset-2 rounded-lg'
   );
+
+  const getBindingValue = (path?: string) => {
+    if (!isPreviewMode || !previewBinding) return undefined;
+    return previewBinding.getComponentValue(componentId, path);
+  };
+
+  const getBindingProp = (propKey: string) => {
+    if (!isPreviewMode || !previewBinding) return undefined;
+    return previewBinding.getComponentProp(componentId, propKey);
+  };
+
+  const triggerValueChange = (newValue: any) => {
+    if (!isPreviewMode || !previewBinding) return;
+    previewBinding.setComponentValue(componentId, newValue);
+    previewBinding.triggerBinding(componentId, BindingTrigger.Change, newValue);
+  };
+
+  const triggerInputChange = (newValue: any) => {
+    if (!isPreviewMode || !previewBinding) return;
+    previewBinding.setComponentValue(componentId, newValue);
+    previewBinding.triggerBinding(componentId, BindingTrigger.Input, newValue);
+  };
 
   const renderContainerChildren = () => {
     if (!isContainerComponent(component)) {
@@ -408,6 +436,26 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       const validateOnChange = props.validateOnChange === true || props.validateOnChange === 'true';
       const validateOnBlur = props.validateOnBlur === true || props.validateOnBlur === 'true';
       
+      const bindingValue = getBindingValue();
+      const bindingPlaceholder = getBindingProp('placeholder');
+      const bindingDisabled = getBindingProp('disabled');
+
+      const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newValue = e.target.value;
+        triggerInputChange(newValue);
+        if (restInputProps.onChange) {
+          restInputProps.onChange(e);
+        }
+      };
+
+      const handleValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newValue = e.target.value;
+        triggerValueChange(newValue);
+        if (restInputProps.onChange) {
+          restInputProps.onChange(e);
+        }
+      };
+      
       return (
         <div
           className={wrapperClassName}
@@ -417,8 +465,8 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             style={styles}
             className={cn(editable && 'pointer-events-none', inputClassName)}
             type={props.type || 'text'}
-            placeholder={props.placeholder || '请输入内容'}
-            disabled={props.disabled || editable}
+            placeholder={bindingPlaceholder || props.placeholder || '请输入内容'}
+            disabled={bindingDisabled !== undefined ? bindingDisabled : (props.disabled || editable)}
             readOnly={props.readOnly || editable}
             clearable={props.clearable || false}
             error={props.error || false}
@@ -426,9 +474,11 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             validationRules={props.validationRules}
             validateOnChange={validateOnChange}
             validateOnBlur={validateOnBlur}
-            value={props.value}
+            value={bindingValue !== undefined ? bindingValue : props.value}
             defaultValue={props.defaultValue}
             maxLength={props.maxLength}
+            onChange={handleValueChange}
+            onInput={handleInputChange}
             {...restInputProps}
           />
         </div>
@@ -440,6 +490,26 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       const validateOnChange = props.validateOnChange === true || props.validateOnChange === 'true';
       const validateOnBlur = props.validateOnBlur === true || props.validateOnBlur === 'true';
       
+      const bindingValue = getBindingValue();
+      const bindingPlaceholder = getBindingProp('placeholder');
+      const bindingDisabled = getBindingProp('disabled');
+
+      const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const newValue = e.target.value;
+        triggerInputChange(newValue);
+        if (restTextareaProps.onChange) {
+          restTextareaProps.onChange(e);
+        }
+      };
+
+      const handleValueChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const newValue = e.target.value;
+        triggerValueChange(newValue);
+        if (restTextareaProps.onChange) {
+          restTextareaProps.onChange(e);
+        }
+      };
+      
       return (
         <div
           className={wrapperClassName}
@@ -449,9 +519,9 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             style={styles}
             className={cn(editable && 'pointer-events-none', textareaClassName)}
             rows={props.rows || 4}
-            placeholder={props.placeholder || '请输入内容'}
+            placeholder={bindingPlaceholder || props.placeholder || '请输入内容'}
             resize={props.resize || 'vertical'}
-            disabled={props.disabled || editable}
+            disabled={bindingDisabled !== undefined ? bindingDisabled : (props.disabled || editable)}
             readOnly={props.readOnly || editable}
             showCount={props.showCount || false}
             error={props.error || false}
@@ -460,8 +530,10 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             validationRules={props.validationRules}
             validateOnChange={validateOnChange}
             validateOnBlur={validateOnBlur}
-            value={props.value}
+            value={bindingValue !== undefined ? bindingValue : props.value}
             defaultValue={props.defaultValue}
+            onChange={handleValueChange}
+            onInput={handleInputChange}
             {...restTextareaProps}
           />
         </div>
@@ -470,13 +542,25 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 
     case ComponentType.Select: {
       const { className: selectClassName, ...restSelectProps } = props;
-      const options = props.options || [
+      const bindingOptions = getBindingProp('options');
+      const options = bindingOptions || props.options || [
         { value: 'option1', label: '选项一' },
         { value: 'option2', label: '选项二' },
         { value: 'option3', label: '选项三' },
       ];
       const validateOnChange = props.validateOnChange === true || props.validateOnChange === 'true';
       const validateOnBlur = props.validateOnBlur === true || props.validateOnBlur === 'true';
+      
+      const bindingValue = getBindingValue();
+      const bindingPlaceholder = getBindingProp('placeholder');
+      const bindingDisabled = getBindingProp('disabled');
+
+      const handleValueChange = (value: any) => {
+        triggerValueChange(value);
+        if (restSelectProps.onChange) {
+          restSelectProps.onChange(value);
+        }
+      };
       
       return (
         <div
@@ -487,8 +571,8 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             style={styles}
             className={cn(editable && 'pointer-events-none', selectClassName)}
             options={options}
-            placeholder={props.placeholder || '请选择'}
-            disabled={props.disabled || editable}
+            placeholder={bindingPlaceholder || props.placeholder || '请选择'}
+            disabled={bindingDisabled !== undefined ? bindingDisabled : (props.disabled || editable)}
             clearable={props.clearable || false}
             searchable={props.searchable || false}
             multiple={props.multiple || false}
@@ -497,8 +581,9 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             validationRules={props.validationRules}
             validateOnChange={validateOnChange}
             validateOnBlur={validateOnBlur}
-            value={props.value}
+            value={bindingValue !== undefined ? bindingValue : props.value}
             defaultValue={props.defaultValue}
+            onChange={handleValueChange}
             {...restSelectProps}
           />
         </div>
@@ -507,9 +592,20 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 
     case ComponentType.Checkbox: {
       const { className: checkboxClassName, ...restCheckboxProps } = props;
-      const isChecked = props.checked === true || props.checked === 'true';
+      const bindingValue = getBindingValue();
+      const bindingDisabled = getBindingProp('disabled');
+      
+      const isChecked = bindingValue !== undefined ? bindingValue : (props.checked === true || props.checked === 'true');
       const isIndeterminate = props.indeterminate === true || props.indeterminate === 'true';
-      const isDisabled = props.disabled === true || props.disabled === 'true';
+      const isDisabled = bindingDisabled !== undefined ? bindingDisabled : (props.disabled === true || props.disabled === 'true');
+
+      const handleChange = (checked: boolean) => {
+        triggerValueChange(checked);
+        if (restCheckboxProps.onChange) {
+          restCheckboxProps.onChange(checked);
+        }
+      };
+
       return (
         <div
           className={wrapperClassName}
@@ -522,6 +618,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             indeterminate={isIndeterminate}
             disabled={isDisabled || editable}
             label={props.label}
+            onChange={handleChange}
             {...restCheckboxProps}
           />
         </div>
@@ -530,12 +627,24 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 
     case ComponentType.CheckboxGroup: {
       const { className: checkboxGroupClassName, ...restCheckboxGroupProps } = props;
-      const options = props.options || [
+      const bindingValue = getBindingValue();
+      const bindingOptions = getBindingProp('options');
+      const bindingDisabled = getBindingProp('disabled');
+      
+      const options = bindingOptions || props.options || [
         { value: 'option1', label: '选项一' },
         { value: 'option2', label: '选项二' },
         { value: 'option3', label: '选项三' },
       ];
-      const isDisabled = props.disabled === true || props.disabled === 'true';
+      const isDisabled = bindingDisabled !== undefined ? bindingDisabled : (props.disabled === true || props.disabled === 'true');
+
+      const handleChange = (value: any[]) => {
+        triggerValueChange(value);
+        if (restCheckboxGroupProps.onChange) {
+          restCheckboxGroupProps.onChange(value);
+        }
+      };
+
       return (
         <div
           className={wrapperClassName}
@@ -545,10 +654,11 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             style={styles}
             className={cn(checkboxGroupClassName)}
             options={options}
-            value={props.value || []}
+            value={bindingValue !== undefined ? bindingValue : (props.value || [])}
             disabled={isDisabled || editable}
             direction={props.direction || 'column'}
             gap={props.gap || 'md'}
+            onChange={handleChange}
             {...restCheckboxGroupProps}
           />
         </div>
@@ -557,8 +667,19 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 
     case ComponentType.Radio: {
       const { className: radioClassName, ...restRadioProps } = props;
-      const isChecked = props.checked === true || props.checked === 'true';
-      const isDisabled = props.disabled === true || props.disabled === 'true';
+      const bindingValue = getBindingValue();
+      const bindingDisabled = getBindingProp('disabled');
+      
+      const isChecked = bindingValue !== undefined ? bindingValue : (props.checked === true || props.checked === 'true');
+      const isDisabled = bindingDisabled !== undefined ? bindingDisabled : (props.disabled === true || props.disabled === 'true');
+
+      const handleChange = (checked: boolean) => {
+        triggerValueChange(checked);
+        if (restRadioProps.onChange) {
+          restRadioProps.onChange(checked);
+        }
+      };
+
       return (
         <div
           className={wrapperClassName}
@@ -571,6 +692,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             disabled={isDisabled || editable}
             label={props.label}
             value={props.value}
+            onChange={handleChange}
             {...restRadioProps}
           />
         </div>
@@ -579,12 +701,24 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 
     case ComponentType.RadioGroup: {
       const { className: radioGroupClassName, ...restRadioGroupProps } = props;
-      const options = props.options || [
+      const bindingValue = getBindingValue();
+      const bindingOptions = getBindingProp('options');
+      const bindingDisabled = getBindingProp('disabled');
+      
+      const options = bindingOptions || props.options || [
         { value: 'option1', label: '选项一' },
         { value: 'option2', label: '选项二' },
         { value: 'option3', label: '选项三' },
       ];
-      const isDisabled = props.disabled === true || props.disabled === 'true';
+      const isDisabled = bindingDisabled !== undefined ? bindingDisabled : (props.disabled === true || props.disabled === 'true');
+
+      const handleChange = (value: any) => {
+        triggerValueChange(value);
+        if (restRadioGroupProps.onChange) {
+          restRadioGroupProps.onChange(value);
+        }
+      };
+
       return (
         <div
           className={wrapperClassName}
@@ -594,10 +728,11 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             style={styles}
             className={cn(radioGroupClassName)}
             options={options}
-            value={props.value}
+            value={bindingValue !== undefined ? bindingValue : props.value}
             disabled={isDisabled || editable}
             direction={props.direction || 'column'}
             gap={props.gap || 'md'}
+            onChange={handleChange}
             {...restRadioGroupProps}
           />
         </div>
@@ -606,9 +741,20 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 
     case ComponentType.Switch: {
       const { className: switchClassName, ...restSwitchProps } = props;
-      const isChecked = props.checked === true || props.checked === 'true';
-      const isDisabled = props.disabled === true || props.disabled === 'true';
+      const bindingValue = getBindingValue();
+      const bindingDisabled = getBindingProp('disabled');
+      
+      const isChecked = bindingValue !== undefined ? bindingValue : (props.checked === true || props.checked === 'true');
+      const isDisabled = bindingDisabled !== undefined ? bindingDisabled : (props.disabled === true || props.disabled === 'true');
       const isLoading = props.loading === true || props.loading === 'true';
+
+      const handleChange = (checked: boolean) => {
+        triggerValueChange(checked);
+        if (restSwitchProps.onChange) {
+          restSwitchProps.onChange(checked);
+        }
+      };
+
       return (
         <div
           className={wrapperClassName}
@@ -626,6 +772,7 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             inactiveColor={props.inactiveColor}
             checkedText={props.checkedText}
             uncheckedText={props.uncheckedText}
+            onChange={handleChange}
             {...restSwitchProps}
           />
         </div>

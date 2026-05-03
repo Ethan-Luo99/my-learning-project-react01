@@ -1,10 +1,11 @@
-import type { ComponentSchema } from '@/types/component';
+import type { ComponentSchema, DataBindingRule } from '@/types/component';
 import { validateProjectData, formatValidationErrors } from '@/utils/validation';
 
 export interface Project {
   id: string;
   name: string;
   components: ComponentSchema[];
+  bindings?: DataBindingRule[];
   createdAt: string;
   updatedAt: string;
 }
@@ -60,6 +61,7 @@ export const saveProject = (
     id: projectData.id || generateProjectId(),
     name: projectData.name || '未命名项目',
     components: projectData.components,
+    bindings: projectData.bindings || existingProject?.bindings || [],
     createdAt: projectData.createdAt || existingProject?.createdAt || now,
     updatedAt: now,
   };

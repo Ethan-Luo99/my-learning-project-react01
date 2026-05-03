@@ -7,7 +7,10 @@ import {
   ComponentType, 
   type ComponentSchema, 
   type ClickEventConfig, 
-  ClickEventType 
+  ClickEventType,
+  type DataBindingRule,
+  BindingTrigger,
+  BindingPath,
 } from '@/types/component';
 import { 
   getComponentPropertyConfig, 
@@ -575,6 +578,255 @@ const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({ rules, on
   );
 };
 
+interface BindingRuleEditorProps {
+  binding: DataBindingRule;
+  availableComponents: { id: string; label: string; type: ComponentType }[];
+  isSource: boolean;
+  onUpdate: (updates: Partial<DataBindingRule>) => void;
+  onRemove: () => void;
+}
+
+const BindingRuleEditor: React.FC<BindingRuleEditorProps> = ({
+  binding,
+  availableComponents,
+  isSource,
+  onUpdate,
+  onRemove,
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const allComponents = React.useMemo(() => {
+    const allAvailable = [...availableComponents];
+    if (!allAvailable.find((c) => c.id === binding.sourceId)) {
+      allAvailable.push({
+        id: binding.sourceId,
+        label: `组件 ${binding.sourceId}`,
+        type: ComponentType.Input,
+      });
+    }
+    if (!allAvailable.find((c) => c.id === binding.targetId)) {
+      allAvailable.push({
+        id: binding.targetId,
+        label: `组件 ${binding.targetId}`,
+        type: ComponentType.Input,
+      });
+    }
+    return allAvailable;
+  }, [availableComponents, binding.sourceId, binding.targetId]);
+
+  const pathOptions = [
+    { value: BindingPath.Value, label: '值 (value)' },
+    { value: BindingPath.Options, label: '选项列表 (options)' },
+    { value: BindingPath.Disabled, label: '禁用状态 (disabled)' },
+    { value: BindingPath.Placeholder, label: '占位符 (placeholder)' },
+  ];
+
+  const triggerOptions = [
+    { value: BindingTrigger.Change, label: '值变更时 (change)' },
+    { value: BindingTrigger.Input, label: '输入时 (input)' },
+    { value: BindingTrigger.Manual, label: '手动触发' },
+  ];
+
+  const transformOptions = [
+    { value: 'direct' as const, label: '直接传递' },
+    { value: 'mapping' as const, label: '映射转换' },
+    { value: 'custom' as const, label: '自定义函数' },
+  ];
+
+  return (
+    <div className="mb-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={binding.enabled}
+            onChange={(e) => onUpdate({ enabled: e.target.checked })}
+            className="w-4 h-4 text-primary-600 rounded"
+          />
+          <Text variant="body2" weight="medium">
+            {isSource ? (
+              <>
+                → {allComponents.find((c) => c.id === binding.targetId)?.label || binding.targetId}
+              </>
+            ) : (
+              <>
+                ← {allComponents.find((c) => c.id === binding.sourceId)?.label || binding.sourceId}
+              </>
+            )}
+          </Text>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="p-1 text-gray-500 hover:text-gray-700"
+          >
+            {isExpanded ? '▲' : '▼'}
+          </button>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="p-1 text-red-500 hover:text-red-700"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      {isExpanded && (
+        <div className="mt-3 pt-3 border-t border-gray-200 space-y-3">
+          {isSource ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                目标组件
+              </label>
+              <select
+                value={binding.targetId}
+                onChange={(e) => onUpdate({ targetId: e.target.value })}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md"
+              >
+                {allComponents.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                源组件
+              </label>
+              <select
+                value={binding.sourceId}
+                onChange={(e) => onUpdate({ sourceId: e.target.value })}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md"
+              >
+                {allComponents.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                源属性路径
+              </label>
+              <select
+                value={binding.sourcePath}
+                onChange={(e) => onUpdate({ sourcePath: e.target.value })}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md"
+              >
+                {pathOptions.map((p) => (
+                  <option key={p.value} value={p.value}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                目标属性路径
+              </label>
+              <select
+                value={binding.targetPath}
+                onChange={(e) => onUpdate({ targetPath: e.target.value })}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md"
+              >
+                {pathOptions.map((p) => (
+                  <option key={p.value} value={p.value}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              触发方式
+            </label>
+            <select
+              value={binding.trigger}
+              onChange={(e) => onUpdate({ trigger: e.target.value as BindingTrigger })}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md"
+            >
+              {triggerOptions.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              转换方式
+            </label>
+            <select
+              value={binding.transformType || 'direct'}
+              onChange={(e) => onUpdate({ transformType: e.target.value as 'direct' | 'mapping' | 'custom' })}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md"
+            >
+              {transformOptions.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {binding.transformType === 'mapping' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                映射配置 (JSON格式)
+              </label>
+              <textarea
+                value={binding.mapping ? JSON.stringify(binding.mapping, null, 2) : '{}'}
+                onChange={(e) => {
+                  try {
+                    const mapping = JSON.parse(e.target.value);
+                    onUpdate({ mapping });
+                  } catch {
+                  }
+                }}
+                placeholder='{"CN": ["北京", "上海"], "US": ["纽约", "洛杉矶"]}'
+                rows={4}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md font-mono"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                格式: {"{"}"源值": ["目标值1", "目标值2"]{"}"}
+              </p>
+            </div>
+          )}
+
+          {binding.transformType === 'custom' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                自定义转换函数
+              </label>
+              <textarea
+                value={binding.customTransform || 'value'}
+                onChange={(e) => onUpdate({ customTransform: e.target.value })}
+                placeholder="value.toUpperCase()"
+                rows={2}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md font-mono"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                使用 value 变量表示源值，返回转换后的值
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 interface PropertySectionProps {
   title: string;
   children: React.ReactNode;
@@ -761,6 +1013,10 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
     canMoveUp,
     canMoveDown,
     getComponentLayerInfo,
+    bindings,
+    addBinding,
+    updateBinding,
+    removeBinding,
   } = useBuilderStore();
 
   const selectedComponent = useMemo(() => {
@@ -858,6 +1114,76 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
       ComponentType.Textarea,
       ComponentType.Select,
     ].includes(type);
+  };
+
+  const isBindableComponent = (type: ComponentType): boolean => {
+    return [
+      ComponentType.Input,
+      ComponentType.Textarea,
+      ComponentType.Select,
+      ComponentType.Checkbox,
+      ComponentType.CheckboxGroup,
+      ComponentType.Radio,
+      ComponentType.RadioGroup,
+      ComponentType.Switch,
+    ].includes(type);
+  };
+
+  const getAvailableComponents = useMemo(() => {
+    const result: { id: string; label: string; type: ComponentType }[] = [];
+    
+    const collectComponents = (list: ComponentSchema[]) => {
+      for (const comp of list) {
+        if (comp.id !== selectedComponentId && isBindableComponent(comp.type)) {
+          result.push({
+            id: comp.id,
+            label: `${getComponentLabel(comp.type)} (${comp.id})`,
+            type: comp.type,
+          });
+        }
+        if (comp.type === ComponentType.Container && comp.children) {
+          collectComponents(comp.children);
+        }
+      }
+    };
+    
+    collectComponents(components);
+    return result;
+  }, [components, selectedComponentId]);
+
+  const getBindingsForCurrentComponent = useMemo(() => {
+    if (!selectedComponentId) return { asSource: [], asTarget: [] };
+    return {
+      asSource: bindings.filter((b) => b.sourceId === selectedComponentId),
+      asTarget: bindings.filter((b) => b.targetId === selectedComponentId),
+    };
+  }, [bindings, selectedComponentId]);
+
+  const handleAddBinding = (direction: 'source' | 'target') => {
+    if (!selectedComponentId) return;
+
+    const newBinding: Omit<DataBindingRule, 'id' | 'createdAt' | 'updatedAt'> = {
+      sourceId: direction === 'source' ? selectedComponentId : (getAvailableComponents[0]?.id || ''),
+      targetId: direction === 'target' ? selectedComponentId : (getAvailableComponents[0]?.id || ''),
+      sourcePath: BindingPath.Value,
+      targetPath: BindingPath.Value,
+      trigger: BindingTrigger.Change,
+      transformType: 'direct',
+      enabled: true,
+    };
+
+    addBinding(newBinding);
+  };
+
+  const handleUpdateBinding = (id: string, updates: Partial<DataBindingRule>) => {
+    updateBinding(id, updates);
+  };
+
+  const handleRemoveBinding = (id: string) => {
+    const confirmed = window.confirm('确定要删除此绑定规则吗？');
+    if (confirmed) {
+      removeBinding(id);
+    }
   };
 
   const handleDelete = () => {
@@ -1159,6 +1485,80 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
             rules={getValidationRules()}
             onChange={handleValidationRulesChange}
           />
+        </PropertySection>
+      )}
+
+      {isBindableComponent(selectedComponent.type) && (
+        <PropertySection 
+          title="数据绑定" 
+          isEmpty={
+            getBindingsForCurrentComponent.asSource.length === 0 &&
+            getBindingsForCurrentComponent.asTarget.length === 0 &&
+            getAvailableComponents.length === 0
+          }
+        >
+          {getBindingsForCurrentComponent.asSource.length > 0 && (
+            <div className="mb-4">
+              <Text variant="caption" color="muted" weight="medium" className="mb-2">
+                作为源组件（当前组件变更时触发）
+              </Text>
+              {getBindingsForCurrentComponent.asSource.map((binding) => (
+                <BindingRuleEditor
+                  key={binding.id}
+                  binding={binding}
+                  availableComponents={getAvailableComponents}
+                  isSource={true}
+                  onUpdate={(updates) => handleUpdateBinding(binding.id, updates)}
+                  onRemove={() => handleRemoveBinding(binding.id)}
+                />
+              ))}
+            </div>
+          )}
+
+          {getBindingsForCurrentComponent.asTarget.length > 0 && (
+            <div className="mb-4">
+              <Text variant="caption" color="muted" weight="medium" className="mb-2">
+                作为目标组件（其他组件变更时触发）
+              </Text>
+              {getBindingsForCurrentComponent.asTarget.map((binding) => (
+                <BindingRuleEditor
+                  key={binding.id}
+                  binding={binding}
+                  availableComponents={getAvailableComponents}
+                  isSource={false}
+                  onUpdate={(updates) => handleUpdateBinding(binding.id, updates)}
+                  onRemove={() => handleRemoveBinding(binding.id)}
+                />
+              ))}
+            </div>
+          )}
+
+          {getAvailableComponents.length > 0 && (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleAddBinding('source')}
+                className="flex-1"
+              >
+                + 绑定到其他组件
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleAddBinding('target')}
+                className="flex-1"
+              >
+                + 从其他组件绑定
+              </Button>
+            </div>
+          )}
+
+          {getAvailableComponents.length === 0 && (
+            <p className="text-sm text-gray-500">
+              画布上没有其他可绑定的组件，请先添加更多表单组件。
+            </p>
+          )}
         </PropertySection>
       )}
     </div>
