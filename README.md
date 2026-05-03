@@ -26,14 +26,21 @@
 - **中间画布区域** - 可视化编辑区域，支持拖拽摆放
 - **右侧属性面板** - 编辑选中组件的属性配置
 
-### 核心功能
-- ✅ 组件拖拽添加到画布
+### 核心功能（A 系列）
+- ✅ 组件拖拽添加到画布 - [架构文档](docs/architecture/overview.md#44-容器拖拽模块-dnd)
 - ✅ 组件选中与取消选中
-- ✅ 组件删除功能
-- ✅ 组件复制功能
-- ✅ 撤销/重做（历史记录）
-- ✅ 编辑模式/预览模式切换
-- ✅ 响应式设计支持
+- ✅ 组件删除功能 - [架构文档](docs/architecture/overview.md#45-快捷键模块-keyboard-shortcuts)
+- ✅ 组件复制/粘贴功能 - [架构文档](docs/architecture/overview.md#45-快捷键模块-keyboard-shortcuts)
+- ✅ 撤销/重做（历史记录）- [架构文档](docs/architecture/overview.md#42-状态管理模块-store)
+- ✅ 编辑模式/预览模式切换 - [架构文档](docs/architecture/PREVIEW-MODE-ARCHITECTURE.md)
+- ✅ 键盘快捷键支持 - [架构文档](docs/architecture/KEYBOARD-SHORTCUTS-ARCHITECTURE.md)
+- ✅ 组件层级排序（上移/下移/置顶/置底）- [架构文档](docs/architecture/overview.md#42-状态管理模块-store)
+- ✅ Container 容器组件嵌套 - [架构文档](docs/architecture/overview.md#44-容器拖拽模块-dnd)
+- ✅ 多项目管理（创建/切换/删除/重命名）- [架构文档](docs/PERSISTENCE-ARCHITECTURE.md)
+- ✅ 项目导入导出（JSON 格式）- [架构文档](docs/architecture/overview.md#48-导入导出模块-importexport)
+- ✅ 数据校验和错误边界 - [架构文档](docs/architecture/overview.md#6-已知限制与改进建议)
+- ✅ Toast 操作反馈提示 - [架构文档](docs/architecture/overview.md#47-错误处理模块-error-handling)
+- ✅ React ErrorBoundary 错误边界 - [架构文档](docs/architecture/overview.md#47-错误处理模块-error-handling)
 
 ## 项目结构
 
@@ -137,8 +144,14 @@ pnpm format
 
 | 文档 | 说明 |
 |------|------|
+| [A 系列架构综述](docs/architecture/overview.md) | 完整的架构综述，包含所有模块的功能总览、依赖关系、数据流、接口签名、集成点和改进建议 |
 | [持久化模块架构设计](docs/PERSISTENCE-ARCHITECTURE.md) | 数据持久化、自动保存、项目管理、导入导出的完整架构说明 |
+| [预览模式架构设计](docs/architecture/PREVIEW-MODE-ARCHITECTURE.md) | 预览模式的渲染策略、事件隔离、数据共享机制 |
+| [键盘快捷键架构说明](docs/architecture/KEYBOARD-SHORTCUTS-ARCHITECTURE.md) | 快捷键系统的事件处理、焦点管理、跨平台兼容 |
 | [存储服务自测文档](docs/STORAGE-SELF-TEST.md) | 存储模块的测试用例、验证步骤、边界情况说明 |
+| [容器拖拽功能自测文档](docs/容器拖拽功能自测文档.md) | 拖拽功能的测试场景、预期结果、边界情况 |
+| [组件层级排序功能自测文档](docs/组件层级排序功能自测文档.md) | 层级排序功能的测试用例、验证步骤 |
+| [键盘快捷键功能自测文档](docs/键盘快捷键功能自测文档.md) | 快捷键功能的测试场景、预期结果 |
 
 ## 开发计划
 
