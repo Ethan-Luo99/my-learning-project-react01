@@ -5,6 +5,13 @@ import {
   type TextComponentSchema, 
   type ButtonComponentSchema, 
   type ContainerComponentSchema, 
+  type CardComponentSchema,
+  type DividerComponentSchema,
+  type TabsComponentSchema,
+  type TabPaneComponentSchema,
+  type AccordionComponentSchema,
+  type AccordionItemComponentSchema,
+  type ModalComponentSchema,
   type InputComponentSchema, 
   type TextareaComponentSchema, 
   type SelectComponentSchema, 
@@ -74,6 +81,178 @@ export const createMockContainerComponent = (id: string, children: ComponentSche
     border: '1px solid #e5e7eb',
     borderRadius: '8px',
   },
+  children,
+});
+
+export const createMockCardComponent = (
+  id: string,
+  children: ComponentSchema[] = [],
+  props: Partial<CardComponentSchema['props']> = {}
+): CardComponentSchema => ({
+  id,
+  type: ComponentType.Card,
+  x: 10,
+  y: 100,
+  width: 350,
+  height: 'auto',
+  props: {
+    shadow: 'md',
+    padding: 'md',
+    bordered: true,
+    headerTitle: '卡片标题',
+    hoverable: false,
+    ...props,
+  },
+  styles: {
+    minHeight: '150px',
+  },
+  children,
+});
+
+export const createMockDividerComponent = (
+  id: string,
+  props: Partial<DividerComponentSchema['props']> = {}
+): DividerComponentSchema => ({
+  id,
+  type: ComponentType.Divider,
+  x: 10,
+  y: 10,
+  width: '100%',
+  height: 'auto',
+  props: {
+    direction: 'horizontal',
+    textPosition: 'center',
+    dashed: false,
+    plain: false,
+    children: '',
+    ...props,
+  },
+  styles: {},
+});
+
+export const createMockTabsComponent = (
+  id: string,
+  children: ComponentSchema[] = [],
+  props: Partial<TabsComponentSchema['props']> = {}
+): TabsComponentSchema => ({
+  id,
+  type: ComponentType.Tabs,
+  x: 10,
+  y: 10,
+  width: 500,
+  height: 'auto',
+  props: {
+    tabPosition: 'top',
+    type: 'line',
+    animated: true,
+    addable: false,
+    ...props,
+  },
+  styles: {
+    minHeight: '200px',
+  },
+  children,
+});
+
+export const createMockTabPaneComponent = (
+  id: string,
+  tabKey: string = 'pane1',
+  title: string = '标签一',
+  children: ComponentSchema[] = [],
+  props: Partial<TabPaneComponentSchema['props']> = {}
+): TabPaneComponentSchema => ({
+  id,
+  type: ComponentType.TabPane,
+  x: 0,
+  y: 0,
+  width: '100%',
+  height: 'auto',
+  props: {
+    tabKey,
+    title,
+    disabled: false,
+    closable: false,
+    ...props,
+  },
+  styles: {},
+  children,
+});
+
+export const createMockAccordionComponent = (
+  id: string,
+  children: ComponentSchema[] = [],
+  props: Partial<AccordionComponentSchema['props']> = {}
+): AccordionComponentSchema => ({
+  id,
+  type: ComponentType.Accordion,
+  x: 10,
+  y: 10,
+  width: 500,
+  height: 'auto',
+  props: {
+    multiple: false,
+    bordered: true,
+    ghost: false,
+    ...props,
+  },
+  styles: {
+    minHeight: '100px',
+  },
+  children,
+});
+
+export const createMockAccordionItemComponent = (
+  id: string,
+  itemKey: string = 'item1',
+  title: string = '面板一',
+  children: ComponentSchema[] = [],
+  props: Partial<AccordionItemComponentSchema['props']> = {}
+): AccordionItemComponentSchema => ({
+  id,
+  type: ComponentType.AccordionItem,
+  x: 0,
+  y: 0,
+  width: '100%',
+  height: 'auto',
+  props: {
+    itemKey,
+    title,
+    disabled: false,
+    defaultExpanded: false,
+    ...props,
+  },
+  styles: {},
+  children,
+});
+
+export const createMockModalComponent = (
+  id: string,
+  children: ComponentSchema[] = [],
+  props: Partial<ModalComponentSchema['props']> = {}
+): ModalComponentSchema => ({
+  id,
+  type: ComponentType.Modal,
+  x: 10,
+  y: 10,
+  width: 520,
+  height: 'auto',
+  props: {
+    visible: false,
+    title: '弹窗标题',
+    width: 520,
+    centered: true,
+    closable: true,
+    maskClosable: true,
+    closeOnEscape: true,
+    okText: '确定',
+    cancelText: '取消',
+    okVisible: true,
+    cancelVisible: true,
+    destroyOnClose: false,
+    zIndex: 1000,
+    ...props,
+  },
+  styles: {},
   children,
 });
 
@@ -656,6 +835,7 @@ export const createMockActionConfig = (
     logMessage: params.logMessage,
     customScript: params.customScript,
     formId: params.formId,
+    modalId: params.modalId,
   },
   enabled,
 });
