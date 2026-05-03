@@ -1,4 +1,4 @@
-import { Text, Button, Image, Container } from '@/components/ui';
+import { Text, Button, Image, Container, Input, Textarea, Select } from '@/components/ui';
 import { 
   ComponentType, 
   type ComponentSchema, 
@@ -380,6 +380,83 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
               direction={direction}
             />
           </Container>
+        </div>
+      );
+    }
+
+    case ComponentType.Input: {
+      const { className: inputClassName, ...restInputProps } = props;
+      return (
+        <div
+          className={wrapperClassName}
+          onClick={handleClick}
+        >
+          <Input
+            style={styles}
+            className={cn(editable && 'pointer-events-none', inputClassName)}
+            type={props.type || 'text'}
+            placeholder={props.placeholder || '请输入内容'}
+            disabled={props.disabled || editable}
+            readOnly={props.readOnly || editable}
+            clearable={props.clearable || false}
+            error={props.error || false}
+            errorMessage={props.errorMessage}
+            {...restInputProps}
+          />
+        </div>
+      );
+    }
+
+    case ComponentType.Textarea: {
+      const { className: textareaClassName, ...restTextareaProps } = props;
+      return (
+        <div
+          className={wrapperClassName}
+          onClick={handleClick}
+        >
+          <Textarea
+            style={styles}
+            className={cn(editable && 'pointer-events-none', textareaClassName)}
+            rows={props.rows || 4}
+            placeholder={props.placeholder || '请输入内容'}
+            resize={props.resize || 'vertical'}
+            disabled={props.disabled || editable}
+            readOnly={props.readOnly || editable}
+            showCount={props.showCount || false}
+            error={props.error || false}
+            errorMessage={props.errorMessage}
+            maxLength={props.maxLength}
+            {...restTextareaProps}
+          />
+        </div>
+      );
+    }
+
+    case ComponentType.Select: {
+      const { className: selectClassName, ...restSelectProps } = props;
+      const options = props.options || [
+        { value: 'option1', label: '选项一' },
+        { value: 'option2', label: '选项二' },
+        { value: 'option3', label: '选项三' },
+      ];
+      return (
+        <div
+          className={wrapperClassName}
+          onClick={handleClick}
+        >
+          <Select
+            style={styles}
+            className={cn(editable && 'pointer-events-none', selectClassName)}
+            options={options}
+            placeholder={props.placeholder || '请选择'}
+            disabled={props.disabled || editable}
+            clearable={props.clearable || false}
+            searchable={props.searchable || false}
+            multiple={props.multiple || false}
+            error={props.error || false}
+            errorMessage={props.errorMessage}
+            {...restSelectProps}
+          />
         </div>
       );
     }

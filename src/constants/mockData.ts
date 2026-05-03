@@ -60,6 +60,56 @@ export const DEFAULT_COMPONENT_CONFIGS: Record<ComponentType, ComponentConfig> =
       borderRadius: '8px',
     },
   },
+  [ComponentType.Input]: {
+    type: ComponentType.Input,
+    label: '输入框',
+    defaultWidth: 300,
+    defaultHeight: 44,
+    defaultProps: {
+      type: 'text',
+      placeholder: '请输入内容',
+      disabled: false,
+      readOnly: false,
+      clearable: false,
+      error: false,
+    },
+    defaultStyles: {},
+  },
+  [ComponentType.Textarea]: {
+    type: ComponentType.Textarea,
+    label: '多行文本',
+    defaultWidth: 350,
+    defaultHeight: 'auto',
+    defaultProps: {
+      rows: 4,
+      placeholder: '请输入内容',
+      resize: 'vertical',
+      disabled: false,
+      readOnly: false,
+      showCount: false,
+      error: false,
+    },
+    defaultStyles: {},
+  },
+  [ComponentType.Select]: {
+    type: ComponentType.Select,
+    label: '下拉选择',
+    defaultWidth: 300,
+    defaultHeight: 44,
+    defaultProps: {
+      placeholder: '请选择',
+      disabled: false,
+      clearable: false,
+      searchable: false,
+      multiple: false,
+      options: [
+        { value: 'option1', label: '选项一' },
+        { value: 'option2', label: '选项二' },
+        { value: 'option3', label: '选项三' },
+      ],
+    },
+    defaultStyles: {},
+  },
 };
 
 export const COMPONENT_PANEL_ITEMS: ComponentPanelItem[] = [
@@ -82,6 +132,21 @@ export const COMPONENT_PANEL_ITEMS: ComponentPanelItem[] = [
     type: ComponentType.Container,
     label: '容器',
     category: 'layout',
+  },
+  {
+    type: ComponentType.Input,
+    label: '输入框',
+    category: 'form',
+  },
+  {
+    type: ComponentType.Textarea,
+    label: '多行文本',
+    category: 'form',
+  },
+  {
+    type: ComponentType.Select,
+    label: '下拉选择',
+    category: 'form',
   },
 ];
 

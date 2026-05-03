@@ -1,10 +1,13 @@
-import type { ButtonProps, TextProps, ImageProps, ContainerProps } from '@/components/ui';
+import type { ButtonProps, TextProps, ImageProps, ContainerProps, InputProps, TextareaProps, SelectProps } from '@/components/ui';
 
 export enum ComponentType {
   Text = 'Text',
   Button = 'Button',
   Image = 'Image',
   Container = 'Container',
+  Input = 'Input',
+  Textarea = 'Textarea',
+  Select = 'Select',
 }
 
 export enum ClickEventType {
@@ -66,11 +69,29 @@ export interface ContainerComponentSchema extends ComponentBaseSchema {
   children?: ComponentSchema[];
 }
 
+export interface InputComponentSchema extends ComponentBaseSchema {
+  type: ComponentType.Input;
+  props: Partial<InputProps>;
+}
+
+export interface TextareaComponentSchema extends ComponentBaseSchema {
+  type: ComponentType.Textarea;
+  props: Partial<TextareaProps>;
+}
+
+export interface SelectComponentSchema extends ComponentBaseSchema {
+  type: ComponentType.Select;
+  props: Partial<SelectProps>;
+}
+
 export type ComponentSchema =
   | TextComponentSchema
   | ButtonComponentSchema
   | ImageComponentSchema
-  | ContainerComponentSchema;
+  | ContainerComponentSchema
+  | InputComponentSchema
+  | TextareaComponentSchema
+  | SelectComponentSchema;
 
 export interface ComponentConfig {
   type: ComponentType;
