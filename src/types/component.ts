@@ -1,4 +1,25 @@
 import type { ButtonProps, TextProps, ImageProps, ContainerProps, InputProps, TextareaProps, SelectProps, CheckboxProps, CheckboxGroupProps, RadioProps, RadioGroupProps, SwitchProps, FormProps, FormItemProps } from '@/components/ui';
+import type { ValidationRule, ValidationResult } from '@/utils/formValidation';
+
+export enum ValidationTrigger {
+  Change = 'change',
+  Blur = 'blur',
+  Submit = 'submit',
+}
+
+export interface FieldValidationConfig {
+  rules: ValidationRule[];
+  validateOnChange?: boolean;
+  validateOnBlur?: boolean;
+}
+
+export interface FormFieldState {
+  value: any;
+  error: string | null;
+  touched: boolean;
+  valid: boolean;
+  validationResult?: ValidationResult;
+}
 
 export enum ComponentType {
   Text = 'Text',

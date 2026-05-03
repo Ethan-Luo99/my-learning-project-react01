@@ -1,5 +1,7 @@
 import * as React from 'react';
 import { cn } from '@/utils/classname';
+import type { ValidationRule, ValidationResult } from '@/utils/formValidation';
+import { validateField, isFormValid } from '@/utils/formValidation';
 
 export interface FormContextValue {
   layout: 'horizontal' | 'vertical' | 'inline';
@@ -7,6 +9,52 @@ export interface FormContextValue {
   labelAlign: 'left' | 'right' | 'top';
   size: 'sm' | 'md' | 'lg';
   disabled: boolean;
+}
+
+export interface FormFieldState {
+  value: any;
+  error: string | null;
+  touched: boolean;
+  valid: boolean;
+  validationResult?: ValidationResult;
+}
+
+export interface FormFieldConfig {
+  name: string;
+  rules?: ValidationRule[];
+  validateOnChange?: boolean;
+  validateOnBlur?: boolean;
+  initialValue?: any;
+}
+
+export interface FormValues {
+  [name: string]: any;
+}
+
+export interface FormErrors {
+  [name: string]: string | null;
+}
+
+export interface FormTouched {
+  [name: string]: boolean;
+}
+
+export interface FormValidationContextValue {
+  values: FormValues;
+  errors: FormErrors;
+  touched: FormTouched;
+  isValid: boolean;
+  isSubmitting: boolean;
+  setFieldValue: (name: string, value: any, shouldValidate?: boolean) => void;
+  setFieldTouched: (name: string, touched?: boolean, shouldValidate?: boolean) => void;
+  setFieldError: (name: string, error: string | null) => void;
+  validateField: (name: string) => void;
+  validateForm: () => boolean;
+  resetForm: () => void;
+  submitForm: () => void;
+  registerField: (config: FormFieldConfig) => void;
+  unregisterField: (name: string) => void;
+  getFieldState: (name: string) => FormFieldState | undefined;
 }
 
 const FormContext = React.createContext<FormContextValue>({
@@ -17,7 +65,103 @@ const FormContext = React.createContext<FormContextValue>({
   disabled: false,
 });
 
+const FormValidationContext = React.createContext<FormValidationContextValue | null>(null);
+
 export const useFormContext = () => React.useContext(FormContext);
+export const useFormValidationContext = () => React.useContext(FormValidationContext);
+
+export interface UseFormFieldProps {
+  name: string;
+  rules?: ValidationRule[];
+  validateOnChange?: boolean;
+  validateOnBlur?: boolean;
+  initialValue?: any;
+}
+
+export const useFormField = ({
+  name,
+  rules = [],
+  validateOnChange = true,
+  validateOnBlur = false,
+  initialValue,
+}: UseFormFieldProps) => {
+  const formContext = useFormValidationContext();
+  const [localValue, setLocalValue] = React.useState<any>(initialValue);
+  const [localError, setLocalError] = React.useState<string | null>(null);
+  const [localTouched, setLocalTouched] = React.useState(false);
+
+  const validate = React.useCallback((value: any): string | null => {
+    if (rules.length === 0) return null;
+    const result = validateField(value, rules);
+    return result.errors[0] || null;
+  }, [rules]);
+
+  if (formContext) {
+    const fieldState = formContext.getFieldState(name);
+    
+    React.useEffect(() => {
+      formContext.registerField({
+        name,
+        rules,
+        validateOnChange,
+        validateOnBlur,
+        initialValue,
+      });
+      return () => formContext.unregisterField(name);
+    }, [formContext, name, rules, validateOnChange, validateOnBlur, initialValue]);
+
+    const value = fieldState?.value ?? initialValue;
+    const error = fieldState?.error ?? null;
+    const touched = fieldState?.touched ?? false;
+
+    const handleChange = (newValue: any) => {
+      formContext.setFieldValue(name, newValue, validateOnChange);
+    };
+
+    const handleBlur = () => {
+      formContext.setFieldTouched(name, true, validateOnBlur);
+    };
+
+    return {
+      value,
+      error,
+      touched,
+      setValue: handleChange,
+      setTouched: handleBlur,
+      setError: (err: string | null) => formContext.setFieldError(name, err),
+      validate: () => {
+        formContext.validateField(name);
+      },
+    };
+  }
+
+  const handleChange = (newValue: any) => {
+    setLocalValue(newValue);
+    if (validateOnChange) {
+      setLocalError(validate(newValue));
+    }
+  };
+
+  const handleBlur = () => {
+    setLocalTouched(true);
+    if (validateOnBlur) {
+      setLocalError(validate(localValue));
+    }
+  };
+
+  return {
+    value: localValue,
+    error: localError,
+    touched: localTouched,
+    setValue: handleChange,
+    setTouched: handleBlur,
+    setError: setLocalError,
+    validate: () => {
+      setLocalError(validate(localValue));
+      setLocalTouched(true);
+    },
+  };
+};
 
 export interface FormProps extends React.FormHTMLAttributes<HTMLFormElement> {
   layout?: 'horizontal' | 'vertical' | 'inline';
@@ -25,7 +169,14 @@ export interface FormProps extends React.FormHTMLAttributes<HTMLFormElement> {
   labelAlign?: 'left' | 'right' | 'top';
   size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;
+  initialValues?: FormValues;
+  onSubmit?: (values: FormValues, isValid: boolean) => void;
+  onValidate?: (errors: FormErrors) => void;
   children?: React.ReactNode;
+}
+
+interface RegisteredField {
+  config: FormFieldConfig;
 }
 
 const Form: React.FC<FormProps> = ({
@@ -34,14 +185,145 @@ const Form: React.FC<FormProps> = ({
   labelAlign = 'right',
   size = 'md',
   disabled = false,
+  initialValues = {},
+  onSubmit,
+  onValidate,
   children,
   className,
-  onSubmit,
   ...props
 }) => {
+  const [values, setValues] = React.useState<FormValues>(initialValues);
+  const [errors, setErrors] = React.useState<FormErrors>({});
+  const [touched, setTouched] = React.useState<FormTouched>({});
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const registeredFieldsRef = React.useRef<Map<string, RegisteredField>>(new Map());
+
+  const registeredFields = registeredFieldsRef.current;
+
+  const getFieldRules = React.useCallback((name: string): ValidationRule[] => {
+    return registeredFields.get(name)?.config.rules || [];
+  }, [registeredFields]);
+
+  const validateFieldValue = React.useCallback((name: string, value: any): string | null => {
+    const rules = getFieldRules(name);
+    if (rules.length === 0) return null;
+    const result = validateField(value, rules);
+    return result.errors[0] || null;
+  }, [getFieldRules]);
+
+  const validateAllFields = React.useCallback((): boolean => {
+    const newErrors: FormErrors = {};
+    let isValid = true;
+
+    registeredFields.forEach((field, name) => {
+      const value = values[name] ?? field.config.initialValue;
+      const error = validateFieldValue(name, value);
+      newErrors[name] = error;
+      if (error) {
+        isValid = false;
+      }
+    });
+
+    setErrors(newErrors);
+    setTouched((prev) => {
+      const newTouched = { ...prev };
+      registeredFields.forEach((_, name) => {
+        newTouched[name] = true;
+      });
+      return newTouched;
+    });
+
+    onValidate?.(newErrors);
+    return isValid;
+  }, [values, registeredFields, validateFieldValue, onValidate]);
+
+  const setFieldValue = React.useCallback((name: string, value: any, shouldValidate = true) => {
+    setValues((prev) => ({ ...prev, [name]: value }));
+    
+    if (shouldValidate) {
+      const error = validateFieldValue(name, value);
+      setErrors((prev) => ({ ...prev, [name]: error }));
+    }
+  }, [validateFieldValue]);
+
+  const setFieldTouched = React.useCallback((name: string, touched = true, shouldValidate = false) => {
+    setTouched((prev) => ({ ...prev, [name]: touched }));
+    
+    if (shouldValidate && touched) {
+      const value = values[name];
+      const error = validateFieldValue(name, value);
+      setErrors((prev) => ({ ...prev, [name]: error }));
+    }
+  }, [values, validateFieldValue]);
+
+  const setFieldError = React.useCallback((name: string, error: string | null) => {
+    setErrors((prev) => ({ ...prev, [name]: error }));
+  }, []);
+
+  const validateField = React.useCallback((name: string) => {
+    const value = values[name];
+    const error = validateFieldValue(name, value);
+    setErrors((prev) => ({ ...prev, [name]: error }));
+    setTouched((prev) => ({ ...prev, [name]: true }));
+  }, [values, validateFieldValue]);
+
+  const validateForm = React.useCallback((): boolean => {
+    return validateAllFields();
+  }, [validateAllFields]);
+
+  const resetForm = React.useCallback(() => {
+    setValues(initialValues);
+    setErrors({});
+    setTouched({});
+  }, [initialValues]);
+
+  const submitForm = React.useCallback(() => {
+    setIsSubmitting(true);
+    
+    const isValid = validateAllFields();
+    
+    const finalValues: FormValues = {};
+    registeredFields.forEach((field, name) => {
+      finalValues[name] = values[name] ?? field.config.initialValue;
+    });
+
+    onSubmit?.(finalValues, isValid);
+    setIsSubmitting(false);
+  }, [values, registeredFields, validateAllFields, onSubmit]);
+
+  const registerField = React.useCallback((config: FormFieldConfig) => {
+    registeredFields.set(config.name, { config });
+    
+    if (config.initialValue !== undefined && values[config.name] === undefined) {
+      setValues((prev) => ({ ...prev, [config.name]: config.initialValue }));
+    }
+  }, [values, registeredFields]);
+
+  const unregisterField = React.useCallback((name: string) => {
+    registeredFields.delete(name);
+  }, [registeredFields]);
+
+  const getFieldState = React.useCallback((name: string): FormFieldState | undefined => {
+    const fieldConfig = registeredFields.get(name)?.config;
+    if (!fieldConfig) return undefined;
+
+    const value = values[name] ?? fieldConfig.initialValue;
+    const error = errors[name] ?? null;
+    const isTouched = touched[name] ?? false;
+    const validationResult = validateField(value, getFieldRules(name));
+
+    return {
+      value,
+      error,
+      touched: isTouched,
+      valid: validationResult.valid,
+      validationResult,
+    };
+  }, [values, errors, touched, registeredFields, getFieldRules]);
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    onSubmit?.(e);
+    submitForm();
   };
 
   const contextValue: FormContextValue = {
@@ -52,6 +334,24 @@ const Form: React.FC<FormProps> = ({
     disabled,
   };
 
+  const validationContextValue: FormValidationContextValue = {
+    values,
+    errors,
+    touched,
+    isValid: Object.values(errors).every((e) => e === null || e === undefined),
+    isSubmitting,
+    setFieldValue,
+    setFieldTouched,
+    setFieldError,
+    validateField,
+    validateForm,
+    resetForm,
+    submitForm,
+    registerField,
+    unregisterField,
+    getFieldState,
+  };
+
   const formClass = cn(
     'w-full',
     layout === 'inline' && 'flex flex-wrap items-end gap-4',
@@ -60,13 +360,15 @@ const Form: React.FC<FormProps> = ({
 
   return (
     <FormContext.Provider value={contextValue}>
-      <form
-        className={formClass}
-        onSubmit={handleSubmit}
-        {...props}
-      >
-        {children}
-      </form>
+      <FormValidationContext.Provider value={validationContextValue}>
+        <form
+          className={formClass}
+          onSubmit={handleSubmit}
+          {...props}
+        >
+          {children}
+        </form>
+      </FormValidationContext.Provider>
     </FormContext.Provider>
   );
 };

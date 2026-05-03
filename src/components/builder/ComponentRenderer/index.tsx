@@ -390,6 +390,9 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 
     case ComponentType.Input: {
       const { className: inputClassName, ...restInputProps } = props;
+      const validateOnChange = props.validateOnChange === true || props.validateOnChange === 'true';
+      const validateOnBlur = props.validateOnBlur === true || props.validateOnBlur === 'true';
+      
       return (
         <div
           className={wrapperClassName}
@@ -405,6 +408,12 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             clearable={props.clearable || false}
             error={props.error || false}
             errorMessage={props.errorMessage}
+            validationRules={props.validationRules}
+            validateOnChange={validateOnChange}
+            validateOnBlur={validateOnBlur}
+            value={props.value}
+            defaultValue={props.defaultValue}
+            maxLength={props.maxLength}
             {...restInputProps}
           />
         </div>
@@ -413,6 +422,9 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
 
     case ComponentType.Textarea: {
       const { className: textareaClassName, ...restTextareaProps } = props;
+      const validateOnChange = props.validateOnChange === true || props.validateOnChange === 'true';
+      const validateOnBlur = props.validateOnBlur === true || props.validateOnBlur === 'true';
+      
       return (
         <div
           className={wrapperClassName}
@@ -430,6 +442,11 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             error={props.error || false}
             errorMessage={props.errorMessage}
             maxLength={props.maxLength}
+            validationRules={props.validationRules}
+            validateOnChange={validateOnChange}
+            validateOnBlur={validateOnBlur}
+            value={props.value}
+            defaultValue={props.defaultValue}
             {...restTextareaProps}
           />
         </div>
@@ -443,6 +460,9 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
         { value: 'option2', label: '选项二' },
         { value: 'option3', label: '选项三' },
       ];
+      const validateOnChange = props.validateOnChange === true || props.validateOnChange === 'true';
+      const validateOnBlur = props.validateOnBlur === true || props.validateOnBlur === 'true';
+      
       return (
         <div
           className={wrapperClassName}
@@ -459,6 +479,11 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             multiple={props.multiple || false}
             error={props.error || false}
             errorMessage={props.errorMessage}
+            validationRules={props.validationRules}
+            validateOnChange={validateOnChange}
+            validateOnBlur={validateOnBlur}
+            value={props.value}
+            defaultValue={props.defaultValue}
             {...restSelectProps}
           />
         </div>

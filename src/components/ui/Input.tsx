@@ -1,5 +1,7 @@
 import * as React from 'react';
 import { cn } from '@/utils/classname';
+import type { ValidationRule } from '@/utils/formValidation';
+import { validateField } from '@/utils/formValidation';
 
 export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -13,6 +15,10 @@ export interface InputProps
   error?: boolean;
   errorMessage?: string;
   onClear?: () => void;
+  validationRules?: ValidationRule[];
+  validateOnChange?: boolean;
+  validateOnBlur?: boolean;
+  onValidationChange?: (error: string | null) => void;
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
@@ -26,18 +32,46 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       clearable = false,
       prefix,
       suffix,
-      error = false,
-      errorMessage,
-      value,
+      error: propError = false,
+      errorMessage: propErrorMessage,
+      value: propValue,
       defaultValue,
       onChange,
       onClear,
+      validationRules = [],
+      validateOnChange = true,
+      validateOnBlur = false,
+      onValidationChange,
       ...props
     },
     ref
   ) => {
     const [isFocused, setIsFocused] = React.useState(false);
+    const [internalValue, setInternalValue] = React.useState<string>(
+      propValue !== undefined ? String(propValue) : defaultValue !== undefined ? String(defaultValue) : ''
+    );
+    const [internalError, setInternalError] = React.useState<string | null>(null);
+    const [touched, setTouched] = React.useState(false);
     const inputRef = React.useRef<HTMLInputElement>(null);
+
+    const currentValue = propValue !== undefined ? String(propValue) : internalValue;
+    const hasValidationRules = validationRules && validationRules.length > 0;
+
+    const validate = React.useCallback((val: any): string | null => {
+      if (!hasValidationRules) return null;
+      const result = validateField(val, validationRules);
+      return result.errors[0] || null;
+    }, [validationRules, hasValidationRules]);
+
+    const handleValidation = React.useCallback((val: any) => {
+      if (!hasValidationRules) return;
+      const error = validate(val);
+      setInternalError(error);
+      onValidationChange?.(error);
+    }, [validate, hasValidationRules, onValidationChange]);
+
+    const effectiveError = propError || (touched && internalError !== null);
+    const effectiveErrorMessage = propErrorMessage || internalError;
 
     React.useImperativeHandle(ref, () => inputRef.current!);
 
@@ -50,7 +84,25 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
     const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
       setIsFocused(false);
+      setTouched(true);
+      if (validateOnBlur) {
+        handleValidation(currentValue);
+      }
       props.onBlur?.(e);
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = e.target.value;
+      
+      if (propValue === undefined) {
+        setInternalValue(newValue);
+      }
+      
+      if (validateOnChange) {
+        handleValidation(newValue);
+      }
+      
+      onChange?.(e);
     };
 
     const handleClear = () => {
@@ -59,18 +111,28 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         target: { value: '' },
         currentTarget: { value: '' },
       } as React.ChangeEvent<HTMLInputElement>;
+      
+      if (propValue === undefined) {
+        setInternalValue('');
+      }
+      
+      if (validateOnChange || validateOnBlur) {
+        setTouched(true);
+        handleValidation('');
+      }
+      
       onChange?.(event);
       onClear?.();
       inputRef.current?.focus();
     };
 
-    const hasValue = value !== undefined ? value !== '' : defaultValue !== undefined ? defaultValue !== '' : false;
+    const hasValue = currentValue !== '';
     const showClear = clearable && hasValue && !disabled && !readOnly;
 
     const inputWrapperClass = cn(
       'flex items-center w-full rounded-lg border bg-white transition-all duration-200',
       isFocused && 'ring-2 ring-primary-500 ring-offset-2 border-primary-500',
-      error
+      effectiveError
         ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
         : isFocused
         ? ''
@@ -101,9 +163,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             placeholder={placeholder}
             disabled={disabled}
             readOnly={readOnly}
-            value={value}
-            defaultValue={defaultValue}
-            onChange={onChange}
+            value={currentValue}
+            onChange={handleChange}
             onFocus={handleFocus}
             onBlur={handleBlur}
             className={inputClass}
@@ -125,7 +186,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
                 >
                   <path
                     fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
                     clipRule="evenodd"
                   />
                 </svg>
@@ -138,8 +199,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             )}
           </div>
         </div>
-        {error && errorMessage && (
-          <p className="mt-1.5 text-sm text-red-500">{errorMessage}</p>
+        {effectiveError && effectiveErrorMessage && (
+          <p className="mt-1.5 text-sm text-red-500">{effectiveErrorMessage}</p>
         )}
       </div>
     );

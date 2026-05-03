@@ -9,7 +9,13 @@ import {
   type ClickEventConfig, 
   ClickEventType 
 } from '@/types/component';
-import { getComponentPropertyConfig, type PropertyConfig, SPACING_PROPERTY_KEYS } from '@/constants/propertyConfig';
+import { 
+  getComponentPropertyConfig, 
+  type PropertyConfig, 
+  SPACING_PROPERTY_KEYS,
+  VALIDATION_RULE_TYPES 
+} from '@/constants/propertyConfig';
+import type { ValidationRule, ValidationRuleType } from '@/utils/formValidation';
 
 interface PropertyPanelProps {
   className?: string;
@@ -385,6 +391,157 @@ const EventConfigEditor: React.FC<EventConfigEditorProps> = ({ eventConfig, onCh
   );
 };
 
+interface ValidationRuleEditorProps {
+  rule: ValidationRule & { id: string };
+  onUpdate: (id: string, rule: Partial<ValidationRule>) => void;
+  onRemove: (id: string) => void;
+}
+
+const ValidationRuleEditor: React.FC<ValidationRuleEditorProps> = ({ rule, onUpdate, onRemove }) => {
+  const needsValue = ['minLength', 'maxLength', 'min', 'max', 'pattern'].includes(rule.type);
+
+  const handleTypeChange = (type: ValidationRuleType) => {
+    onUpdate(rule.id, { type });
+  };
+
+  const handleValueChange = (value: string) => {
+    let parsedValue: number | string | undefined;
+    if (['minLength', 'maxLength', 'min', 'max'].includes(rule.type)) {
+      parsedValue = value === '' ? undefined : Number(value);
+    } else {
+      parsedValue = value || undefined;
+    }
+    onUpdate(rule.id, { value: parsedValue });
+  };
+
+  const handleMessageChange = (message: string) => {
+    onUpdate(rule.id, { message: message || undefined });
+  };
+
+  return (
+    <div className="p-3 mb-3 bg-gray-50 rounded-lg border border-gray-200">
+      <div className="flex items-start gap-2">
+        <div className="flex-1 space-y-2">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">规则类型</label>
+            <select
+              value={rule.type}
+              onChange={(e) => handleTypeChange(e.target.value as ValidationRuleType)}
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 bg-white"
+            >
+              {VALIDATION_RULE_TYPES.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {needsValue && (
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                {rule.type === 'minLength' && '最小长度'}
+                {rule.type === 'maxLength' && '最大长度'}
+                {rule.type === 'min' && '最小值'}
+                {rule.type === 'max' && '最大值'}
+                {rule.type === 'pattern' && '正则表达式'}
+              </label>
+              <input
+                type={['minLength', 'maxLength', 'min', 'max'].includes(rule.type) ? 'number' : 'text'}
+                value={rule.value ?? ''}
+                onChange={(e) => handleValueChange(e.target.value)}
+                placeholder={
+                  rule.type === 'pattern' 
+                    ? '例如：^[a-zA-Z]+$' 
+                    : '请输入数值'
+                }
+                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 bg-white"
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">错误提示（可选）</label>
+            <input
+              type="text"
+              value={rule.message ?? ''}
+              onChange={(e) => handleMessageChange(e.target.value)}
+              placeholder="留空则使用默认提示"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 bg-white"
+            />
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => onRemove(rule.id)}
+          className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
+          title="删除规则"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+interface ValidationRulesEditorProps {
+  rules: (ValidationRule & { id: string })[];
+  onChange: (rules: (ValidationRule & { id: string })[]) => void;
+}
+
+const ValidationRulesEditor: React.FC<ValidationRulesEditorProps> = ({ rules, onChange }) => {
+  const handleAddRule = () => {
+    const newRule: ValidationRule & { id: string } = {
+      id: generateId('rule'),
+      type: 'required',
+    };
+    onChange([...rules, newRule]);
+  };
+
+  const handleUpdateRule = (id: string, updates: Partial<ValidationRule>) => {
+    const updatedRules = rules.map((rule) =>
+      rule.id === id ? { ...rule, ...updates } : rule
+    );
+    onChange(updatedRules);
+  };
+
+  const handleRemoveRule = (id: string) => {
+    const updatedRules = rules.filter((rule) => rule.id !== id);
+    onChange(updatedRules);
+  };
+
+  return (
+    <div>
+      {rules.length === 0 && (
+        <p className="text-sm text-gray-500 mb-3">暂无验证规则，点击下方按钮添加</p>
+      )}
+
+      {rules.map((rule) => (
+        <ValidationRuleEditor
+          key={rule.id}
+          rule={rule}
+          onUpdate={handleUpdateRule}
+          onRemove={handleRemoveRule}
+        />
+      ))}
+
+      <button
+        type="button"
+        onClick={handleAddRule}
+        className="w-full py-2 px-4 text-sm text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-lg border border-dashed border-primary-300 transition-colors flex items-center justify-center gap-1"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+        </svg>
+        添加验证规则
+      </button>
+    </div>
+  );
+};
+
 interface PropertySectionProps {
   title: string;
   children: React.ReactNode;
@@ -638,6 +795,37 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
         : undefined,
     });
   }, [selectedComponentId, selectedComponent, updateComponent]);
+
+  const handleValidationRulesChange = useCallback((rules: (ValidationRule & { id: string })[]) => {
+    if (!selectedComponentId || !selectedComponent) return;
+
+    const cleanRules = rules.map(({ id, ...rest }) => rest);
+
+    updateComponent(selectedComponentId, {
+      props: {
+        ...selectedComponent.props,
+        validationRules: cleanRules.length > 0 ? cleanRules : undefined,
+      },
+    });
+  }, [selectedComponentId, selectedComponent, updateComponent]);
+
+  const getValidationRules = (): (ValidationRule & { id: string })[] => {
+    if (!selectedComponent) return [];
+    const rules = selectedComponent.props?.validationRules;
+    if (!rules || !Array.isArray(rules)) return [];
+    return rules.map((rule: ValidationRule, index: number) => ({
+      ...rule,
+      id: `rule-${index}`,
+    }));
+  };
+
+  const isFormFieldComponent = (type: ComponentType): boolean => {
+    return [
+      ComponentType.Input,
+      ComponentType.Textarea,
+      ComponentType.Select,
+    ].includes(type);
+  };
 
   const handleDelete = () => {
     if (!selectedComponentId) return;
@@ -928,6 +1116,15 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
           <EventConfigEditor
             eventConfig={selectedComponent.events?.onClick}
             onChange={handleEventChange}
+          />
+        </PropertySection>
+      )}
+
+      {isFormFieldComponent(selectedComponent.type) && (
+        <PropertySection title="验证规则" isEmpty={false}>
+          <ValidationRulesEditor
+            rules={getValidationRules()}
+            onChange={handleValidationRulesChange}
           />
         </PropertySection>
       )}

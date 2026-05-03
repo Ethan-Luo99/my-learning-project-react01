@@ -1,4 +1,18 @@
 import { ComponentType } from '@/types/component';
+import type { ValidationRule, ValidationRuleType } from '@/utils/formValidation';
+
+export type ValidationRuleConfig = ValidationRule;
+
+export const VALIDATION_RULE_TYPES: { value: ValidationRuleType; label: string }[] = [
+  { value: 'required', label: '必填' },
+  { value: 'minLength', label: '最小长度' },
+  { value: 'maxLength', label: '最大长度' },
+  { value: 'min', label: '最小值' },
+  { value: 'max', label: '最大值' },
+  { value: 'pattern', label: '正则匹配' },
+  { value: 'email', label: '邮箱格式' },
+  { value: 'url', label: 'URL格式' },
+];
 
 export const SPACING_PROPERTY_KEYS = [
   'marginTop',
@@ -481,6 +495,28 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
         placeholder: '请输入错误消息',
         category: 'props',
       },
+      {
+        key: 'validateOnChange',
+        label: '实时验证',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'true',
+      },
+      {
+        key: 'validateOnBlur',
+        label: '失焦验证',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
       ...createCommonStyleProperties(),
     ],
   },
@@ -583,6 +619,28 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
         placeholder: '请输入错误消息',
         category: 'props',
       },
+      {
+        key: 'validateOnChange',
+        label: '实时验证',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'true',
+      },
+      {
+        key: 'validateOnBlur',
+        label: '失焦验证',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
       ...createCommonStyleProperties(),
     ],
   },
@@ -672,6 +730,28 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
         type: 'text',
         placeholder: '请输入错误消息',
         category: 'props',
+      },
+      {
+        key: 'validateOnChange',
+        label: '实时验证',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'true',
+      },
+      {
+        key: 'validateOnBlur',
+        label: '失焦验证',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
       },
       ...createCommonStyleProperties(),
     ],

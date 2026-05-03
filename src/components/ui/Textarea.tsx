@@ -1,5 +1,7 @@
 import * as React from 'react';
 import { cn } from '@/utils/classname';
+import type { ValidationRule } from '@/utils/formValidation';
+import { validateField } from '@/utils/formValidation';
 
 export interface TextareaProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -10,6 +12,10 @@ export interface TextareaProps
   error?: boolean;
   errorMessage?: string;
   showCount?: boolean;
+  validationRules?: ValidationRule[];
+  validateOnChange?: boolean;
+  validateOnBlur?: boolean;
+  onValidationChange?: (error: string | null) => void;
 }
 
 const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
@@ -20,21 +26,49 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
       maxLength,
       placeholder,
       resize = 'vertical',
-      error = false,
-      errorMessage,
+      error: propError = false,
+      errorMessage: propErrorMessage,
       showCount = true,
-      value,
+      value: propValue,
       defaultValue,
       onChange,
       disabled = false,
       readOnly = false,
+      validationRules = [],
+      validateOnChange = true,
+      validateOnBlur = false,
+      onValidationChange,
       ...props
     },
     ref
   ) => {
     const [isFocused, setIsFocused] = React.useState(false);
-    const [charCount, setCharCount] = React.useState(0);
+    const [internalValue, setInternalValue] = React.useState<string>(
+      propValue !== undefined ? String(propValue) : defaultValue !== undefined ? String(defaultValue) : ''
+    );
+    const [internalError, setInternalError] = React.useState<string | null>(null);
+    const [touched, setTouched] = React.useState(false);
     const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+
+    const currentValue = propValue !== undefined ? String(propValue) : internalValue;
+    const hasValidationRules = validationRules && validationRules.length > 0;
+
+    const validate = React.useCallback((val: any): string | null => {
+      if (!hasValidationRules) return null;
+      const result = validateField(val, validationRules);
+      return result.errors[0] || null;
+    }, [validationRules, hasValidationRules]);
+
+    const handleValidation = React.useCallback((val: any) => {
+      if (!hasValidationRules) return;
+      const error = validate(val);
+      setInternalError(error);
+      onValidationChange?.(error);
+    }, [validate, hasValidationRules, onValidationChange]);
+
+    const effectiveError = propError || (touched && internalError !== null);
+    const effectiveErrorMessage = propErrorMessage || internalError;
+    const charCount = currentValue.length;
 
     React.useImperativeHandle(ref, () => textareaRef.current!);
 
@@ -53,14 +87,6 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
       }
     };
 
-    React.useEffect(() => {
-      if (value !== undefined) {
-        setCharCount(String(value).length);
-      } else if (defaultValue !== undefined) {
-        setCharCount(String(defaultValue).length);
-      }
-    }, [value, defaultValue]);
-
     const handleFocus = (e: React.FocusEvent<HTMLTextAreaElement>) => {
       if (!disabled && !readOnly) {
         setIsFocused(true);
@@ -70,15 +96,24 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
 
     const handleBlur = (e: React.FocusEvent<HTMLTextAreaElement>) => {
       setIsFocused(false);
+      setTouched(true);
+      if (validateOnBlur) {
+        handleValidation(currentValue);
+      }
       props.onBlur?.(e);
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       const newValue = e.target.value;
-      if (maxLength && newValue.length > maxLength) {
-        return;
+      
+      if (propValue === undefined) {
+        setInternalValue(newValue);
       }
-      setCharCount(newValue.length);
+      
+      if (validateOnChange) {
+        handleValidation(newValue);
+      }
+      
       onChange?.(e);
     };
 
@@ -86,7 +121,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
       'w-full px-3 py-2.5 text-base text-gray-900 placeholder:text-gray-400 bg-white rounded-lg border outline-none transition-all duration-200',
       getResizeClass(resize),
       isFocused && 'ring-2 ring-primary-500 ring-offset-2 border-primary-500',
-      error
+      effectiveError
         ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
         : isFocused
         ? ''
@@ -108,8 +143,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
             placeholder={placeholder}
             disabled={disabled}
             readOnly={readOnly}
-            value={value}
-            defaultValue={defaultValue}
+            value={currentValue}
             onChange={handleChange}
             onFocus={handleFocus}
             onBlur={handleBlur}
@@ -127,8 +161,8 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
             </div>
           )}
         </div>
-        {error && errorMessage && (
-          <p className="mt-1.5 text-sm text-red-500">{errorMessage}</p>
+        {effectiveError && effectiveErrorMessage && (
+          <p className="mt-1.5 text-sm text-red-500">{effectiveErrorMessage}</p>
         )}
       </div>
     );

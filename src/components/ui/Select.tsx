@@ -1,5 +1,7 @@
 import * as React from 'react';
 import { cn } from '@/utils/classname';
+import type { ValidationRule } from '@/utils/formValidation';
+import { validateField } from '@/utils/formValidation';
 
 export interface SelectOption {
   value: string | number;
@@ -23,11 +25,15 @@ export interface SelectProps {
   style?: React.CSSProperties;
   error?: boolean;
   errorMessage?: string;
+  validationRules?: ValidationRule[];
+  validateOnChange?: boolean;
+  validateOnBlur?: boolean;
+  onValidationChange?: (error: string | null) => void;
 }
 
 const Select: React.FC<SelectProps> = ({
   options = [],
-  value,
+  value: propValue,
   defaultValue,
   placeholder = '请选择',
   disabled = false,
@@ -39,36 +45,65 @@ const Select: React.FC<SelectProps> = ({
   onSearch,
   className,
   style,
-  error = false,
-  errorMessage,
+  error: propError = false,
+  errorMessage: propErrorMessage,
+  validationRules = [],
+  validateOnChange = true,
+  validateOnBlur = false,
+  onValidationChange,
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [searchValue, setSearchValue] = React.useState('');
   const [internalValue, setInternalValue] = React.useState<string | number | (string | number)[] | null>(
-    value ?? defaultValue ?? null
+    propValue ?? defaultValue ?? null
   );
+  const [internalError, setInternalError] = React.useState<string | null>(null);
+  const [touched, setTouched] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
 
-  const currentValue = value !== undefined ? value : internalValue;
+  const currentValue = propValue !== undefined ? propValue : internalValue;
+  const hasValidationRules = validationRules && validationRules.length > 0;
+
+  const validate = React.useCallback((val: any): string | null => {
+    if (!hasValidationRules) return null;
+    const result = validateField(val, validationRules);
+    return result.errors[0] || null;
+  }, [validationRules, hasValidationRules]);
+
+  const handleValidation = React.useCallback((val: any) => {
+    if (!hasValidationRules) return;
+    const error = validate(val);
+    setInternalError(error);
+    onValidationChange?.(error);
+  }, [validate, hasValidationRules, onValidationChange]);
+
+  const effectiveError = propError || (touched && internalError !== null);
+  const effectiveErrorMessage = propErrorMessage || internalError;
 
   React.useEffect(() => {
-    if (value !== undefined) {
-      setInternalValue(value);
+    if (propValue !== undefined) {
+      setInternalValue(propValue);
     }
-  }, [value]);
+  }, [propValue]);
 
   React.useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-        setSearchValue('');
+        if (isOpen) {
+          setIsOpen(false);
+          setSearchValue('');
+          setTouched(true);
+          if (validateOnBlur) {
+            handleValidation(currentValue);
+          }
+        }
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [isOpen, currentValue, validateOnBlur, handleValidation]);
 
   React.useEffect(() => {
     if (isOpen && searchable && searchInputRef.current) {
@@ -138,9 +173,17 @@ const Select: React.FC<SelectProps> = ({
         .filter((o): o is SelectOption => o !== undefined);
 
       setInternalValue(newValues);
+      setTouched(true);
+      if (validateOnChange) {
+        handleValidation(newValues);
+      }
       onChange?.(newValues, newOptions);
     } else {
       setInternalValue(option.value);
+      setTouched(true);
+      if (validateOnChange) {
+        handleValidation(option.value);
+      }
       onChange?.(option.value, option);
       setIsOpen(false);
       setSearchValue('');
@@ -149,9 +192,14 @@ const Select: React.FC<SelectProps> = ({
 
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setInternalValue(multiple ? [] : null);
+    const newValue = multiple ? [] : null;
+    setInternalValue(newValue);
     setSearchValue('');
-    onChange?.(multiple ? [] : null, null);
+    setTouched(true);
+    if (validateOnChange) {
+      handleValidation(newValue);
+    }
+    onChange?.(newValue, null);
     onClear?.();
   };
 
@@ -165,6 +213,10 @@ const Select: React.FC<SelectProps> = ({
       .filter((o): o is SelectOption => o !== undefined);
 
     setInternalValue(newValues);
+    setTouched(true);
+    if (validateOnChange) {
+      handleValidation(newValues);
+    }
     onChange?.(newValues, newOptions);
   };
 
@@ -191,7 +243,7 @@ const Select: React.FC<SelectProps> = ({
   const triggerClass = cn(
     'flex items-center w-full min-h-[44px] rounded-lg border bg-white transition-all duration-200 cursor-pointer',
     isOpen && 'ring-2 ring-primary-500 ring-offset-2 border-primary-500',
-    error
+    effectiveError
       ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
       : isOpen
       ? ''
@@ -357,8 +409,8 @@ const Select: React.FC<SelectProps> = ({
           </div>
         )}
       </div>
-      {error && errorMessage && (
-        <p className="mt-1.5 text-sm text-red-500">{errorMessage}</p>
+      {effectiveError && effectiveErrorMessage && (
+        <p className="mt-1.5 text-sm text-red-500">{effectiveErrorMessage}</p>
       )}
     </div>
   );
