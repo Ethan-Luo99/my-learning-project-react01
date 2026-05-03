@@ -36,6 +36,10 @@ const isContainerComponent = (
   return (
     component.type === ComponentType.Container ||
     component.type === ComponentType.Card ||
+    component.type === ComponentType.Tabs ||
+    component.type === ComponentType.TabPane ||
+    component.type === ComponentType.Accordion ||
+    component.type === ComponentType.AccordionItem ||
     component.type === ComponentType.Form ||
     component.type === ComponentType.FormItem
   );

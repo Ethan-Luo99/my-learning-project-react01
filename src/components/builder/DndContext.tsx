@@ -59,6 +59,10 @@ const isContainerComponent = (
   return (
     component.type === ComponentType.Container ||
     component.type === ComponentType.Card ||
+    component.type === ComponentType.Tabs ||
+    component.type === ComponentType.TabPane ||
+    component.type === ComponentType.Accordion ||
+    component.type === ComponentType.AccordionItem ||
     component.type === ComponentType.Form ||
     component.type === ComponentType.FormItem
   );
@@ -83,6 +87,10 @@ const createComponentFromType = (type: string, x: number = DEFAULT_POSITION.X, y
   if (
     componentType === ComponentType.Container ||
     componentType === ComponentType.Card ||
+    componentType === ComponentType.Tabs ||
+    componentType === ComponentType.TabPane ||
+    componentType === ComponentType.Accordion ||
+    componentType === ComponentType.AccordionItem ||
     componentType === ComponentType.Form ||
     componentType === ComponentType.FormItem
   ) {
@@ -112,6 +120,10 @@ const DragPreview: React.FC<{ item: ActiveDragItem }> = ({ item }) => {
       Container: '📦',
       Card: '🃏',
       Divider: '━',
+      Tabs: '📑',
+      TabPane: '📄',
+      Accordion: '🗂️',
+      AccordionItem: '📁',
     };
     return item.type ? icons[item.type] || '?' : '?';
   };

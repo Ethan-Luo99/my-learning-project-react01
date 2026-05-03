@@ -9,7 +9,7 @@
  * - 组件 Schema 定义
  */
 
-import type { ButtonProps, TextProps, ImageProps, ContainerProps, InputProps, TextareaProps, SelectProps, CheckboxProps, CheckboxGroupProps, RadioProps, RadioGroupProps, SwitchProps, FormProps, FormItemProps, CardProps, DividerProps } from '@/components/ui';
+import type { ButtonProps, TextProps, ImageProps, ContainerProps, InputProps, TextareaProps, SelectProps, CheckboxProps, CheckboxGroupProps, RadioProps, RadioGroupProps, SwitchProps, FormProps, FormItemProps, CardProps, DividerProps, TabsProps, TabPaneProps, AccordionProps, AccordionItemProps } from '@/components/ui';
 import type { ValidationRule, ValidationResult } from '@/utils/formValidation';
 
 export enum ValidationTrigger {
@@ -81,6 +81,10 @@ export enum ComponentType {
   Container = 'Container',
   Card = 'Card',
   Divider = 'Divider',
+  Tabs = 'Tabs',
+  TabPane = 'TabPane',
+  Accordion = 'Accordion',
+  AccordionItem = 'AccordionItem',
   Input = 'Input',
   Textarea = 'Textarea',
   Select = 'Select',
@@ -215,6 +219,30 @@ export interface DividerComponentSchema extends ComponentBaseSchema {
   props: Partial<DividerProps>;
 }
 
+export interface TabsComponentSchema extends ComponentBaseSchema {
+  type: ComponentType.Tabs;
+  props: Partial<TabsProps>;
+  children?: ComponentSchema[];
+}
+
+export interface TabPaneComponentSchema extends ComponentBaseSchema {
+  type: ComponentType.TabPane;
+  props: Partial<TabPaneProps>;
+  children?: ComponentSchema[];
+}
+
+export interface AccordionComponentSchema extends ComponentBaseSchema {
+  type: ComponentType.Accordion;
+  props: Partial<AccordionProps>;
+  children?: ComponentSchema[];
+}
+
+export interface AccordionItemComponentSchema extends ComponentBaseSchema {
+  type: ComponentType.AccordionItem;
+  props: Partial<AccordionItemProps>;
+  children?: ComponentSchema[];
+}
+
 export interface InputComponentSchema extends ComponentBaseSchema {
   type: ComponentType.Input;
   props: Partial<InputProps>;
@@ -274,6 +302,10 @@ export type ComponentSchema =
   | ContainerComponentSchema
   | CardComponentSchema
   | DividerComponentSchema
+  | TabsComponentSchema
+  | TabPaneComponentSchema
+  | AccordionComponentSchema
+  | AccordionItemComponentSchema
   | InputComponentSchema
   | TextareaComponentSchema
   | SelectComponentSchema

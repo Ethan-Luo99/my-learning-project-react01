@@ -90,6 +90,61 @@ export const DEFAULT_COMPONENT_CONFIGS: Record<ComponentType, ComponentConfig> =
     },
     defaultStyles: {},
   },
+  [ComponentType.Tabs]: {
+    type: ComponentType.Tabs,
+    label: '标签页',
+    defaultWidth: 500,
+    defaultHeight: 'auto',
+    defaultProps: {
+      tabPosition: 'top',
+      type: 'line',
+      animated: true,
+      addable: false,
+    },
+    defaultStyles: {
+      minHeight: '200px',
+    },
+  },
+  [ComponentType.TabPane]: {
+    type: ComponentType.TabPane,
+    label: '标签面板',
+    defaultWidth: '100%',
+    defaultHeight: 'auto',
+    defaultProps: {
+      tabKey: 'pane1',
+      title: '标签一',
+      disabled: false,
+      closable: false,
+    },
+    defaultStyles: {},
+  },
+  [ComponentType.Accordion]: {
+    type: ComponentType.Accordion,
+    label: '折叠面板',
+    defaultWidth: 500,
+    defaultHeight: 'auto',
+    defaultProps: {
+      multiple: false,
+      bordered: true,
+      ghost: false,
+    },
+    defaultStyles: {
+      minHeight: '100px',
+    },
+  },
+  [ComponentType.AccordionItem]: {
+    type: ComponentType.AccordionItem,
+    label: '折叠项',
+    defaultWidth: '100%',
+    defaultHeight: 'auto',
+    defaultProps: {
+      itemKey: 'item1',
+      title: '面板一',
+      disabled: false,
+      defaultExpanded: false,
+    },
+    defaultStyles: {},
+  },
   [ComponentType.Input]: {
     type: ComponentType.Input,
     label: '输入框',
@@ -277,6 +332,16 @@ export const COMPONENT_PANEL_ITEMS: ComponentPanelItem[] = [
   {
     type: ComponentType.Divider,
     label: '分割线',
+    category: 'layout',
+  },
+  {
+    type: ComponentType.Tabs,
+    label: '标签页',
+    category: 'layout',
+  },
+  {
+    type: ComponentType.Accordion,
+    label: '折叠面板',
     category: 'layout',
   },
   {

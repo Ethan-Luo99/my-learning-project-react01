@@ -530,6 +530,206 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
     ],
   },
 
+  [ComponentType.Tabs]: {
+    type: ComponentType.Tabs,
+    label: '标签页',
+    properties: [
+      ...createCommonBasicProperties(),
+      {
+        key: 'tabPosition',
+        label: '标签位置',
+        type: 'select',
+        options: [
+          { value: 'top', label: '顶部' },
+          { value: 'left', label: '左侧' },
+        ],
+        category: 'props',
+        defaultValue: 'top',
+      },
+      {
+        key: 'type',
+        label: '标签类型',
+        type: 'select',
+        options: [
+          { value: 'line', label: '线条' },
+          { value: 'card', label: '卡片' },
+          { value: 'button', label: '按钮' },
+        ],
+        category: 'props',
+        defaultValue: 'line',
+      },
+      {
+        key: 'animated',
+        label: '切换动画',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'true',
+      },
+      {
+        key: 'addable',
+        label: '可新增标签',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
+      {
+        key: 'activeKey',
+        label: '当前激活标签',
+        type: 'text',
+        placeholder: '标签 Key',
+        category: 'props',
+      },
+      ...createCommonStyleProperties(),
+    ],
+  },
+
+  [ComponentType.TabPane]: {
+    type: ComponentType.TabPane,
+    label: '标签面板',
+    properties: [
+      ...createCommonBasicProperties(),
+      {
+        key: 'tabKey',
+        label: '标签 Key',
+        type: 'text',
+        placeholder: '请输入标签 Key',
+        category: 'props',
+      },
+      {
+        key: 'title',
+        label: '标签标题',
+        type: 'text',
+        placeholder: '请输入标签标题',
+        category: 'props',
+      },
+      {
+        key: 'disabled',
+        label: '禁用',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
+      {
+        key: 'closable',
+        label: '可关闭',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
+      ...createCommonStyleProperties(),
+    ],
+  },
+
+  [ComponentType.Accordion]: {
+    type: ComponentType.Accordion,
+    label: '折叠面板',
+    properties: [
+      ...createCommonBasicProperties(),
+      {
+        key: 'multiple',
+        label: '允许多个展开',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
+      {
+        key: 'bordered',
+        label: '显示边框',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'true',
+      },
+      {
+        key: 'ghost',
+        label: '无边框背景',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
+      {
+        key: 'activeKey',
+        label: '当前展开项',
+        type: 'text',
+        placeholder: '面板 Key',
+        category: 'props',
+      },
+      ...createCommonStyleProperties(),
+    ],
+  },
+
+  [ComponentType.AccordionItem]: {
+    type: ComponentType.AccordionItem,
+    label: '折叠项',
+    properties: [
+      ...createCommonBasicProperties(),
+      {
+        key: 'itemKey',
+        label: '面板 Key',
+        type: 'text',
+        placeholder: '请输入面板 Key',
+        category: 'props',
+      },
+      {
+        key: 'title',
+        label: '面板标题',
+        type: 'text',
+        placeholder: '请输入面板标题',
+        category: 'props',
+      },
+      {
+        key: 'disabled',
+        label: '禁用',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
+      {
+        key: 'defaultExpanded',
+        label: '默认展开',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
+      ...createCommonStyleProperties(),
+    ],
+  },
+
   [ComponentType.Input]: {
     type: ComponentType.Input,
     label: '输入框',

@@ -4,6 +4,8 @@ export { Image, type ImageProps } from './Image';
 export { Container, type ContainerProps } from './Container';
 export { Card, type CardProps } from './Card';
 export { Divider, type DividerProps } from './Divider';
+export { Tabs, TabPane, type TabsProps, type TabPaneProps } from './Tabs';
+export { Accordion, AccordionItem, type AccordionProps, type AccordionItemProps } from './Accordion';
 export { Input, type InputProps } from './Input';
 export { Textarea, type TextareaProps } from './Textarea';
 export { Select, type SelectProps, type SelectOption } from './Select';

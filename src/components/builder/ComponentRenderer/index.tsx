@@ -9,7 +9,7 @@
  * - 表单组件（Input/Select/Checkbox 等）支持值变更触发绑定
  */
 
-import { Text, Button, Image, Container, Card, Divider, Input, Textarea, Select, Checkbox, CheckboxGroup, Radio, RadioGroup, Switch, Form, FormItem } from '@/components/ui';
+import { Text, Button, Image, Container, Card, Divider, Tabs, TabPane, Accordion, AccordionItem, Input, Textarea, Select, Checkbox, CheckboxGroup, Radio, RadioGroup, Switch, Form, FormItem } from '@/components/ui';
 import { 
   ComponentType, 
   type ComponentSchema, 
@@ -49,6 +49,10 @@ const isContainerComponent = (
   return (
     component.type === ComponentType.Container ||
     component.type === ComponentType.Card ||
+    component.type === ComponentType.Tabs ||
+    component.type === ComponentType.TabPane ||
+    component.type === ComponentType.Accordion ||
+    component.type === ComponentType.AccordionItem ||
     component.type === ComponentType.Form ||
     component.type === ComponentType.FormItem
   );
@@ -574,6 +578,254 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
           >
             {children}
           </Divider>
+        </div>
+      );
+    }
+
+    case ComponentType.Tabs: {
+      const { className: tabsClassName, ...restTabsProps } = props;
+      const isEmptyTabs = !isContainerComponent(component) || 
+        !component.children || 
+        component.children.length === 0;
+      
+      const tabsChildren = isContainerComponent(component) ? component.children : [];
+      
+      const handleChildClick = (childId: string) => {
+        if (editable && onClick) {
+          onClick();
+        }
+      };
+      
+      const tabPosition = (props.tabPosition as 'top' | 'left') || 'top';
+      const type = (props.type as 'line' | 'card' | 'button') || 'line';
+      const animated = props.animated !== false && props.animated !== 'false';
+      const addable = props.addable === true || props.addable === 'true';
+      const activeKey = props.activeKey as string | undefined;
+      
+      const tabPanes = tabsChildren.filter((child) => child.type === ComponentType.TabPane);
+      
+      const renderTabPanes = () => {
+        return tabPanes.map((pane) => {
+          const paneKey = (pane.props.tabKey as string) || pane.id;
+          const isActive = !activeKey ? pane === tabPanes[0] : paneKey === activeKey;
+          
+          if (!isActive && editable) {
+            return null;
+          }
+          
+          const paneTitle = (pane.props.title as string) || '标签';
+          const paneDisabled = pane.props.disabled === true || pane.props.disabled === 'true';
+          const paneClosable = pane.props.closable === true || pane.props.closable === 'true';
+          
+          const paneChildren = isContainerComponent(pane) ? pane.children : [];
+          const isEmptyPane = !paneChildren || paneChildren.length === 0;
+          
+          return (
+            <TabPane
+              key={pane.id}
+              tabKey={paneKey}
+              title={paneTitle}
+              disabled={paneDisabled}
+              closable={paneClosable}
+            >
+              <ContainerDropZone
+                containerId={pane.id}
+                isEmpty={isEmptyPane}
+                editable={editable}
+                childComponents={paneChildren}
+                selectedComponentId={isSelected ? null : undefined}
+                onComponentClick={handleChildClick}
+                direction="column"
+              />
+            </TabPane>
+          );
+        });
+      };
+      
+      return (
+        <div
+          className={wrapperClassName}
+          onClick={handleClick}
+        >
+          <Tabs
+            tabPosition={tabPosition}
+            type={type}
+            animated={animated}
+            addable={addable}
+            activeKey={activeKey}
+            style={styles}
+            className={tabsClassName}
+            {...restTabsProps}
+          >
+            {renderTabPanes()}
+          </Tabs>
+        </div>
+      );
+    }
+
+    case ComponentType.TabPane: {
+      const { className: paneClassName, ...restPaneProps } = props;
+      const isEmptyPane = !isContainerComponent(component) || 
+        !component.children || 
+        component.children.length === 0;
+      
+      const paneChildren = isContainerComponent(component) ? component.children : [];
+      
+      const handleChildClick = (childId: string) => {
+        if (editable && onClick) {
+          onClick();
+        }
+      };
+      
+      const tabKey = (props.tabKey as string) || component.id;
+      const title = (props.title as string) || '标签';
+      const disabled = props.disabled === true || props.disabled === 'true';
+      const closable = props.closable === true || props.closable === 'true';
+      
+      return (
+        <div
+          className={wrapperClassName}
+          onClick={handleClick}
+        >
+          <TabPane
+            tabKey={tabKey}
+            title={title}
+            disabled={disabled}
+            closable={closable}
+            style={styles}
+            className={paneClassName}
+            {...restPaneProps}
+          >
+            <ContainerDropZone
+              containerId={component.id}
+              isEmpty={isEmptyPane}
+              editable={editable}
+              childComponents={paneChildren}
+              selectedComponentId={isSelected ? null : undefined}
+              onComponentClick={handleChildClick}
+              direction="column"
+            />
+          </TabPane>
+        </div>
+      );
+    }
+
+    case ComponentType.Accordion: {
+      const { className: accordionClassName, ...restAccordionProps } = props;
+      const isEmptyAccordion = !isContainerComponent(component) || 
+        !component.children || 
+        component.children.length === 0;
+      
+      const accordionChildren = isContainerComponent(component) ? component.children : [];
+      
+      const handleChildClick = (childId: string) => {
+        if (editable && onClick) {
+          onClick();
+        }
+      };
+      
+      const multiple = props.multiple === true || props.multiple === 'true';
+      const bordered = props.bordered !== false && props.bordered !== 'false';
+      const ghost = props.ghost === true || props.ghost === 'true';
+      const activeKey = props.activeKey as string | string[] | undefined;
+      
+      const accordionItems = accordionChildren.filter((child) => child.type === ComponentType.AccordionItem);
+      
+      const renderAccordionItems = () => {
+        return accordionItems.map((item) => {
+          const itemKey = (item.props.itemKey as string) || item.id;
+          const itemTitle = (item.props.title as string) || '面板';
+          const itemDisabled = item.props.disabled === true || item.props.disabled === 'true';
+          const itemDefaultExpanded = item.props.defaultExpanded === true || item.props.defaultExpanded === 'true';
+          
+          const itemChildren = isContainerComponent(item) ? item.children : [];
+          const isEmptyItem = !itemChildren || itemChildren.length === 0;
+          
+          return (
+            <AccordionItem
+              key={item.id}
+              itemKey={itemKey}
+              title={itemTitle}
+              disabled={itemDisabled}
+              defaultExpanded={itemDefaultExpanded}
+            >
+              <ContainerDropZone
+                containerId={item.id}
+                isEmpty={isEmptyItem}
+                editable={editable}
+                childComponents={itemChildren}
+                selectedComponentId={isSelected ? null : undefined}
+                onComponentClick={handleChildClick}
+                direction="column"
+              />
+            </AccordionItem>
+          );
+        });
+      };
+      
+      return (
+        <div
+          className={wrapperClassName}
+          onClick={handleClick}
+        >
+          <Accordion
+            multiple={multiple}
+            bordered={bordered}
+            ghost={ghost}
+            activeKey={activeKey}
+            style={styles}
+            className={accordionClassName}
+            {...restAccordionProps}
+          >
+            {renderAccordionItems()}
+          </Accordion>
+        </div>
+      );
+    }
+
+    case ComponentType.AccordionItem: {
+      const { className: itemClassName, ...restItemProps } = props;
+      const isEmptyItem = !isContainerComponent(component) || 
+        !component.children || 
+        component.children.length === 0;
+      
+      const itemChildren = isContainerComponent(component) ? component.children : [];
+      
+      const handleChildClick = (childId: string) => {
+        if (editable && onClick) {
+          onClick();
+        }
+      };
+      
+      const itemKey = (props.itemKey as string) || component.id;
+      const title = (props.title as string) || '面板';
+      const disabled = props.disabled === true || props.disabled === 'true';
+      const defaultExpanded = props.defaultExpanded === true || props.defaultExpanded === 'true';
+      
+      return (
+        <div
+          className={wrapperClassName}
+          onClick={handleClick}
+        >
+          <AccordionItem
+            itemKey={itemKey}
+            title={title}
+            disabled={disabled}
+            defaultExpanded={defaultExpanded}
+            style={styles}
+            className={itemClassName}
+            {...restItemProps}
+          >
+            <ContainerDropZone
+              containerId={component.id}
+              isEmpty={isEmptyItem}
+              editable={editable}
+              childComponents={itemChildren}
+              selectedComponentId={isSelected ? null : undefined}
+              onComponentClick={handleChildClick}
+              direction="column"
+            />
+          </AccordionItem>
         </div>
       );
     }
