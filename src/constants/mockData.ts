@@ -186,6 +186,36 @@ export const DEFAULT_COMPONENT_CONFIGS: Record<ComponentType, ComponentConfig> =
     },
     defaultStyles: {},
   },
+  [ComponentType.Form]: {
+    type: ComponentType.Form,
+    label: '表单',
+    defaultWidth: 500,
+    defaultHeight: 'auto',
+    defaultProps: {
+      layout: 'vertical',
+      labelWidth: 100,
+      labelAlign: 'right',
+      size: 'md',
+      disabled: false,
+    },
+    defaultStyles: {
+      padding: '16px',
+    },
+  },
+  [ComponentType.FormItem]: {
+    type: ComponentType.FormItem,
+    label: '表单项',
+    defaultWidth: 'auto',
+    defaultHeight: 'auto',
+    defaultProps: {
+      label: '标签',
+      required: false,
+      error: false,
+      help: '',
+      name: '',
+    },
+    defaultStyles: {},
+  },
 };
 
 export const COMPONENT_PANEL_ITEMS: ComponentPanelItem[] = [
@@ -247,6 +277,16 @@ export const COMPONENT_PANEL_ITEMS: ComponentPanelItem[] = [
   {
     type: ComponentType.Switch,
     label: '开关',
+    category: 'form',
+  },
+  {
+    type: ComponentType.Form,
+    label: '表单',
+    category: 'form',
+  },
+  {
+    type: ComponentType.FormItem,
+    label: '表单项',
     category: 'form',
   },
 ];

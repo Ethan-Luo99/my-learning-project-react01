@@ -1,4 +1,4 @@
-import { Text, Button, Image, Container, Input, Textarea, Select, Checkbox, CheckboxGroup, Radio, RadioGroup, Switch } from '@/components/ui';
+import { Text, Button, Image, Container, Input, Textarea, Select, Checkbox, CheckboxGroup, Radio, RadioGroup, Switch, Form, FormItem } from '@/components/ui';
 import { 
   ComponentType, 
   type ComponentSchema, 
@@ -23,7 +23,11 @@ interface ComponentRendererProps {
 const isContainerComponent = (
   component: ComponentSchema
 ): component is ContainerComponentSchema => {
-  return component.type === ComponentType.Container;
+  return (
+    component.type === ComponentType.Container ||
+    component.type === ComponentType.Form ||
+    component.type === ComponentType.FormItem
+  );
 };
 
 const getTextContent = (component: ComponentSchema): React.ReactNode => {
@@ -584,6 +588,101 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
             uncheckedText={props.uncheckedText}
             {...restSwitchProps}
           />
+        </div>
+      );
+    }
+
+    case ComponentType.Form: {
+      const { className: formClassName, ...restFormProps } = props;
+      const isEmptyContainer = !isContainerComponent(component) || 
+        !component.children || 
+        component.children.length === 0;
+      
+      const containerChildren = isContainerComponent(component) ? component.children : [];
+      
+      const handleChildClick = (childId: string) => {
+        if (editable && onClick) {
+          onClick();
+        }
+      };
+      
+      const layout = (props.layout as 'horizontal' | 'vertical' | 'inline') || 'vertical';
+      const direction = layout === 'horizontal' ? 'row' : 'column';
+      
+      return (
+        <div
+          className={wrapperClassName}
+          onClick={handleClick}
+        >
+          <Form
+            layout={layout}
+            labelWidth={props.labelWidth || 100}
+            labelAlign={props.labelAlign || 'right'}
+            size={props.size || 'md'}
+            disabled={props.disabled || editable}
+            style={styles}
+            className={formClassName}
+            {...restFormProps}
+          >
+            <ContainerDropZone
+              containerId={component.id}
+              isEmpty={isEmptyContainer}
+              editable={editable}
+              childComponents={containerChildren}
+              selectedComponentId={isSelected ? null : undefined}
+              onComponentClick={handleChildClick}
+              direction={direction}
+            />
+          </Form>
+        </div>
+      );
+    }
+
+    case ComponentType.FormItem: {
+      const { className: formItemClassName, ...restFormItemProps } = props;
+      const isEmptyContainer = !isContainerComponent(component) || 
+        !component.children || 
+        component.children.length === 0;
+      
+      const containerChildren = isContainerComponent(component) ? component.children : [];
+      
+      const handleChildClick = (childId: string) => {
+        if (editable && onClick) {
+          onClick();
+        }
+      };
+      
+      const isRequired = props.required === true || props.required === 'true';
+      const isError = props.error === true || props.error === 'true';
+      
+      return (
+        <div
+          className={wrapperClassName}
+          onClick={handleClick}
+        >
+          <FormItem
+            label={props.label}
+            required={isRequired}
+            error={isError}
+            errorMessage={props.errorMessage}
+            help={props.help}
+            name={props.name}
+            labelWidth={props.labelWidth}
+            labelAlign={props.labelAlign}
+            style={styles}
+            className={cn(editable && 'pointer-events-none', formItemClassName)}
+            {...restFormItemProps}
+          >
+            <ContainerDropZone
+              containerId={component.id}
+              isEmpty={isEmptyContainer}
+              editable={editable}
+              childComponents={containerChildren}
+              selectedComponentId={isSelected ? null : undefined}
+              onComponentClick={handleChildClick}
+              direction="column"
+            />
+          </FormItem>
         </div>
       );
     }

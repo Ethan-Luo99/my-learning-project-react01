@@ -56,7 +56,11 @@ export const useCanvasContext = (): CanvasContextValue => {
 const isContainerComponent = (
   component: ComponentSchema
 ): component is ContainerComponentSchema => {
-  return component.type === ComponentType.Container;
+  return (
+    component.type === ComponentType.Container ||
+    component.type === ComponentType.Form ||
+    component.type === ComponentType.FormItem
+  );
 };
 
 const createComponentFromType = (type: string, x: number = DEFAULT_POSITION.X, y: number = DEFAULT_POSITION.Y): ComponentSchema => {
@@ -75,7 +79,11 @@ const createComponentFromType = (type: string, x: number = DEFAULT_POSITION.X, y
     height: config.defaultHeight,
   };
 
-  if (componentType === ComponentType.Container) {
+  if (
+    componentType === ComponentType.Container ||
+    componentType === ComponentType.Form ||
+    componentType === ComponentType.FormItem
+  ) {
     (component as ContainerComponentSchema).children = [];
   }
 

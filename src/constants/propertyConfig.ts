@@ -919,6 +919,147 @@ export const COMPONENT_PROPERTY_CONFIGS: Record<ComponentType, ComponentProperty
       ...createCommonStyleProperties(),
     ],
   },
+
+  [ComponentType.Form]: {
+    type: ComponentType.Form,
+    label: '表单',
+    properties: [
+      ...createCommonBasicProperties(),
+      {
+        key: 'layout',
+        label: '布局方式',
+        type: 'select',
+        options: [
+          { value: 'horizontal', label: '水平' },
+          { value: 'vertical', label: '垂直' },
+          { value: 'inline', label: '内联' },
+        ],
+        category: 'props',
+        defaultValue: 'vertical',
+      },
+      {
+        key: 'labelWidth',
+        label: '标签宽度',
+        type: 'number',
+        placeholder: '100',
+        category: 'props',
+        defaultValue: 100,
+      },
+      {
+        key: 'labelAlign',
+        label: '标签对齐',
+        type: 'select',
+        options: [
+          { value: 'left', label: '左对齐' },
+          { value: 'right', label: '右对齐' },
+          { value: 'top', label: '顶部' },
+        ],
+        category: 'props',
+        defaultValue: 'right',
+      },
+      {
+        key: 'size',
+        label: '组件尺寸',
+        type: 'select',
+        options: [
+          { value: 'sm', label: '小' },
+          { value: 'md', label: '中' },
+          { value: 'lg', label: '大' },
+        ],
+        category: 'props',
+        defaultValue: 'md',
+      },
+      {
+        key: 'disabled',
+        label: '禁用',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
+      ...createCommonStyleProperties(),
+    ],
+  },
+
+  [ComponentType.FormItem]: {
+    type: ComponentType.FormItem,
+    label: '表单项',
+    properties: [
+      ...createCommonBasicProperties(),
+      {
+        key: 'label',
+        label: '标签文本',
+        type: 'text',
+        placeholder: '请输入标签文本',
+        category: 'props',
+      },
+      {
+        key: 'required',
+        label: '必填标记',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
+      {
+        key: 'error',
+        label: '错误状态',
+        type: 'select',
+        options: [
+          { value: 'true', label: '是' },
+          { value: 'false', label: '否' },
+        ],
+        category: 'props',
+        defaultValue: 'false',
+      },
+      {
+        key: 'errorMessage',
+        label: '错误信息',
+        type: 'text',
+        placeholder: '请输入错误信息',
+        category: 'props',
+      },
+      {
+        key: 'help',
+        label: '帮助说明',
+        type: 'text',
+        placeholder: '请输入帮助说明',
+        category: 'props',
+      },
+      {
+        key: 'name',
+        label: '字段名',
+        type: 'text',
+        placeholder: '请输入字段名',
+        category: 'props',
+      },
+      {
+        key: 'labelWidth',
+        label: '标签宽度',
+        type: 'number',
+        placeholder: '继承自表单',
+        category: 'props',
+      },
+      {
+        key: 'labelAlign',
+        label: '标签对齐',
+        type: 'select',
+        options: [
+          { value: 'left', label: '左对齐' },
+          { value: 'right', label: '右对齐' },
+          { value: 'top', label: '顶部' },
+        ],
+        category: 'props',
+      },
+      ...createCommonStyleProperties(),
+    ],
+  },
 };
 
 export const getComponentPropertyConfig = (type: ComponentType): ComponentPropertyConfig => {
