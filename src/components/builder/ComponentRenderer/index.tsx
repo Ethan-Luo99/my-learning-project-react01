@@ -123,10 +123,14 @@ const useActionExecutor = () => {
   const submitForm = usePreviewFormSubmit();
   const resetForm = usePreviewFormReset();
 
-  const actionContext: ActionExecutionContext = React.useMemo(() => ({
-    submitForm,
-    resetForm,
-  }), [submitForm, resetForm]);
+  const actionContext: ActionExecutionContext = React.useMemo(() => {
+    const globalContext = (window as any).__previewActionContext as ActionExecutionContext | undefined;
+    return {
+      submitForm,
+      resetForm,
+      navigateToPage: globalContext?.navigateToPage,
+    };
+  }, [submitForm, resetForm]);
 
   const executeAction = React.useCallback((action: ActionConfig): void => {
     executeActionFromEngine(action, actionContext);

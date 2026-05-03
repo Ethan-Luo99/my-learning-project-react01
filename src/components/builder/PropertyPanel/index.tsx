@@ -462,6 +462,9 @@ const ActionEditor: React.FC<ActionEditorProps> = ({
   isFirst,
   isLast,
 }) => {
+  const pages = useBuilderStore((state) => state.pages);
+  const currentPageId = useBuilderStore((state) => state.currentPageId);
+
   const actionTypeOptions = [
     { value: ActionType.ShowAlert, label: '弹窗提示 (SHOW_ALERT)' },
     { value: ActionType.NavigateUrl, label: '跳转链接 (NAVIGATE_URL)' },
@@ -471,6 +474,8 @@ const ActionEditor: React.FC<ActionEditorProps> = ({
     { value: ActionType.FormSubmit, label: '表单提交 (FORM_SUBMIT)' },
     { value: ActionType.FormReset, label: '表单重置 (FORM_RESET)' },
   ];
+
+  const availablePages = pages.filter((page) => page.id !== currentPageId);
 
   const handleActionTypeChange = (type: ActionType) => {
     onUpdate(action.id, { type });
@@ -538,17 +543,28 @@ const ActionEditor: React.FC<ActionEditorProps> = ({
         return (
           <div className="mb-3">
             <label className="block text-xs font-medium text-gray-600 mb-1">
-              目标页面 ID
+              目标页面
             </label>
-            <input
-              type="text"
-              value={action.params.pageId ?? ''}
-              onChange={(e) => handleParamChange('pageId', e.target.value)}
-              placeholder="例如：homePage"
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 bg-white"
-            />
+            {availablePages.length > 0 ? (
+              <select
+                value={action.params.pageId ?? ''}
+                onChange={(e) => handleParamChange('pageId', e.target.value)}
+                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 bg-white"
+              >
+                <option value="">请选择目标页面</option>
+                {availablePages.map((page) => (
+                  <option key={page.id} value={page.id}>
+                    {page.name} ({page.id})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="px-2 py-1.5 text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded">
+                当前项目只有一个页面，无法跳转。请先添加更多页面。
+              </div>
+            )}
             <p className="mt-1 text-xs text-gray-500">
-              项目内页面跳转（预留功能）
+              选择要跳转到的目标页面
             </p>
           </div>
         );

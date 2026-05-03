@@ -1,13 +1,14 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PreviewRenderer } from '@/components/builder/ComponentRenderer';
-import { Button } from '@/components/ui';
+import { Button, Text } from '@/components/ui';
 import { useBuilderStore } from '@/store/useBuilderStore';
 import { DEFAULT_POSITION } from '@/constants/dnd';
-import type { ComponentSchema } from '@/types/component';
+import type { ComponentSchema, Page } from '@/types/component';
 import { cn } from '@/utils/classname';
 import { PreviewFormRegistryProvider } from '@/context/PreviewFormRegistry';
 import { PreviewBindingProvider } from '@/context/PreviewBindingContext';
+import { createEventEngine, type ActionExecutionContext } from '@/utils/eventEngine';
 
 const getSizeValue = (value?: number | string): string | number | undefined => {
   if (value === undefined || value === null) return undefined;
@@ -72,6 +73,23 @@ const PreviewIcon = () => (
   </svg>
 );
 
+const HomeIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    <polyline points="9 22 9 12 15 12 15 22" />
+  </svg>
+);
+
 interface EmptyStateProps {
   message?: string;
 }
@@ -86,20 +104,82 @@ const EmptyState: React.FC<EmptyStateProps> = ({ message = '画布为空' }) => 
   </div>
 );
 
+interface PageNavigationProps {
+  currentPage: Page | undefined;
+  pages: Page[];
+  onNavigateToPage: (pageId: string) => void;
+  onNavigateToHome: () => void;
+  canGoHome: boolean;
+}
+
+const PageNavigation: React.FC<PageNavigationProps> = ({
+  currentPage,
+  pages,
+  onNavigateToPage,
+  onNavigateToHome,
+  canGoHome,
+}) => {
+  return (
+    <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 flex items-center gap-2">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onNavigateToHome}
+        disabled={!canGoHome}
+        className={cn(
+          'p-1.5 h-auto',
+          !canGoHome && 'opacity-50 cursor-not-allowed'
+        )}
+        title="返回首页"
+      >
+        <HomeIcon />
+      </Button>
+      <Text variant="body-sm" color="muted" className="text-xs">
+        当前页面:
+      </Text>
+      <Text variant="body-sm" weight="semibold" className="text-sm">
+        {currentPage?.name || '首页'}
+      </Text>
+      {pages.length > 1 && (
+        <div className="ml-auto flex items-center gap-1">
+          <Text variant="caption" color="muted" className="text-xs hidden sm:inline">
+            快速跳转:
+          </Text>
+          <select
+            value={currentPage?.id || ''}
+            onChange={(e) => onNavigateToPage(e.target.value)}
+            className="px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500 bg-white"
+          >
+            {pages.map((page) => (
+              <option key={page.id} value={page.id}>
+                {page.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const PreviewPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get('project');
 
-  const components = useBuilderStore((state) => state.components);
+  const storeComponents = useBuilderStore((state) => state.components);
+  const storePages = useBuilderStore((state) => state.pages);
+  const storeCurrentPageId = useBuilderStore((state) => state.currentPageId);
   const projectName = useBuilderStore((state) => state.projectName);
   const loadProject = useBuilderStore((state) => state.loadProject);
   const isCurrentProject = useBuilderStore((state) => state.isCurrentProject);
   const bindingRules = useBuilderStore((state) => state.bindings);
 
+  const [previewPageId, setPreviewPageId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const loadedProjectRef = useRef<string | null>(null);
+  const navigationHistoryRef = useRef<string[]>([]);
 
   useEffect(() => {
     if (projectId && projectId !== loadedProjectRef.current && !isCurrentProject(projectId)) {
@@ -113,6 +193,59 @@ export const PreviewPage: React.FC = () => {
       setIsLoading(false);
     }
   }, [projectId]);
+
+  useEffect(() => {
+    if (storeCurrentPageId && previewPageId === null) {
+      setPreviewPageId(storeCurrentPageId);
+      navigationHistoryRef.current = [storeCurrentPageId];
+    }
+  }, [storeCurrentPageId, previewPageId]);
+
+  const handleNavigateToPage = useCallback(
+    (pageId: string) => {
+      if (!pageId) return;
+
+      const targetPage = storePages.find((p) => p.id === pageId);
+      if (!targetPage) {
+        console.warn('目标页面不存在:', pageId);
+        return;
+      }
+
+      setPreviewPageId(pageId);
+
+      if (navigationHistoryRef.current[navigationHistoryRef.current.length - 1] !== pageId) {
+        navigationHistoryRef.current.push(pageId);
+      }
+    },
+    [storePages]
+  );
+
+  const handleNavigateToHome = useCallback(() => {
+    if (storePages.length === 0) return;
+
+    const homePage =
+      storePages.find((p) => p.isHome) ||
+      storePages[0];
+
+    if (homePage && homePage.id !== previewPageId) {
+      setPreviewPageId(homePage.id);
+      navigationHistoryRef.current = [homePage.id];
+    }
+  }, [storePages, previewPageId]);
+
+  const currentPage = storePages.find((p) => p.id === previewPageId);
+  const currentComponents = currentPage?.components || storeComponents;
+  const canGoHome = storePages.length > 0 && previewPageId !== (storePages.find((p) => p.isHome)?.id || storePages[0]?.id);
+
+  const actionContext: ActionExecutionContext = {
+    navigateToPage: handleNavigateToPage,
+  };
+
+  useEffect(() => {
+    const eventEngine = createEventEngine(actionContext);
+    (window as any).__previewEventEngine = eventEngine;
+    (window as any).__previewActionContext = actionContext;
+  }, [actionContext]);
 
   const handleBackToEdit = () => {
     navigate('/builder');
@@ -171,10 +304,20 @@ export const PreviewPage: React.FC = () => {
               </div>
               <div className="flex-1 mx-2">
                 <div className="bg-white rounded-md px-3 py-1 text-xs text-gray-500 text-center border border-gray-200">
-                  预览页面
+                  预览: {currentPage?.name || '首页'}
                 </div>
               </div>
             </div>
+
+            {storePages.length > 1 && (
+              <PageNavigation
+                currentPage={currentPage}
+                pages={storePages}
+                onNavigateToPage={handleNavigateToPage}
+                onNavigateToHome={handleNavigateToHome}
+                canGoHome={canGoHome}
+              />
+            )}
 
             <div
               className={cn(
@@ -192,13 +335,13 @@ export const PreviewPage: React.FC = () => {
                 </div>
               ) : loadError ? (
                 <EmptyState message={loadError} />
-              ) : components.length === 0 ? (
+              ) : currentComponents.length === 0 ? (
                 <EmptyState />
               ) : (
                 <PreviewBindingProvider bindingRules={bindingRules}>
                   <PreviewFormRegistryProvider>
                     <div className="absolute inset-0 p-2">
-                      {components.map((component) => (
+                      {currentComponents.map((component) => (
                         <PreviewCanvasItem
                           key={component.id}
                           component={component}

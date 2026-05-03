@@ -1,6 +1,14 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { ComponentType, type ComponentSchema, type ContainerComponentSchema, type DataBindingRule } from '@/types/component';
+import { 
+  ComponentType, 
+  type ComponentSchema, 
+  type ContainerComponentSchema, 
+  type DataBindingRule,
+  type Page,
+  createDefaultPage,
+  createNewPage,
+} from '@/types/component';
 import { MOCK_EMPTY_CANVAS } from '@/constants/mockData';
 import {
   saveProject as saveProjectToStorage,
@@ -17,6 +25,7 @@ import { generateId } from '@/utils/id';
 const MAX_HISTORY_LENGTH = 50;
 
 interface HistoryState {
+  pageId: string;
   components: ComponentSchema[];
   selectedComponentId: string | null;
 }
@@ -89,6 +98,8 @@ const findNextComponentAfterDelete = (
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 interface BuilderState {
+  pages: Page[];
+  currentPageId: string;
   components: ComponentSchema[];
   selectedComponentId: string | null;
   bindings: DataBindingRule[];
@@ -150,6 +161,14 @@ interface BuilderState {
   setBindings: (bindings: DataBindingRule[]) => void;
   getBindingsForSource: (sourceId: string) => DataBindingRule[];
   getBindingsForTarget: (targetId: string) => DataBindingRule[];
+
+  getCurrentPage: () => Page | undefined;
+  getPages: () => Page[];
+  addPage: (name?: string) => string;
+  removePage: (pageId: string) => boolean;
+  switchToPage: (pageId: string) => void;
+  renamePage: (pageId: string, newName: string) => void;
+  syncCurrentPageToPages: () => void;
 }
 
 const updateComponentInTree = (
@@ -344,35 +363,181 @@ const reorderComponentInTree = (
   );
 };
 
-const createInitialHistory = (): HistoryState[] => [
-  {
-    components: MOCK_EMPTY_CANVAS,
-    selectedComponentId: null,
-  },
-];
+const createInitialPages = (): Page[] => {
+  const defaultPage = createDefaultPage();
+  defaultPage.components = [...MOCK_EMPTY_CANVAS];
+  return [defaultPage];
+};
+
+const createInitialHistory = (): HistoryState[] => {
+  const pages = createInitialPages();
+  return [
+    {
+      pageId: pages[0].id,
+      components: [...pages[0].components],
+      selectedComponentId: null,
+    },
+  ];
+};
 
 export const useBuilderStore = create<BuilderState>()(
   devtools(
-    (set, get) => ({
-      components: MOCK_EMPTY_CANVAS,
-      selectedComponentId: null,
-      bindings: [],
-
-      history: createInitialHistory(),
-      currentIndex: 0,
-      canUndo: false,
-      canRedo: false,
-
-      currentProjectId: null,
-      projectName: '未命名项目',
-      saveStatus: 'idle',
-      saveErrorMessage: null,
-      lastSavedAt: null,
+    (set, get) => {
+      const initialPages = createInitialPages();
       
-      loadError: null,
-      isProjectCorrupted: false,
+      return {
+        pages: initialPages,
+        currentPageId: initialPages[0].id,
+        components: initialPages[0].components,
+        selectedComponentId: null,
+        bindings: [],
 
-      setSaveStatus: (status, errorMessage) => {
+        history: createInitialHistory(),
+        currentIndex: 0,
+        canUndo: false,
+        canRedo: false,
+
+        currentProjectId: null,
+        projectName: '未命名项目',
+        saveStatus: 'idle',
+        saveErrorMessage: null,
+        lastSavedAt: null,
+        
+        loadError: null,
+        isProjectCorrupted: false,
+
+        getCurrentPage: () => {
+          const { pages, currentPageId } = get();
+          return pages.find(p => p.id === currentPageId);
+        },
+
+        getPages: () => {
+          return get().pages;
+        },
+
+        syncCurrentPageToPages: () => {
+          const { pages, currentPageId, components } = get();
+          const now = new Date().toISOString();
+          
+          const updatedPages = pages.map(page => {
+            if (page.id === currentPageId) {
+              return {
+                ...page,
+                components: structuredClone(components),
+                updatedAt: now,
+              };
+            }
+            return page;
+          });
+
+          set({ pages: updatedPages }, false, 'syncCurrentPageToPages');
+        },
+
+        addPage: (name) => {
+          const { syncCurrentPageToPages } = get();
+          syncCurrentPageToPages();
+
+          const newPage = createNewPage(name);
+          const { pages } = get();
+          const updatedPages = [...pages, newPage];
+
+          set(
+            {
+              pages: updatedPages,
+              currentPageId: newPage.id,
+              components: newPage.components,
+              selectedComponentId: null,
+            },
+            false,
+            'addPage'
+          );
+
+          return newPage.id;
+        },
+
+        removePage: (pageId) => {
+          const { pages, currentPageId, syncCurrentPageToPages } = get();
+          
+          if (pages.length <= 1) {
+            console.warn('Cannot remove the last page');
+            return false;
+          }
+
+          const pageIndex = pages.findIndex(p => p.id === pageId);
+          if (pageIndex === -1) {
+            return false;
+          }
+
+          syncCurrentPageToPages();
+
+          const updatedPages = pages.filter(p => p.id !== pageId);
+          let newCurrentPageId = currentPageId;
+          
+          if (currentPageId === pageId) {
+            const newIndex = Math.min(pageIndex, updatedPages.length - 1);
+            newCurrentPageId = updatedPages[newIndex].id;
+          }
+
+          const targetPage = updatedPages.find(p => p.id === newCurrentPageId);
+
+          set(
+            {
+              pages: updatedPages,
+              currentPageId: newCurrentPageId,
+              components: targetPage ? targetPage.components : [],
+              selectedComponentId: null,
+            },
+            false,
+            'removePage'
+          );
+
+          return true;
+        },
+
+        switchToPage: (pageId) => {
+          const { pages, currentPageId, syncCurrentPageToPages } = get();
+          
+          if (pageId === currentPageId) {
+            return;
+          }
+
+          const targetPage = pages.find(p => p.id === pageId);
+          if (!targetPage) {
+            console.warn(`Page not found: ${pageId}`);
+            return;
+          }
+
+          syncCurrentPageToPages();
+
+          set(
+            {
+              currentPageId: pageId,
+              components: structuredClone(targetPage.components),
+              selectedComponentId: null,
+            },
+            false,
+            'switchToPage'
+          );
+        },
+
+        renamePage: (pageId, newName) => {
+          const { pages, currentPageId } = get();
+          
+          const updatedPages = pages.map(page => {
+            if (page.id === pageId) {
+              return {
+                ...page,
+                name: newName,
+                updatedAt: new Date().toISOString(),
+              };
+            }
+            return page;
+          });
+
+          set({ pages: updatedPages }, false, 'renamePage');
+        },
+
+        setSaveStatus: (status, errorMessage) => {
         set(
           {
             saveStatus: status,
@@ -390,7 +555,9 @@ export const useBuilderStore = create<BuilderState>()(
       },
 
       saveCurrentProject: (_immediate = false) => {
-        const { components, bindings, currentProjectId, projectName, setSaveStatus } = get();
+        const { bindings, currentProjectId, projectName, setSaveStatus, syncCurrentPageToPages, pages, currentPageId } = get();
+
+        syncCurrentPageToPages();
 
         setSaveStatus('saving');
 
@@ -398,7 +565,9 @@ export const useBuilderStore = create<BuilderState>()(
           const savedProject = saveProjectToStorage({
             id: currentProjectId || undefined,
             name: projectName,
-            components: structuredClone(components),
+            pages: structuredClone(pages),
+            currentPageId,
+            components: structuredClone(get().components),
             bindings: structuredClone(bindings),
           });
 
@@ -438,16 +607,23 @@ export const useBuilderStore = create<BuilderState>()(
           return false;
         }
 
+        const { pages, currentPageId: projectCurrentPageId, components: projectComponents } = result.project;
+        
+        const currentPage = pages.find(p => p.id === projectCurrentPageId) || pages[0];
+
         const initialHistory: HistoryState[] = [
           {
-            components: structuredClone(result.project.components),
+            pageId: currentPage.id,
+            components: structuredClone(currentPage.components),
             selectedComponentId: null,
           },
         ];
 
         set(
           {
-            components: result.project.components,
+            pages: [...pages],
+            currentPageId: currentPage.id,
+            components: currentPage.components,
             bindings: result.project.bindings || [],
             currentProjectId: result.project.id,
             projectName: result.project.name,
@@ -481,16 +657,22 @@ export const useBuilderStore = create<BuilderState>()(
           return false;
         }
 
+        const { pages, currentPageId: projectCurrentPageId } = project;
+        const currentPage = pages.find(p => p.id === projectCurrentPageId) || pages[0];
+
         const initialHistory: HistoryState[] = [
           {
-            components: structuredClone(project.components),
+            pageId: currentPage.id,
+            components: structuredClone(currentPage.components),
             selectedComponentId: null,
           },
         ];
 
         set(
           {
-            components: project.components,
+            pages: [...pages],
+            currentPageId: currentPage.id,
+            components: currentPage.components,
             bindings: project.bindings || [],
             currentProjectId: project.id,
             projectName: project.name,
@@ -524,9 +706,13 @@ export const useBuilderStore = create<BuilderState>()(
       },
 
       createNewProject: (name = '未命名项目') => {
+        const newPages = createInitialPages();
+        
         set(
           {
-            components: MOCK_EMPTY_CANVAS,
+            pages: newPages,
+            currentPageId: newPages[0].id,
+            components: newPages[0].components,
             selectedComponentId: null,
             bindings: [],
             history: createInitialHistory(),

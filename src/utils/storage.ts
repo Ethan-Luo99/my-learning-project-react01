@@ -1,9 +1,12 @@
-import type { ComponentSchema, DataBindingRule } from '@/types/component';
+import type { ComponentSchema, DataBindingRule, Page, DEFAULT_HOME_PAGE_ID } from '@/types/component';
+import { createDefaultPage } from '@/types/component';
 import { validateProjectData, formatValidationErrors } from '@/utils/validation';
 
 export interface Project {
   id: string;
   name: string;
+  pages: Page[];
+  currentPageId: string;
   components: ComponentSchema[];
   bindings?: DataBindingRule[];
   createdAt: string;
@@ -46,6 +49,22 @@ const setStoredProjectIds = (ids: string[]): void => {
   }
 };
 
+const migrateProjectToPages = (project: Project): Project => {
+  if (project.pages && project.pages.length > 0) {
+    return project;
+  }
+
+  const defaultPage = createDefaultPage();
+  defaultPage.components = project.components || [];
+
+  return {
+    ...project,
+    pages: [defaultPage],
+    currentPageId: defaultPage.id,
+    components: defaultPage.components,
+  };
+};
+
 export const saveProject = (
   projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'> & {
     id?: string;
@@ -57,12 +76,32 @@ export const saveProject = (
     ? loadProject(projectData.id)
     : null;
 
+  let pages: Page[];
+  let currentPageId: string;
+  
+  if (projectData.pages && projectData.pages.length > 0) {
+    pages = projectData.pages;
+    currentPageId = projectData.currentPageId || pages[0].id;
+  } else if (existingProject?.project?.pages && existingProject.project.pages.length > 0) {
+    pages = existingProject.project.pages;
+    currentPageId = existingProject.project.currentPageId;
+  } else {
+    const defaultPage = createDefaultPage();
+    defaultPage.components = projectData.components || existingProject?.project?.components || [];
+    pages = [defaultPage];
+    currentPageId = defaultPage.id;
+  }
+
+  const currentPage = pages.find(p => p.id === currentPageId) || pages[0];
+
   const project: Project = {
     id: projectData.id || generateProjectId(),
     name: projectData.name || '未命名项目',
-    components: projectData.components,
-    bindings: projectData.bindings || existingProject?.bindings || [],
-    createdAt: projectData.createdAt || existingProject?.createdAt || now,
+    pages,
+    currentPageId,
+    components: currentPage.components,
+    bindings: projectData.bindings || existingProject?.project?.bindings || [],
+    createdAt: projectData.createdAt || existingProject?.project?.createdAt || now,
     updatedAt: now,
   };
 
@@ -123,7 +162,9 @@ export const loadProject = (id: string): LoadProjectResult => {
       };
     }
     
-    const project = parsedData as Project;
+    let project = parsedData as Project;
+    project = migrateProjectToPages(project);
+    
     return { success: true, project };
   } catch (error) {
     console.error(`Failed to load project ${id}:`, error);

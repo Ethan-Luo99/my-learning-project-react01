@@ -8,6 +8,7 @@ import { ActionType, NavigateTarget, type ActionConfig } from '@/types/component
 export interface ActionExecutionContext {
   submitForm?: (formId?: string) => void;
   resetForm?: (formId?: string) => void;
+  navigateToPage?: (pageId: string) => void;
 }
 
 export const executeShowAlert = (params: ActionConfig['params']): void => {
@@ -37,14 +38,21 @@ export const executeNavigateUrl = (params: ActionConfig['params']): void => {
   }
 };
 
-export const executeNavigatePage = (params: ActionConfig['params']): void => {
+export const executeNavigatePage = (
+  params: ActionConfig['params'],
+  context?: ActionExecutionContext
+): void => {
   if (!params.pageId) {
     console.warn('NAVIGATE_PAGE 动作缺少 pageId 参数');
     return;
   }
 
-  console.log('页面跳转:', params.pageId);
-  alert(`页面跳转功能（预留）: ${params.pageId}`);
+  if (context?.navigateToPage) {
+    context.navigateToPage(params.pageId);
+  } else {
+    console.log('页面跳转:', params.pageId);
+    alert(`页面跳转: ${params.pageId}（请在预览模式下使用）`);
+  }
 };
 
 export const executeConsoleLog = (params: ActionConfig['params']): void => {
@@ -115,7 +123,7 @@ export const executeAction = (
       break;
 
     case ActionType.NavigatePage:
-      executeNavigatePage(action.params);
+      executeNavigatePage(action.params, context);
       break;
 
     case ActionType.ConsoleLog:

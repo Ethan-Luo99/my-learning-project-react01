@@ -2,6 +2,7 @@ import { useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BuilderLayout } from '@/components/builder/Layout';
 import { ComponentPanel } from '@/components/builder/ComponentPanel';
+import { PagePanel } from '@/components/builder/PagePanel';
 import { Canvas } from '@/components/builder/Canvas';
 import { PropertyPanel } from '@/components/builder/PropertyPanel';
 import { DndContextProvider } from '@/components/builder/DndContext';
@@ -15,7 +16,7 @@ import {
 import { ToastProvider, useToast } from '@/components/ui';
 import { downloadProject, calculateJSONSize, EXPORT_FILE_SIZE_WARNING_LIMIT } from '@/utils/import-export';
 import { getStorageWarningMessage, formatStorageSize, estimateLocalStorageUsage } from '@/utils/validation';
-import type { ComponentSchema } from '@/types/component';
+import type { ComponentSchema, Page } from '@/types/component';
 import type { Project } from '@/utils/storage';
 
 const findComponentById = (
@@ -51,7 +52,10 @@ function AppContent() {
   const saveStatus = useBuilderStore((state) => state.saveStatus);
   const saveErrorMessage = useBuilderStore((state) => state.saveErrorMessage);
   const components = useBuilderStore((state) => state.components);
+  const pages = useBuilderStore((state) => state.pages);
+  const pageCurrentPageId = useBuilderStore((state) => state.currentPageId);
   const lastSavedAt = useBuilderStore((state) => state.lastSavedAt);
+  const syncCurrentPageToPages = useBuilderStore((state) => state.syncCurrentPageToPages);
   
   const moveUp = useBuilderStore((state) => state.moveUp);
   const moveDown = useBuilderStore((state) => state.moveDown);
@@ -178,9 +182,14 @@ function AppContent() {
 
   const handleExport = useCallback(() => {
     const now = new Date().toISOString();
+    
+    syncCurrentPageToPages();
+    
     const project: Project = {
       id: currentProjectId || `export_${Date.now()}`,
       name: projectName,
+      pages: structuredClone(pages),
+      currentPageId: pageCurrentPageId,
       components: [...components],
       createdAt: lastSavedAt || now,
       updatedAt: now,
@@ -203,7 +212,7 @@ function AppContent() {
         error instanceof Error ? error.message : '导出失败，请重试'
       );
     }
-  }, [components, currentProjectId, projectName, lastSavedAt, toast]);
+  }, [pages, pageCurrentPageId, components, currentProjectId, projectName, lastSavedAt, syncCurrentPageToPages, toast]);
 
   const handleMoveUp = useCallback(() => {
     if (selectedComponentId) {
@@ -233,10 +242,17 @@ function AppContent() {
   const canMoveUpCurrent = selectedComponentId ? canMoveUp(selectedComponentId) : false;
   const canMoveDownCurrent = selectedComponentId ? canMoveDown(selectedComponentId) : false;
 
+  const leftPanelContent = (
+    <div className="flex flex-col h-full">
+      <PagePanel />
+      <ComponentPanel className="flex-1" />
+    </div>
+  );
+
   return (
     <DndContextProvider>
       <BuilderLayout
-        leftPanel={<ComponentPanel />}
+        leftPanel={leftPanelContent}
         canvas={<Canvas />}
         rightPanel={<PropertyPanel />}
         projectName={projectName}

@@ -286,3 +286,36 @@ export interface ComponentPanelItem {
   icon?: string;
   category: 'basic' | 'layout' | 'form';
 }
+
+export interface Page {
+  id: string;
+  name: string;
+  components: ComponentSchema[];
+  createdAt: string;
+  updatedAt: string;
+  isHome?: boolean;
+}
+
+export const DEFAULT_HOME_PAGE_ID = 'home';
+export const DEFAULT_PAGE_NAME = '未命名页面';
+
+export const createDefaultPage = (): Page => ({
+  id: DEFAULT_HOME_PAGE_ID,
+  name: '首页',
+  components: [],
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  isHome: true,
+});
+
+export const createNewPage = (name?: string): Page => {
+  const now = new Date().toISOString();
+  return {
+    id: `page_${now.replace(/[^0-9]/g, '')}_${Math.random().toString(36).substr(2, 9)}`,
+    name: name || DEFAULT_PAGE_NAME,
+    components: [],
+    createdAt: now,
+    updatedAt: now,
+    isHome: false,
+  };
+};
