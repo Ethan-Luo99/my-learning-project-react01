@@ -13,10 +13,73 @@ import { useCanvasContext } from '@/components/builder/DndContext';
 import { logger } from '@/utils/logger';
 import { useResize, type ResizeHandle } from '@/hooks/useResize';
 import { useMultiSelect } from '@/hooks/useMultiSelect';
+import type { AlignmentGuide } from '@/hooks/useAlignmentGuides';
 
 interface CanvasProps {
   className?: string;
 }
+
+interface AlignmentGuidesProps {
+  guides: AlignmentGuide[];
+}
+
+const AlignmentGuides: React.FC<AlignmentGuidesProps> = ({ guides }) => {
+  if (guides.length === 0) return null;
+
+  return (
+    <div className="absolute inset-0 pointer-events-none z-30">
+      {guides.map((guide, index) => {
+        const isHorizontal = 
+          guide.type === 'top' || 
+          guide.type === 'bottom' || 
+          guide.type === 'canvasTop' || 
+          guide.type === 'canvasBottom' ||
+          guide.type === 'centerV' ||
+          guide.type === 'canvasCenterV';
+
+        const isVertical = 
+          guide.type === 'left' || 
+          guide.type === 'right' || 
+          guide.type === 'canvasLeft' || 
+          guide.type === 'canvasRight' ||
+          guide.type === 'centerH' ||
+          guide.type === 'canvasCenterH';
+
+        if (isHorizontal) {
+          return (
+            <div
+              key={`guide-${index}`}
+              className="absolute left-0 right-0"
+              style={{
+                top: `${guide.position}px`,
+                height: '1px',
+                backgroundColor: '#3b82f6',
+                opacity: 0.8,
+              }}
+            />
+          );
+        }
+
+        if (isVertical) {
+          return (
+            <div
+              key={`guide-${index}`}
+              className="absolute top-0 bottom-0"
+              style={{
+                left: `${guide.position}px`,
+                width: '1px',
+                backgroundColor: '#3b82f6',
+                opacity: 0.8,
+              }}
+            />
+          );
+        }
+
+        return null;
+      })}
+    </div>
+  );
+};
 
 interface FreeCanvasItemProps {
   component: ComponentSchema;
@@ -328,7 +391,7 @@ const Canvas: React.FC<CanvasProps> = ({ className }) => {
     selectedComponentIds,
     isComponentSelected,
   } = useBuilderStore();
-  const { canvasRef } = useCanvasContext();
+  const { canvasRef, activeAlignmentGuides } = useCanvasContext();
   const nodeRef = useRef<HTMLElement | null>(null);
 
   const { setNodeRef, isOver } = useDroppable({
@@ -420,6 +483,8 @@ const Canvas: React.FC<CanvasProps> = ({ className }) => {
               );
             })}
           </div>
+
+          <AlignmentGuides guides={activeAlignmentGuides} />
 
           {isOver && (
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">

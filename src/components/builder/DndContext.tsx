@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useRef, createContext, useContext, useMemo } from 'react';
+import React, { useCallback, useState, useRef, createContext, useContext, useMemo, useEffect } from 'react';
 import {
   DndContext as DndKitContext,
   DragOverlay,
@@ -37,10 +37,13 @@ import { DEFAULT_COMPONENT_CONFIGS } from '@/constants/mockData';
 import { Text } from '@/components/ui';
 import { cn } from '@/utils/classname';
 import { logger } from '@/utils/logger';
+import { useAlignmentGuides, type AlignmentGuide, type AlignmentResult } from '@/hooks/useAlignmentGuides';
 
 interface CanvasContextValue {
   canvasRef: React.MutableRefObject<HTMLElement | null>;
   isOverDropZoneRef: React.MutableRefObject<boolean>;
+  activeAlignmentGuides: AlignmentGuide[];
+  isAligning: boolean;
 }
 
 const CanvasContext = createContext<CanvasContextValue | null>(null);
@@ -161,6 +164,7 @@ interface MultiDragState {
 
 export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children }) => {
   const { 
+    components,
     addComponent, 
     updateComponent, 
     addComponentToParent,
@@ -173,6 +177,7 @@ export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children
   } = useBuilderStore();
 
   const [activeDragItem, setActiveDragItem] = useState<ActiveDragItem | null>(null);
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
 
   const canvasRef = useRef<HTMLElement | null>(null);
   const isOverDropZoneRef = useRef(false);
@@ -180,6 +185,18 @@ export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children
   const globalMousePositionRef = useRef<DragPosition>({ x: 0, y: 0 });
   const isDraggingPanelItemRef = useRef(false);
   const multiDragStateRef = useRef<MultiDragState | null>(null);
+  const activeDragComponentIdRef = useRef<string | null>(null);
+  const lastAlignmentResultRef = useRef<{ snappedX: number; snappedY: number; hasAlignment: boolean } | null>(null);
+
+  const {
+    activeGuides: activeAlignmentGuides,
+    isAligning,
+    detectAlignment,
+    clearGuides,
+  } = useAlignmentGuides({
+    canvasWidth: canvasSize.width,
+    canvasHeight: canvasSize.height,
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -191,6 +208,22 @@ export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  useEffect(() => {
+    const updateCanvasSize = () => {
+      if (canvasRef.current) {
+        const rect = canvasRef.current.getBoundingClientRect();
+        setCanvasSize({
+          width: rect.width,
+          height: rect.height,
+        });
+      }
+    };
+
+    updateCanvasSize();
+    window.addEventListener('resize', updateCanvasSize);
+    return () => window.removeEventListener('resize', updateCanvasSize);
+  }, []);
 
   const handleGlobalPointerMove = useCallback((e: PointerEvent) => {
     globalMousePositionRef.current = { x: e.clientX, y: e.clientY };
@@ -307,11 +340,14 @@ export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children
 
     isDraggingPanelItemRef.current = isPanelItem(activeIdStr);
     isOverDropZoneRef.current = false;
+    activeDragComponentIdRef.current = null;
 
     if (isCanvasItem(activeIdStr) || isSortableItem(activeIdStr)) {
       const actualActiveId = isCanvasItem(activeIdStr) 
         ? getCanvasItemId(activeIdStr) 
         : getSortableItemId(activeIdStr);
+      
+      activeDragComponentIdRef.current = actualActiveId;
       
       const isActiveSelected = isComponentSelected(actualActiveId);
       const currentSelectedComponents = getSelectedComponents();
@@ -427,10 +463,63 @@ export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children
         y: point.y,
       };
       logger.log('handleDragMove 已更新 lastMousePositionRef:', lastMousePositionRef.current);
-    } else {
-      logger.warn('handleDragMove 中 point 是 undefined');
     }
-  }, []);
+
+    const multiDragState = multiDragStateRef.current;
+    const isMultiDrag = multiDragState && multiDragState.selectedComponentIds.length > 0;
+
+    if (isMultiDrag && multiDragState && point) {
+      const primaryComponent = components.find((c) => c.id === multiDragState.activeComponentId);
+      if (primaryComponent) {
+        const position = getCanvasRelativePosition(point.x, point.y);
+        
+        const deltaX = position.x - multiDragState.activeComponentInitialX;
+        const deltaY = position.y - multiDragState.activeComponentInitialY;
+        
+        const primaryCurrentX = multiDragState.activeComponentInitialX + deltaX;
+        const primaryCurrentY = multiDragState.activeComponentInitialY + deltaY;
+        
+        const selectedComponents = components.filter((c) => 
+          multiDragState.selectedComponentIds.includes(c.id)
+        );
+        
+        const alignmentResult = detectAlignment(
+          primaryComponent,
+          components,
+          primaryCurrentX,
+          primaryCurrentY,
+          true,
+          selectedComponents
+        );
+
+        lastAlignmentResultRef.current = {
+          snappedX: alignmentResult.snappedX,
+          snappedY: alignmentResult.snappedY,
+          hasAlignment: alignmentResult.guides.length > 0,
+        };
+      }
+    } else if (point && activeDragComponentIdRef.current) {
+      const activeIdStr = activeDragComponentIdRef.current;
+      const draggingComponent = components.find((c) => c.id === activeIdStr);
+      if (draggingComponent) {
+        const position = getCanvasRelativePosition(point.x, point.y);
+        const alignmentResult = detectAlignment(
+          draggingComponent,
+          components,
+          position.x,
+          position.y,
+          false,
+          []
+        );
+
+        lastAlignmentResultRef.current = {
+          snappedX: alignmentResult.snappedX,
+          snappedY: alignmentResult.snappedY,
+          hasAlignment: alignmentResult.guides.length > 0,
+        };
+      }
+    }
+  }, [components, detectAlignment]);
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
@@ -555,27 +644,42 @@ export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children
           logger.log('activeComponentInitialY:', multiDragState.activeComponentInitialY);
           logger.log('newPosition:', position);
 
-          // 计算拖拽的位移量
-          const deltaX = position.x - multiDragState.activeComponentInitialX;
-          const deltaY = position.y - multiDragState.activeComponentInitialY;
+          const alignmentResult = lastAlignmentResultRef.current;
+          let finalDeltaX: number;
+          let finalDeltaY: number;
 
-          logger.log('位移量 (deltaX, deltaY):', deltaX, deltaY);
+          if (alignmentResult && alignmentResult.hasAlignment) {
+            logger.log('使用对齐后的位置:', alignmentResult);
+            finalDeltaX = alignmentResult.snappedX - multiDragState.activeComponentInitialX;
+            finalDeltaY = alignmentResult.snappedY - multiDragState.activeComponentInitialY;
+          } else {
+            finalDeltaX = position.x - multiDragState.activeComponentInitialX;
+            finalDeltaY = position.y - multiDragState.activeComponentInitialY;
+          }
 
-          // 如果位移量为 0，说明没有移动，直接返回
-          if (deltaX === 0 && deltaY === 0) {
+          logger.log('位移量 (deltaX, deltaY):', finalDeltaX, finalDeltaY);
+
+          if (finalDeltaX === 0 && finalDeltaY === 0) {
             logger.log('没有位移，不更新位置');
             multiDragStateRef.current = null;
             isOverDropZoneRef.current = false;
+            lastAlignmentResultRef.current = null;
             return;
           }
 
-          // 对于多选拖拽，我们不处理父容器变化（保持原来的父容器）
-          // 只更新所有选中组件的位置
           let componentsUpdated = false;
           
           for (const [compId, initialPos] of multiDragState.initialPositions) {
-            const newX = snapToGrid(initialPos.x + deltaX);
-            const newY = snapToGrid(initialPos.y + deltaY);
+            let newX: number;
+            let newY: number;
+
+            if (alignmentResult && alignmentResult.hasAlignment) {
+              newX = initialPos.x + finalDeltaX;
+              newY = initialPos.y + finalDeltaY;
+            } else {
+              newX = snapToGrid(initialPos.x + finalDeltaX);
+              newY = snapToGrid(initialPos.y + finalDeltaY);
+            }
 
             logger.log(`更新组件 ${compId}:`, {
               initialX: initialPos.x,
@@ -584,7 +688,6 @@ export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children
               newY,
             });
 
-            // 单独更新每个组件
             updateComponent(compId, {
               x: newX,
               y: newY,
@@ -596,17 +699,30 @@ export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children
             logger.log('✅ 多选拖拽完成，已更新所有选中组件位置');
           }
 
-          // 清除多选拖拽状态
           multiDragStateRef.current = null;
+          lastAlignmentResultRef.current = null;
         } else {
-          // 单选拖拽逻辑
           logger.log('单选拖拽处理:', actualActiveId);
 
-          // 更新组件位置（无论拖到哪里，位置都需要更新）
+          const alignmentResult = lastAlignmentResultRef.current;
+          let finalX: number;
+          let finalY: number;
+
+          if (alignmentResult && alignmentResult.hasAlignment) {
+            logger.log('使用对齐后的位置:', alignmentResult);
+            finalX = alignmentResult.snappedX;
+            finalY = alignmentResult.snappedY;
+          } else {
+            finalX = position.x;
+            finalY = position.y;
+          }
+
           updateComponent(actualActiveId, {
-            x: position.x,
-            y: position.y,
+            x: finalX,
+            y: finalY,
           });
+
+          lastAlignmentResultRef.current = null;
 
           // 处理父容器变化
           if (isOverContainerDropZone && targetContainerId) {
@@ -737,13 +853,15 @@ export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children
       }
 
       isOverDropZoneRef.current = false;
+      clearGuides();
     },
     [
       addComponent, 
       updateComponent, 
       addComponentToParent, 
       moveComponentToParent,
-      handleGlobalPointerMove
+      handleGlobalPointerMove,
+      clearGuides
     ]
   );
 
@@ -751,8 +869,10 @@ export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children
     () => ({
       canvasRef,
       isOverDropZoneRef,
+      activeAlignmentGuides,
+      isAligning,
     }),
-    [canvasRef, isOverDropZoneRef]
+    [canvasRef, isOverDropZoneRef, activeAlignmentGuides, isAligning]
   );
 
   return (
