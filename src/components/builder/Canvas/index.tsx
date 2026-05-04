@@ -482,9 +482,8 @@ const Canvas: React.FC<CanvasProps> = ({ className }) => {
                 />
               );
             })}
+            <AlignmentGuides guides={activeAlignmentGuides} />
           </div>
-
-          <AlignmentGuides guides={activeAlignmentGuides} />
 
           {isOver && (
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">

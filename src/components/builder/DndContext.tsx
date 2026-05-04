@@ -41,11 +41,24 @@ import { logger } from '@/utils/logger';
 import { useAlignmentGuides, type AlignmentGuide, type AlignmentResult } from '@/hooks/useAlignmentGuides';
 
 
+interface ResizeAlignmentResult {
+  guides: AlignmentGuide[];
+  snappedX: number;
+  snappedY: number;
+  snappedWidth: number;
+  snappedHeight: number;
+}
+
 interface CanvasContextValue {
   canvasRef: React.MutableRefObject<HTMLElement | null>;
   isOverDropZoneRef: React.MutableRefObject<boolean>;
   activeAlignmentGuides: AlignmentGuide[];
   isAligning: boolean;
+  detectResizeAlignment: (
+    component: ComponentSchema,
+    newBounds: { x: number; y: number; width: number; height: number }
+  ) => ResizeAlignmentResult;
+  clearAlignmentGuides: () => void;
 }
 
 const CanvasContext = createContext<CanvasContextValue | null>(null);
@@ -860,14 +873,99 @@ export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children
     ]
   );
 
+  const detectResizeAlignment = useCallback(
+    (
+      component: ComponentSchema,
+      newBounds: { x: number; y: number; width: number; height: number }
+    ): ResizeAlignmentResult => {
+      const tempComponent: ComponentSchema = {
+        ...component,
+        x: newBounds.x,
+        y: newBounds.y,
+        width: newBounds.width,
+        height: newBounds.height,
+      };
+
+      const alignmentResult = detectAlignment(
+        tempComponent,
+        components,
+        newBounds.x,
+        newBounds.y,
+        false,
+        []
+      );
+
+      let snappedX = newBounds.x;
+      let snappedY = newBounds.y;
+      let snappedWidth = newBounds.width;
+      let snappedHeight = newBounds.height;
+
+      for (const guide of alignmentResult.guides) {
+        switch (guide.type) {
+          case 'left':
+          case 'canvasLeft':
+            snappedX = guide.position;
+            const leftDelta = newBounds.x - guide.position;
+            snappedWidth = newBounds.width + leftDelta;
+            break;
+          case 'right':
+          case 'canvasRight':
+            const currentRight = newBounds.x + newBounds.width;
+            const rightDelta = guide.position - currentRight;
+            snappedWidth = newBounds.width + rightDelta;
+            break;
+          case 'centerH':
+          case 'canvasCenterH':
+            const currentCenterX = newBounds.x + newBounds.width / 2;
+            const centerDeltaX = guide.position - currentCenterX;
+            snappedX = newBounds.x + centerDeltaX;
+            break;
+          case 'top':
+          case 'canvasTop':
+            snappedY = guide.position;
+            const topDelta = newBounds.y - guide.position;
+            snappedHeight = newBounds.height + topDelta;
+            break;
+          case 'bottom':
+          case 'canvasBottom':
+            const currentBottom = newBounds.y + newBounds.height;
+            const bottomDelta = guide.position - currentBottom;
+            snappedHeight = newBounds.height + bottomDelta;
+            break;
+          case 'centerV':
+          case 'canvasCenterV':
+            const currentCenterY = newBounds.y + newBounds.height / 2;
+            const centerDeltaY = guide.position - currentCenterY;
+            snappedY = newBounds.y + centerDeltaY;
+            break;
+        }
+      }
+
+      return {
+        guides: alignmentResult.guides,
+        snappedX,
+        snappedY,
+        snappedWidth,
+        snappedHeight,
+      };
+    },
+    [detectAlignment, components]
+  );
+
+  const clearAlignmentGuides = useCallback(() => {
+    clearGuides();
+  }, [clearGuides]);
+
   const contextValue: CanvasContextValue = useMemo(
     () => ({
       canvasRef,
       isOverDropZoneRef,
       activeAlignmentGuides,
       isAligning,
+      detectResizeAlignment,
+      clearAlignmentGuides,
     }),
-    [canvasRef, isOverDropZoneRef, activeAlignmentGuides, isAligning]
+    [canvasRef, isOverDropZoneRef, activeAlignmentGuides, isAligning, detectResizeAlignment, clearAlignmentGuides]
   );
 
   return (

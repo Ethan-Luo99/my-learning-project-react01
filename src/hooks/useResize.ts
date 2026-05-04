@@ -4,6 +4,7 @@ import type { ComponentSchema } from '@/types/component';
 import { useBuilderStore } from '@/store/useBuilderStore';
 import { logger } from '@/utils/logger';
 import { getComponentSize } from '@/utils/size';
+import { useCanvasContext } from '@/components/builder/DndContext';
 
 export type ResizeHandle = 
   | 'top' 
@@ -66,6 +67,8 @@ export const useResize = ({ component, isSelected }: UseResizeOptions): ResizeRe
     endHistoryBatch, 
     cancelHistoryBatch 
   } = useBuilderStore();
+  
+  const { detectResizeAlignment, clearAlignmentGuides } = useCanvasContext();
   
   const [resizeState, setResizeState] = useState<ResizeState>({
     isResizing: false,
@@ -179,7 +182,55 @@ export const useResize = ({ component, isSelected }: UseResizeOptions): ResizeRe
     const deltaX = e.clientX - initialMousePosition.x;
     const deltaY = e.clientY - initialMousePosition.y;
 
-    const { x, y, width, height } = calculateResize(activeHandle, initialBounds, deltaX, deltaY);
+    let { x, y, width, height } = calculateResize(activeHandle, initialBounds, deltaX, deltaY);
+
+    const alignmentResult = detectResizeAlignment(
+      componentRef.current,
+      { x, y, width, height }
+    );
+
+    if (alignmentResult.guides.length > 0) {
+      const config = HANDLE_CONFIGS[activeHandle];
+      
+      for (const guide of alignmentResult.guides) {
+        switch (guide.type) {
+          case 'left':
+          case 'canvasLeft':
+            if (config.xDirection === -1) {
+              x = alignmentResult.snappedX;
+              width = alignmentResult.snappedWidth;
+            }
+            break;
+          case 'right':
+          case 'canvasRight':
+            if (config.xDirection === 1) {
+              width = alignmentResult.snappedWidth;
+            }
+            break;
+          case 'centerH':
+          case 'canvasCenterH':
+            x = alignmentResult.snappedX;
+            break;
+          case 'top':
+          case 'canvasTop':
+            if (config.yDirection === -1) {
+              y = alignmentResult.snappedY;
+              height = alignmentResult.snappedHeight;
+            }
+            break;
+          case 'bottom':
+          case 'canvasBottom':
+            if (config.yDirection === 1) {
+              height = alignmentResult.snappedHeight;
+            }
+            break;
+          case 'centerV':
+          case 'canvasCenterV':
+            y = alignmentResult.snappedY;
+            break;
+        }
+      }
+    }
 
     const updates: Partial<ComponentSchema> = {};
     
@@ -205,16 +256,18 @@ export const useResize = ({ component, isSelected }: UseResizeOptions): ResizeRe
         updates,
         initialBounds,
         delta: { x: deltaX, y: deltaY },
+        hasAlignment: alignmentResult.guides.length > 0,
       });
       
       updateComponent(componentRef.current.id, updates);
     }
-  }, [updateComponent, calculateResize]);
+  }, [updateComponent, calculateResize, detectResizeAlignment]);
 
   const handleResizeEnd = useCallback(() => {
     const state = resizeStateRef.current;
     if (state.isResizing) {
       logger.log('Resize ended:', { handle: state.activeHandle });
+      clearAlignmentGuides();
       setResizeState({
         isResizing: false,
         activeHandle: null,
@@ -223,12 +276,13 @@ export const useResize = ({ component, isSelected }: UseResizeOptions): ResizeRe
       });
       endHistoryBatch();
     }
-  }, [endHistoryBatch]);
+  }, [endHistoryBatch, clearAlignmentGuides]);
 
   const handleResizeCancel = useCallback(() => {
     const state = resizeStateRef.current;
     if (state.isResizing) {
       logger.log('Resize canceled:', { handle: state.activeHandle });
+      clearAlignmentGuides();
       setResizeState({
         isResizing: false,
         activeHandle: null,
@@ -237,7 +291,7 @@ export const useResize = ({ component, isSelected }: UseResizeOptions): ResizeRe
       });
       cancelHistoryBatch();
     }
-  }, [cancelHistoryBatch]);
+  }, [cancelHistoryBatch, clearAlignmentGuides]);
 
   useEffect(() => {
     if (resizeState.isResizing) {
