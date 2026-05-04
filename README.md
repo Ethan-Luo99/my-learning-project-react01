@@ -42,6 +42,38 @@
 - ✅ Toast 操作反馈提示 - [架构文档](docs/architecture/overview.md#47-错误处理模块-error-handling)
 - ✅ React ErrorBoundary 错误边界 - [架构文档](docs/architecture/overview.md#47-错误处理模块-error-handling)
 
+### 核心功能（B 系列）
+
+#### 模块一：表单组件体系（10 个组件）
+- ✅ **Input** - 单行输入框，支持多种输入类型、验证规则、数据绑定
+- ✅ **Textarea** - 多行文本框，支持字数统计、自动高度
+- ✅ **Select** - 下拉选择框，支持单选/多选、搜索、可清除
+- ✅ **Checkbox** - 复选框，支持不确定状态
+- ✅ **CheckboxGroup** - 复选框组，支持水平/垂直布局
+- ✅ **Radio** - 单选框
+- ✅ **RadioGroup** - 单选框组，支持水平/垂直布局
+- ✅ **Switch** - 开关组件，支持加载状态
+- ✅ **Form** - 表单容器，支持提交/重置、布局控制
+- ✅ **FormItem** - 表单项包装器，支持标签、错误展示、必填标识
+
+#### 模块二：事件交互系统
+- ✅ **事件类型** - 支持 5 种事件：onClick、onChange、onSubmit、onFocus、onBlur
+- ✅ **动作类型** - 支持 10 种动作：SHOW_ALERT、NAVIGATE_URL、NAVIGATE_PAGE、CONSOLE_LOG、CUSTOM_SCRIPT、FORM_SUBMIT、FORM_RESET、SHOW_MODAL、HIDE_MODAL
+- ✅ **执行上下文** - 支持表单提交/重置、页面跳转、弹窗控制
+- ✅ **向后兼容** - 支持旧版 onClick 事件配置
+
+#### 模块三：高级业务组件（5 个组件）
+- ✅ **Card** - 卡片组件，支持阴影、边框、头部标题、悬停效果
+- ✅ **Divider** - 分割线组件，支持水平/垂直方向、文字位置、虚线样式
+- ✅ **Tabs** - 标签页组件，支持标签切换、动画、可添加标签
+- ✅ **Accordion** - 手风琴组件，支持折叠/展开、多项展开
+- ✅ **Modal** - 弹窗组件，支持对话框、确认框、输入框、自定义按钮
+
+#### 模块四：画布交互增强（3 个功能）
+- ✅ **智能对齐辅助线** - 拖拽时自动检测对齐关系，12 种对齐类型、8 像素吸附容差、对齐优先于网格 - [架构文档](docs/architecture/b-series-overview.md#46-模块六画布交互增强)
+- ✅ **组件多选操作** - Shift+点击进行多选，支持批量删除、批量复制粘贴、批量移动
+- ✅ **组件缩放功能** - 8 方向拖拽调整尺寸，最小尺寸限制、网格吸附、ESC 取消
+
 ## 项目结构
 
 ```
@@ -144,6 +176,7 @@ pnpm format
 
 | 文档 | 说明 |
 |------|------|
+| [B 系列架构综述](docs/architecture/b-series-overview.md) | 表单组件体系、事件交互系统、高级业务组件、画布交互增强的完整架构综述 |
 | [A 系列架构综述](docs/architecture/overview.md) | 完整的架构综述，包含所有模块的功能总览、依赖关系、数据流、接口签名、集成点和改进建议 |
 | [持久化模块架构设计](docs/PERSISTENCE-ARCHITECTURE.md) | 数据持久化、自动保存、项目管理、导入导出的完整架构说明 |
 | [预览模式架构设计](docs/architecture/PREVIEW-MODE-ARCHITECTURE.md) | 预览模式的渲染策略、事件隔离、数据共享机制 |
@@ -155,12 +188,10 @@ pnpm format
 
 ## 开发计划
 
-- [ ] 更多基础组件（表单、表格、图表等）
+- [ ] 更多高级组件（表格、树形控件、图表等）
 - [ ] 组件样式自定义
-- [ ] 数据绑定与事件处理
 - [ ] 页面模板库
 - [ ] 导出为 React 代码
-- [ ] 数据持久化
 - [ ] 多页面支持
 - [ ] 协作编辑
 
