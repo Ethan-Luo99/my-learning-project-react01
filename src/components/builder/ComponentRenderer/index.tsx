@@ -22,6 +22,7 @@ import {
   type EventConfig,
   type ActionConfig,
 } from '@/types/component';
+import { usePreviewModalRegistry } from '@/context/PreviewModalRegistry';
 import { cn } from '@/utils/classname';
 import { 
   executeAction as executeActionFromEngine, 
@@ -128,6 +129,7 @@ const useClickEventExecutor = () => {
 const useActionExecutor = () => {
   const submitForm = usePreviewFormSubmit();
   const resetForm = usePreviewFormReset();
+  const modalRegistry = usePreviewModalRegistry();
 
   const actionContext: ActionExecutionContext = React.useMemo(() => {
     const globalContext = (window as any).__previewActionContext as ActionExecutionContext | undefined;
@@ -135,8 +137,10 @@ const useActionExecutor = () => {
       submitForm,
       resetForm,
       navigateToPage: globalContext?.navigateToPage,
+      openModal: modalRegistry.openModal,
+      closeModal: modalRegistry.closeModal,
     };
-  }, [submitForm, resetForm]);
+  }, [submitForm, resetForm, modalRegistry.openModal, modalRegistry.closeModal]);
 
   const executeAction = React.useCallback((action: ActionConfig): void => {
     executeActionFromEngine(action, actionContext);
@@ -414,12 +418,19 @@ const ComponentRenderer: React.FC<ComponentRendererProps> = ({
     case ComponentType.Button: {
       const { className: buttonClassName, ...restButtonProps } = props;
       
+      const hasOnClickActions = events?.onClickActions 
+        && events.onClickActions.enabled 
+        && events.onClickActions.actions.length > 0;
+      
       const handlePreviewClick = (e: React.MouseEvent) => {
         if (editable) {
           handleWrapperClick(e, onClick);
         } else {
-          executeClickEvent(events?.onClick);
-          executeEvent(events?.onClickActions);
+          if (hasOnClickActions) {
+            executeEvent(events?.onClickActions);
+          } else {
+            executeClickEvent(events?.onClick);
+          }
         }
       };
 
