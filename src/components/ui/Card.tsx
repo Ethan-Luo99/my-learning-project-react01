@@ -46,6 +46,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
 
     return (
       <div
+        {...props}
         ref={ref}
         className={cn(
           'bg-white rounded-lg transition-all duration-200',
@@ -54,7 +55,6 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
           hoverable && 'hover:shadow-lg hover:-translate-y-0.5 cursor-pointer',
           className
         )}
-        {...props}
       >
         {headerTitle && (
           <div

@@ -55,13 +55,13 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
       <label className={checkboxWrapperClass}>
         <div className="relative">
           <input
+            {...props}
             ref={internalRef}
             type="checkbox"
             checked={checked}
             disabled={disabled}
             onChange={handleChange}
             className="absolute opacity-0 w-full h-full cursor-pointer"
-            {...props}
           />
           <div className={checkboxClass}>
             <svg

@@ -46,6 +46,7 @@ const Radio = React.forwardRef<HTMLInputElement, RadioProps>(
       <label className={radioWrapperClass}>
         <div className="relative">
           <input
+            {...props}
             ref={internalRef}
             type="radio"
             checked={checked}
@@ -53,7 +54,6 @@ const Radio = React.forwardRef<HTMLInputElement, RadioProps>(
             name={name}
             onChange={handleChange}
             className="absolute opacity-0 w-full h-full cursor-pointer"
-            {...props}
           />
           <div className={radioClass}>
             <div className={radioDotClass} />

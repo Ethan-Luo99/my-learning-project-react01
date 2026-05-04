@@ -137,6 +137,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
       <div className="w-full">
         <div className="relative">
           <textarea
+            {...props}
             ref={textareaRef}
             rows={rows}
             maxLength={maxLength}
@@ -148,7 +149,6 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
             onFocus={handleFocus}
             onBlur={handleBlur}
             className={textareaClass}
-            {...props}
           />
           {maxLength && showCount && (
             <div

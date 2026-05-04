@@ -158,6 +158,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             </div>
           )}
           <input
+            {...props}
             ref={inputRef}
             type={type}
             placeholder={placeholder}
@@ -168,7 +169,6 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             onFocus={handleFocus}
             onBlur={handleBlur}
             className={inputClass}
-            {...props}
           />
           <div className="flex items-center pr-3 gap-2">
             {showClear && (
