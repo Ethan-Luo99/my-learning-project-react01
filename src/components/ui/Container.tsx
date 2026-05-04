@@ -66,6 +66,7 @@ const Container = React.forwardRef<HTMLDivElement, ContainerProps>(
 
     return (
       <div
+        {...props}
         ref={ref}
         className={cn(
           'flex',
@@ -77,7 +78,6 @@ const Container = React.forwardRef<HTMLDivElement, ContainerProps>(
           paddings[padding],
           className
         )}
-        {...props}
       >
         {children}
       </div>

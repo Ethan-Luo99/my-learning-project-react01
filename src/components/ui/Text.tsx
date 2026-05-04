@@ -60,6 +60,7 @@ const Text = React.forwardRef<TextElement, TextProps>(
     const Component = React.createElement(
       Tag,
       {
+        ...props,
         ref: ref as React.Ref<TextElement>,
         className: cn(
           variants[variant],
@@ -67,7 +68,6 @@ const Text = React.forwardRef<TextElement, TextProps>(
           colors[color],
           className
         ),
-        ...props,
       }
     );
 

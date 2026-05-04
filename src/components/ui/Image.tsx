@@ -118,6 +118,7 @@ const Image = React.forwardRef<HTMLImageElement, ImageProps>(
         )}
 
         <img
+          {...props}
           ref={ref}
           src={currentSrc}
           alt={alt}
@@ -130,7 +131,6 @@ const Image = React.forwardRef<HTMLImageElement, ImageProps>(
           )}
           onError={handleError}
           onLoad={handleLoad}
-          {...props}
         />
       </div>
     );
