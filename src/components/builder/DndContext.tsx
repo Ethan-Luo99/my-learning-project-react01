@@ -151,12 +151,25 @@ interface DragPosition {
   y: number;
 }
 
+interface MultiDragState {
+  activeComponentId: string;
+  selectedComponentIds: string[];
+  initialPositions: Map<string, { x: number; y: number }>;
+  activeComponentInitialX: number;
+  activeComponentInitialY: number;
+}
+
 export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children }) => {
   const { 
     addComponent, 
     updateComponent, 
     addComponentToParent,
     moveComponentToParent,
+    selectedComponentIds,
+    selectedComponentId,
+    isComponentSelected,
+    getSelectedComponents,
+    updateSelectedComponents,
   } = useBuilderStore();
 
   const [activeDragItem, setActiveDragItem] = useState<ActiveDragItem | null>(null);
@@ -166,6 +179,7 @@ export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children
   const lastMousePositionRef = useRef<DragPosition | null>(null);
   const globalMousePositionRef = useRef<DragPosition>({ x: 0, y: 0 });
   const isDraggingPanelItemRef = useRef(false);
+  const multiDragStateRef = useRef<MultiDragState | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -294,6 +308,57 @@ export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children
     isDraggingPanelItemRef.current = isPanelItem(activeIdStr);
     isOverDropZoneRef.current = false;
 
+    if (isCanvasItem(activeIdStr) || isSortableItem(activeIdStr)) {
+      const actualActiveId = isCanvasItem(activeIdStr) 
+        ? getCanvasItemId(activeIdStr) 
+        : getSortableItemId(activeIdStr);
+      
+      const isActiveSelected = isComponentSelected(actualActiveId);
+      const currentSelectedComponents = getSelectedComponents();
+      
+      logger.log('拖拽开始检测:', {
+        actualActiveId,
+        isActiveSelected,
+        selectedCount: currentSelectedComponents.length,
+        selectedComponentIds,
+        selectedComponentId,
+      });
+
+      if (isActiveSelected && currentSelectedComponents.length > 0) {
+        const initialPositions = new Map<string, { x: number; y: number }>();
+        let activeComponentInitialX = 0;
+        let activeComponentInitialY = 0;
+
+        for (const comp of currentSelectedComponents) {
+          const compX = comp.x ?? DEFAULT_POSITION.X;
+          const compY = comp.y ?? DEFAULT_POSITION.Y;
+          
+          initialPositions.set(comp.id, { x: compX, y: compY });
+          
+          if (comp.id === actualActiveId) {
+            activeComponentInitialX = compX;
+            activeComponentInitialY = compY;
+          }
+        }
+
+        multiDragStateRef.current = {
+          activeComponentId: actualActiveId,
+          selectedComponentIds: currentSelectedComponents.map(c => c.id),
+          initialPositions,
+          activeComponentInitialX,
+          activeComponentInitialY,
+        };
+
+        logger.log('多选拖拽初始化:', {
+          activeComponentId: actualActiveId,
+          selectedComponentIds: currentSelectedComponents.map(c => c.id),
+          initialPositions: Object.fromEntries(initialPositions),
+          activeComponentInitialX,
+          activeComponentInitialY,
+        });
+      }
+    }
+
     if (isPanelItem(activeIdStr)) {
       const type = getPanelItemType(activeIdStr);
       const config = DEFAULT_COMPONENT_CONFIGS[type as ComponentType];
@@ -314,7 +379,7 @@ export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children
         isFromPanel: false,
       });
     }
-  }, [handleGlobalPointerMove]);
+  }, [handleGlobalPointerMove, isComponentSelected, getSelectedComponents, selectedComponentIds, selectedComponentId]);
 
   const handleDragOver = useCallback((event: DragOverEvent) => {
     const { over, point } = event;
@@ -474,54 +539,115 @@ export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children
         if (targetContainerId === actualActiveId) {
           logger.log('⚠️ 不能将组件拖入自身，取消操作');
           isOverDropZoneRef.current = false;
+          multiDragStateRef.current = null;
           return;
         }
 
-        // 更新组件位置（无论拖到哪里，位置都需要更新）
-        updateComponent(actualActiveId, {
-          x: position.x,
-          y: position.y,
-        });
+        // 检查是否是多选拖拽
+        const multiDragState = multiDragStateRef.current;
+        const isMultiDrag = multiDragState && multiDragState.selectedComponentIds.length > 0;
 
-        // 处理父容器变化
-        if (isOverContainerDropZone && targetContainerId) {
-          // 拖到 Container 内部
-          moveComponentToParent(actualActiveId, targetContainerId);
-          logger.log(
-            '✅ 移动组件到 Container:',
-            actualActiveId,
-            '父容器:',
-            targetContainerId,
-            '位置:',
-            `(${position.x}, ${position.y})`
-          );
-        } else if (isOverRootDropZone) {
-          // 拖到根级别画布
-          moveComponentToParent(actualActiveId, null);
-          logger.log(
-            '✅ 移动组件到根级别:',
-            actualActiveId,
-            '位置:',
-            `(${position.x}, ${position.y})`
-          );
-        } else if (isOverSortableItem && effectiveOverId) {
-          // 拖到另一个 sortable item 上，需要找到它的父容器
-          const overComponentId = getSortableItemId(effectiveOverId);
-          // 这里需要更复杂的逻辑来确定目标位置
-          // 暂时简化处理：移动到根级别
-          moveComponentToParent(actualActiveId, null);
-          logger.log(
-            '移动组件到根级别（拖到 sortable item 上）:',
-            actualActiveId
-          );
+        if (isMultiDrag && multiDragState) {
+          logger.log('=== 多选拖拽处理 ===');
+          logger.log('activeComponentId:', multiDragState.activeComponentId);
+          logger.log('selectedComponentIds:', multiDragState.selectedComponentIds);
+          logger.log('activeComponentInitialX:', multiDragState.activeComponentInitialX);
+          logger.log('activeComponentInitialY:', multiDragState.activeComponentInitialY);
+          logger.log('newPosition:', position);
+
+          // 计算拖拽的位移量
+          const deltaX = position.x - multiDragState.activeComponentInitialX;
+          const deltaY = position.y - multiDragState.activeComponentInitialY;
+
+          logger.log('位移量 (deltaX, deltaY):', deltaX, deltaY);
+
+          // 如果位移量为 0，说明没有移动，直接返回
+          if (deltaX === 0 && deltaY === 0) {
+            logger.log('没有位移，不更新位置');
+            multiDragStateRef.current = null;
+            isOverDropZoneRef.current = false;
+            return;
+          }
+
+          // 对于多选拖拽，我们不处理父容器变化（保持原来的父容器）
+          // 只更新所有选中组件的位置
+          let componentsUpdated = false;
+          
+          for (const [compId, initialPos] of multiDragState.initialPositions) {
+            const newX = snapToGrid(initialPos.x + deltaX);
+            const newY = snapToGrid(initialPos.y + deltaY);
+
+            logger.log(`更新组件 ${compId}:`, {
+              initialX: initialPos.x,
+              initialY: initialPos.y,
+              newX,
+              newY,
+            });
+
+            // 单独更新每个组件
+            updateComponent(compId, {
+              x: newX,
+              y: newY,
+            });
+            componentsUpdated = true;
+          }
+
+          if (componentsUpdated) {
+            logger.log('✅ 多选拖拽完成，已更新所有选中组件位置');
+          }
+
+          // 清除多选拖拽状态
+          multiDragStateRef.current = null;
         } else {
-          // 拖到其他组件上（只更新位置）
-          logger.log(
-            '移动组件位置:',
-            actualActiveId,
-            '新位置:',
-            `(${position.x}, ${position.y})`
-          );
+          // 单选拖拽逻辑
+          logger.log('单选拖拽处理:', actualActiveId);
+
+          // 更新组件位置（无论拖到哪里，位置都需要更新）
+          updateComponent(actualActiveId, {
+            x: position.x,
+            y: position.y,
+          });
+
+          // 处理父容器变化
+          if (isOverContainerDropZone && targetContainerId) {
+            // 拖到 Container 内部
+            moveComponentToParent(actualActiveId, targetContainerId);
+            logger.log(
+              '✅ 移动组件到 Container:',
+              actualActiveId,
+              '父容器:',
+              targetContainerId,
+              '位置:',
+              `(${position.x}, ${position.y})`
+            );
+          } else if (isOverRootDropZone) {
+            // 拖到根级别画布
+            moveComponentToParent(actualActiveId, null);
+            logger.log(
+              '✅ 移动组件到根级别:',
+              actualActiveId,
+              '位置:',
+              `(${position.x}, ${position.y})`
+            );
+          } else if (isOverSortableItem && effectiveOverId) {
+            // 拖到另一个 sortable item 上，需要找到它的父容器
+            const overComponentId = getSortableItemId(effectiveOverId);
+            // 这里需要更复杂的逻辑来确定目标位置
+            // 暂时简化处理：移动到根级别
+            moveComponentToParent(actualActiveId, null);
+            logger.log(
+              '移动组件到根级别（拖到 sortable item 上）:',
+              actualActiveId
+            );
+          } else {
+            // 拖到其他组件上（只更新位置）
+            logger.log(
+              '移动组件位置:',
+              actualActiveId,
+              '新位置:',
+              `(${position.x}, ${position.y})`
+            );
+          }
         }
       }
 

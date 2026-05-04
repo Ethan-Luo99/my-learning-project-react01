@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect } from 'react';
+import { useCallback, useRef, useEffect, useMemo } from 'react';
 import { Text } from '@/components/ui';
 import { cn } from '@/utils/classname';
 import { ComponentRenderer } from '@/components/builder/ComponentRenderer';
@@ -12,6 +12,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { useCanvasContext } from '@/components/builder/DndContext';
 import { logger } from '@/utils/logger';
 import { useResize, type ResizeHandle } from '@/hooks/useResize';
+import { useMultiSelect } from '@/hooks/useMultiSelect';
 
 interface CanvasProps {
   className?: string;
@@ -20,7 +21,8 @@ interface CanvasProps {
 interface FreeCanvasItemProps {
   component: ComponentSchema;
   isSelected: boolean;
-  onClick: () => void;
+  isPrimarySelection: boolean;
+  onClick: (e: React.MouseEvent) => void;
 }
 
 const getSizeValue = (value?: number | string): string | number | undefined => {
@@ -174,6 +176,7 @@ const ResizeHandles: React.FC<ResizeHandlesProps> = ({ isResizing, onResizeStart
 const FreeCanvasItem: React.FC<FreeCanvasItemProps> = ({
   component,
   isSelected,
+  isPrimarySelection,
   onClick,
 }) => {
   const dndId = createCanvasItemId(component.id);
@@ -190,7 +193,7 @@ const FreeCanvasItem: React.FC<FreeCanvasItemProps> = ({
 
   const { isResizing, handleResizeStart } = useResize({
     component,
-    isSelected,
+    isSelected: isPrimarySelection,
   });
 
   const width = getSizeValue(component.width);
@@ -211,8 +214,14 @@ const FreeCanvasItem: React.FC<FreeCanvasItemProps> = ({
   const wrapperClassName = cn(
     'relative transition-all duration-200',
     isDragging && 'scale-95',
-    isSelected && 'ring-2 ring-primary-500 ring-offset-2 rounded-lg'
+    isSelected && 'ring-2 ring-primary-500 ring-offset-2 rounded-lg',
+    isPrimarySelection && isSelected && 'ring-2 ring-blue-500 ring-offset-2 rounded-lg'
   );
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onClick(e);
+  };
 
   return (
     <div
@@ -221,18 +230,20 @@ const FreeCanvasItem: React.FC<FreeCanvasItemProps> = ({
       {...attributes}
       {...listeners}
       data-dnd-id={dndId}
+      data-component-wrapper="true"
       className={cn(
         'cursor-grab active:cursor-grabbing',
         isResizing && 'cursor-default'
       )}
+      onClick={handleClick}
     >
       <div className={wrapperClassName}>
         <ComponentRenderer
           component={component}
           isSelected={isSelected}
-          onClick={onClick}
+          onClick={() => {}}
         />
-        {isSelected && !isDragging && (
+        {isPrimarySelection && isSelected && !isDragging && (
           <ResizeHandles
             isResizing={isResizing}
             onResizeStart={handleResizeStart}
@@ -311,13 +322,24 @@ const EmptyState: React.FC<EmptyStateProps> = ({ isOver }) => {
 };
 
 const Canvas: React.FC<CanvasProps> = ({ className }) => {
-  const { components, selectedComponentId, setSelectedComponentId } = useBuilderStore();
+  const { 
+    components, 
+    selectedComponentId, 
+    selectedComponentIds,
+    isComponentSelected,
+  } = useBuilderStore();
   const { canvasRef } = useCanvasContext();
   const nodeRef = useRef<HTMLElement | null>(null);
 
   const { setNodeRef, isOver } = useDroppable({
     id: DROP_ZONE_ID,
   });
+
+  const { 
+    handleComponentClick: multiSelectHandleComponentClick, 
+    handleCanvasClick: multiSelectHandleCanvasClick,
+    isShiftKeyPressed,
+  } = useMultiSelect();
 
   const handleSetNodeRef = useCallback(
     (node: HTMLElement | null) => {
@@ -338,13 +360,13 @@ const Canvas: React.FC<CanvasProps> = ({ className }) => {
     }
   }, [canvasRef]);
 
-  const handleComponentClick = (id: string) => {
-    setSelectedComponentId(id);
-    logger.log('选择组件:', id);
+  const handleComponentClick = (id: string, e?: React.MouseEvent) => {
+    multiSelectHandleComponentClick(id, e);
+    logger.log('选择组件:', id, { isShift: e?.shiftKey || isShiftKeyPressed });
   };
 
-  const handleCanvasClick = () => {
-    setSelectedComponentId(null);
+  const handleCanvasClick = (e?: React.MouseEvent) => {
+    multiSelectHandleCanvasClick(e);
     logger.log('取消选择组件');
   };
 
@@ -383,14 +405,20 @@ const Canvas: React.FC<CanvasProps> = ({ className }) => {
               isOver && 'bg-primary-50/30'
             )}
           >
-            {components.map((component) => (
-              <FreeCanvasItem
-                key={component.id}
-                component={component}
-                isSelected={component.id === selectedComponentId}
-                onClick={() => handleComponentClick(component.id)}
-              />
-            ))}
+            {components.map((component) => {
+              const isSelected = isComponentSelected(component.id);
+              const isPrimarySelection = component.id === selectedComponentId;
+              
+              return (
+                <FreeCanvasItem
+                  key={component.id}
+                  component={component}
+                  isSelected={isSelected}
+                  isPrimarySelection={isPrimarySelection}
+                  onClick={(e) => handleComponentClick(component.id, e)}
+                />
+              );
+            })}
           </div>
 
           {isOver && (

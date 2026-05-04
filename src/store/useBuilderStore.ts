@@ -28,6 +28,7 @@ interface HistoryState {
   pageId: string;
   components: ComponentSchema[];
   selectedComponentId: string | null;
+  selectedComponentIds: string[];
 }
 
 const isContainerComponent = (
@@ -112,6 +113,7 @@ interface BuilderState {
   currentPageId: string;
   components: ComponentSchema[];
   selectedComponentId: string | null;
+  selectedComponentIds: string[];
   bindings: DataBindingRule[];
 
   history: HistoryState[];
@@ -127,14 +129,23 @@ interface BuilderState {
   isProjectCorrupted: boolean;
 
   setSelectedComponentId: (id: string | null) => void;
+  setSelectedComponentIds: (ids: string[]) => void;
+  toggleComponentSelection: (id: string) => void;
+  addToSelection: (id: string) => void;
+  removeFromSelection: (id: string) => void;
+  clearSelection: () => void;
+  isComponentSelected: (id: string) => boolean;
+  getSelectedComponents: () => ComponentSchema[];
 
   addComponent: (component: ComponentSchema) => void;
   addComponentToParent: (parentId: string | null, component: ComponentSchema, index?: number) => void;
 
   removeComponent: (id: string) => void;
+  removeSelectedComponents: () => void;
   moveComponentToParent: (componentId: string, newParentId: string | null, index?: number) => void;
 
   updateComponent: (id: string, updates: Partial<ComponentSchema>) => void;
+  updateSelectedComponents: (updates: Partial<ComponentSchema>) => void;
 
   undo: () => void;
   redo: () => void;
@@ -145,6 +156,17 @@ interface BuilderState {
   moveDown: (id: string) => void;
   moveToTop: (id: string) => void;
   moveToBottom: (id: string) => void;
+  moveSelectedComponentsUp: () => void;
+  moveSelectedComponentsDown: () => void;
+  moveSelectedComponentsToTop: () => void;
+  moveSelectedComponentsToBottom: () => void;
+
+  alignSelectedComponentsLeft: () => void;
+  alignSelectedComponentsRight: () => void;
+  alignSelectedComponentsTop: () => void;
+  alignSelectedComponentsBottom: () => void;
+  alignSelectedComponentsCenterH: () => void;
+  alignSelectedComponentsCenterV: () => void;
 
   canMoveUp: (id: string) => boolean;
   canMoveDown: (id: string) => boolean;
@@ -386,6 +408,7 @@ const createInitialHistory = (): HistoryState[] => {
       pageId: pages[0].id,
       components: [...pages[0].components],
       selectedComponentId: null,
+      selectedComponentIds: [],
     },
   ];
 };
@@ -400,6 +423,7 @@ export const useBuilderStore = create<BuilderState>()(
         currentPageId: initialPages[0].id,
         components: initialPages[0].components,
         selectedComponentId: null,
+        selectedComponentIds: [],
         bindings: [],
 
         history: createInitialHistory(),
@@ -816,13 +840,14 @@ export const useBuilderStore = create<BuilderState>()(
       },
 
       pushHistory: (previousComponents, nextComponents) => {
-        const { history, currentIndex, selectedComponentId } = get();
+        const { history, currentIndex, selectedComponentId, selectedComponentIds } = get();
 
         const newHistory = history.slice(0, currentIndex + 1);
 
         const stateToSave: HistoryState = {
           components: structuredClone(previousComponents),
           selectedComponentId: selectedComponentId,
+          selectedComponentIds: [...selectedComponentIds],
         };
 
         const shouldSave =
@@ -869,10 +894,15 @@ export const useBuilderStore = create<BuilderState>()(
           }
         }
 
+        const newSelectedComponentIds = previousState.selectedComponentIds?.filter(
+          (id) => findComponentById(newComponents, id) !== null
+        ) || [];
+
         set(
           {
             components: newComponents,
             selectedComponentId: newSelectedComponentId,
+            selectedComponentIds: newSelectedComponentIds,
             currentIndex: newIndex,
             canUndo: newIndex > 0,
             canRedo: newIndex < history.length - 1,
@@ -899,10 +929,15 @@ export const useBuilderStore = create<BuilderState>()(
           }
         }
 
+        const newSelectedComponentIds = nextState.selectedComponentIds?.filter(
+          (id) => findComponentById(newComponents, id) !== null
+        ) || [];
+
         set(
           {
             components: newComponents,
             selectedComponentId: newSelectedComponentId,
+            selectedComponentIds: newSelectedComponentIds,
             currentIndex: newIndex,
             canUndo: newIndex > 0,
             canRedo: newIndex < history.length - 1,
@@ -920,7 +955,100 @@ export const useBuilderStore = create<BuilderState>()(
       },
 
       setSelectedComponentId: (id) => {
-        set({ selectedComponentId: id }, false, 'setSelectedComponentId');
+        const newSelectedComponentIds = id ? [id] : [];
+        set({ 
+          selectedComponentId: id, 
+          selectedComponentIds: newSelectedComponentIds 
+        }, false, 'setSelectedComponentId');
+      },
+
+      setSelectedComponentIds: (ids) => {
+        const newSelectedComponentId = ids.length > 0 ? ids[ids.length - 1] : null;
+        set({ 
+          selectedComponentId: newSelectedComponentId, 
+          selectedComponentIds: ids 
+        }, false, 'setSelectedComponentIds');
+      },
+
+      toggleComponentSelection: (id) => {
+        const { selectedComponentIds, selectedComponentId } = get();
+        const isSelected = selectedComponentIds.includes(id);
+        let newSelectedComponentIds: string[];
+        let newSelectedComponentId: string | null;
+
+        if (isSelected) {
+          newSelectedComponentIds = selectedComponentIds.filter((cId) => cId !== id);
+          newSelectedComponentId = newSelectedComponentIds.length > 0 
+            ? newSelectedComponentIds[newSelectedComponentIds.length - 1] 
+            : null;
+        } else {
+          newSelectedComponentIds = [...selectedComponentIds, id];
+          newSelectedComponentId = id;
+        }
+
+        set({ 
+          selectedComponentId: newSelectedComponentId, 
+          selectedComponentIds: newSelectedComponentIds 
+        }, false, 'toggleComponentSelection');
+      },
+
+      addToSelection: (id) => {
+        const { selectedComponentIds } = get();
+        if (!selectedComponentIds.includes(id)) {
+          set({ 
+            selectedComponentId: id,
+            selectedComponentIds: [...selectedComponentIds, id] 
+          }, false, 'addToSelection');
+        }
+      },
+
+      removeFromSelection: (id) => {
+        const { selectedComponentIds } = get();
+        if (selectedComponentIds.includes(id)) {
+          const newSelectedComponentIds = selectedComponentIds.filter((cId) => cId !== id);
+          const newSelectedComponentId = newSelectedComponentIds.length > 0 
+            ? newSelectedComponentIds[newSelectedComponentIds.length - 1] 
+            : null;
+          set({ 
+            selectedComponentId: newSelectedComponentId, 
+            selectedComponentIds: newSelectedComponentIds 
+          }, false, 'removeFromSelection');
+        }
+      },
+
+      clearSelection: () => {
+        set({ 
+          selectedComponentId: null, 
+          selectedComponentIds: [] 
+        }, false, 'clearSelection');
+      },
+
+      isComponentSelected: (id) => {
+        const { selectedComponentIds, selectedComponentId } = get();
+        return selectedComponentIds.includes(id) || selectedComponentId === id;
+      },
+
+      getSelectedComponents: () => {
+        const { components, selectedComponentIds, selectedComponentId } = get();
+        const idsToFind = selectedComponentIds.length > 0 
+          ? selectedComponentIds 
+          : (selectedComponentId ? [selectedComponentId] : []);
+        
+        if (idsToFind.length === 0) return [];
+
+        const foundComponents: ComponentSchema[] = [];
+        const findComponents = (list: ComponentSchema[]) => {
+          for (const comp of list) {
+            if (idsToFind.includes(comp.id)) {
+              foundComponents.push(comp);
+            }
+            if (isContainerComponent(comp) && comp.children) {
+              findComponents(comp.children);
+            }
+          }
+        };
+        findComponents(components);
+        return foundComponents;
       },
 
       addComponent: (component) => {
@@ -980,6 +1108,64 @@ export const useBuilderStore = create<BuilderState>()(
           }),
           false,
           { type: 'updateComponent', id, updates }
+        );
+      },
+
+      updateSelectedComponents: (updates) => {
+        const { components, selectedComponentIds, selectedComponentId, pushHistory } = get();
+        const idsToUpdate = selectedComponentIds.length > 0 
+          ? selectedComponentIds 
+          : (selectedComponentId ? [selectedComponentId] : []);
+        
+        if (idsToUpdate.length === 0) return;
+
+        let newComponents = [...components];
+        for (const id of idsToUpdate) {
+          newComponents = updateComponentInTree(newComponents, id, updates);
+        }
+
+        pushHistory(components, newComponents);
+        set(
+          (state) => {
+            let updatedComponents = [...state.components];
+            for (const id of idsToUpdate) {
+              updatedComponents = updateComponentInTree(updatedComponents, id, updates);
+            }
+            return { components: updatedComponents };
+          },
+          false,
+          { type: 'updateSelectedComponents', ids: idsToUpdate, updates }
+        );
+      },
+
+      removeSelectedComponents: () => {
+        const { components, selectedComponentIds, selectedComponentId, pushHistory } = get();
+        const idsToRemove = selectedComponentIds.length > 0 
+          ? selectedComponentIds 
+          : (selectedComponentId ? [selectedComponentId] : []);
+        
+        if (idsToRemove.length === 0) return;
+
+        let newComponents = [...components];
+        for (const id of idsToRemove) {
+          newComponents = removeComponentFromTree(newComponents, id);
+        }
+
+        pushHistory(components, newComponents);
+        set(
+          (state) => {
+            let updatedComponents = [...state.components];
+            for (const id of idsToRemove) {
+              updatedComponents = removeComponentFromTree(updatedComponents, id);
+            }
+            return { 
+              components: updatedComponents,
+              selectedComponentId: null,
+              selectedComponentIds: [],
+            };
+          },
+          false,
+          { type: 'removeSelectedComponents', ids: idsToRemove }
         );
       },
 
@@ -1131,6 +1317,476 @@ export const useBuilderStore = create<BuilderState>()(
           }),
           false,
           { type: 'moveToBottom', id, newIndex }
+        );
+      },
+
+      moveSelectedComponentsUp: () => {
+        const { components, selectedComponentIds, selectedComponentId, pushHistory, canMoveUp } = get();
+        const idsToMove = selectedComponentIds.length > 0 
+          ? selectedComponentIds 
+          : (selectedComponentId ? [selectedComponentId] : []);
+        
+        if (idsToMove.length === 0) return;
+
+        const componentsWithLocations = idsToMove
+          .filter((id) => canMoveUp(id))
+          .map((id) => {
+            const location = findComponentLocation(components, id);
+            return { id, location };
+          })
+          .filter((item) => item.location !== null) as { id: string; location: ReturnType<typeof findComponentLocation> }[];
+
+        if (componentsWithLocations.length === 0) return;
+
+        componentsWithLocations.sort((a, b) => (b.location?.index ?? 0) - (a.location?.index ?? 0));
+
+        let newComponents = [...components];
+        for (const { id, location } of componentsWithLocations) {
+          if (location) {
+            const siblings = getSiblingsList(newComponents, location.parentId);
+            const currentIndex = findComponentLocation(newComponents, id)?.index;
+            if (currentIndex !== undefined && currentIndex < siblings.length - 1) {
+              newComponents = reorderComponentInTree(newComponents, id, currentIndex + 1);
+            }
+          }
+        }
+
+        pushHistory(components, newComponents);
+        set(
+          (state) => {
+            let updatedComponents = [...state.components];
+            for (const { id, location } of componentsWithLocations) {
+              if (location) {
+                const siblings = getSiblingsList(updatedComponents, location.parentId);
+                const currentIndex = findComponentLocation(updatedComponents, id)?.index;
+                if (currentIndex !== undefined && currentIndex < siblings.length - 1) {
+                  updatedComponents = reorderComponentInTree(updatedComponents, id, currentIndex + 1);
+                }
+              }
+            }
+            return { components: updatedComponents };
+          },
+          false,
+          { type: 'moveSelectedComponentsUp', ids: idsToMove }
+        );
+      },
+
+      moveSelectedComponentsDown: () => {
+        const { components, selectedComponentIds, selectedComponentId, pushHistory, canMoveDown } = get();
+        const idsToMove = selectedComponentIds.length > 0 
+          ? selectedComponentIds 
+          : (selectedComponentId ? [selectedComponentId] : []);
+        
+        if (idsToMove.length === 0) return;
+
+        const componentsWithLocations = idsToMove
+          .filter((id) => canMoveDown(id))
+          .map((id) => {
+            const location = findComponentLocation(components, id);
+            return { id, location };
+          })
+          .filter((item) => item.location !== null) as { id: string; location: ReturnType<typeof findComponentLocation> }[];
+
+        if (componentsWithLocations.length === 0) return;
+
+        componentsWithLocations.sort((a, b) => (a.location?.index ?? 0) - (b.location?.index ?? 0));
+
+        let newComponents = [...components];
+        for (const { id, location } of componentsWithLocations) {
+          if (location) {
+            const currentIndex = findComponentLocation(newComponents, id)?.index;
+            if (currentIndex !== undefined && currentIndex > 0) {
+              newComponents = reorderComponentInTree(newComponents, id, currentIndex - 1);
+            }
+          }
+        }
+
+        pushHistory(components, newComponents);
+        set(
+          (state) => {
+            let updatedComponents = [...state.components];
+            for (const { id, location } of componentsWithLocations) {
+              if (location) {
+                const currentIndex = findComponentLocation(updatedComponents, id)?.index;
+                if (currentIndex !== undefined && currentIndex > 0) {
+                  updatedComponents = reorderComponentInTree(updatedComponents, id, currentIndex - 1);
+                }
+              }
+            }
+            return { components: updatedComponents };
+          },
+          false,
+          { type: 'moveSelectedComponentsDown', ids: idsToMove }
+        );
+      },
+
+      moveSelectedComponentsToTop: () => {
+        const { components, selectedComponentIds, selectedComponentId, pushHistory, canMoveUp } = get();
+        const idsToMove = selectedComponentIds.length > 0 
+          ? selectedComponentIds 
+          : (selectedComponentId ? [selectedComponentId] : []);
+        
+        if (idsToMove.length === 0) return;
+
+        const componentsWithLocations = idsToMove
+          .filter((id) => canMoveUp(id))
+          .map((id) => {
+            const location = findComponentLocation(components, id);
+            return { id, location };
+          })
+          .filter((item) => item.location !== null) as { id: string; location: ReturnType<typeof findComponentLocation> }[];
+
+        if (componentsWithLocations.length === 0) return;
+
+        const groupedByParent = new Map<string | null, { id: string; index: number }[]>();
+        for (const { id, location } of componentsWithLocations) {
+          if (location) {
+            if (!groupedByParent.has(location.parentId)) {
+              groupedByParent.set(location.parentId, []);
+            }
+            groupedByParent.get(location.parentId)?.push({ id, index: location.index });
+          }
+        }
+
+        let newComponents = [...components];
+        for (const [parentId, componentsList] of groupedByParent) {
+          componentsList.sort((a, b) => b.index - a.index);
+          const siblings = getSiblingsList(newComponents, parentId);
+          const targetBaseIndex = siblings.length - 1;
+          
+          for (let i = 0; i < componentsList.length; i++) {
+            const { id } = componentsList[i];
+            newComponents = reorderComponentInTree(newComponents, id, targetBaseIndex - i);
+          }
+        }
+
+        pushHistory(components, newComponents);
+        set(
+          (state) => {
+            let updatedComponents = [...state.components];
+            for (const [parentId, componentsList] of groupedByParent) {
+              const sortedList = [...componentsList].sort((a, b) => b.index - a.index);
+              const siblings = getSiblingsList(updatedComponents, parentId);
+              const targetBaseIndex = siblings.length - 1;
+              
+              for (let i = 0; i < sortedList.length; i++) {
+                const { id } = sortedList[i];
+                updatedComponents = reorderComponentInTree(updatedComponents, id, targetBaseIndex - i);
+              }
+            }
+            return { components: updatedComponents };
+          },
+          false,
+          { type: 'moveSelectedComponentsToTop', ids: idsToMove }
+        );
+      },
+
+      moveSelectedComponentsToBottom: () => {
+        const { components, selectedComponentIds, selectedComponentId, pushHistory, canMoveDown } = get();
+        const idsToMove = selectedComponentIds.length > 0 
+          ? selectedComponentIds 
+          : (selectedComponentId ? [selectedComponentId] : []);
+        
+        if (idsToMove.length === 0) return;
+
+        const componentsWithLocations = idsToMove
+          .filter((id) => canMoveDown(id))
+          .map((id) => {
+            const location = findComponentLocation(components, id);
+            return { id, location };
+          })
+          .filter((item) => item.location !== null) as { id: string; location: ReturnType<typeof findComponentLocation> }[];
+
+        if (componentsWithLocations.length === 0) return;
+
+        const groupedByParent = new Map<string | null, { id: string; index: number }[]>();
+        for (const { id, location } of componentsWithLocations) {
+          if (location) {
+            if (!groupedByParent.has(location.parentId)) {
+              groupedByParent.set(location.parentId, []);
+            }
+            groupedByParent.get(location.parentId)?.push({ id, index: location.index });
+          }
+        }
+
+        let newComponents = [...components];
+        for (const [parentId, componentsList] of groupedByParent) {
+          componentsList.sort((a, b) => a.index - b.index);
+          
+          for (let i = 0; i < componentsList.length; i++) {
+            const { id } = componentsList[i];
+            newComponents = reorderComponentInTree(newComponents, id, i);
+          }
+        }
+
+        pushHistory(components, newComponents);
+        set(
+          (state) => {
+            let updatedComponents = [...state.components];
+            for (const [parentId, componentsList] of groupedByParent) {
+              const sortedList = [...componentsList].sort((a, b) => a.index - b.index);
+              
+              for (let i = 0; i < sortedList.length; i++) {
+                const { id } = sortedList[i];
+                updatedComponents = reorderComponentInTree(updatedComponents, id, i);
+              }
+            }
+            return { components: updatedComponents };
+          },
+          false,
+          { type: 'moveSelectedComponentsToBottom', ids: idsToMove }
+        );
+      },
+
+      alignSelectedComponentsLeft: () => {
+        const { components, selectedComponentIds, selectedComponentId, pushHistory, getSelectedComponents } = get();
+        const selectedComponents = getSelectedComponents();
+        
+        if (selectedComponents.length < 2) return;
+
+        let minX = Infinity;
+        for (const comp of selectedComponents) {
+          const compX = comp.x ?? DEFAULT_POSITION.X;
+          if (compX < minX) {
+            minX = compX;
+          }
+        }
+
+        const snappedMinX = snapToGrid(minX);
+
+        let newComponents = [...components];
+        for (const comp of selectedComponents) {
+          newComponents = updateComponentInTree(newComponents, comp.id, { x: snappedMinX });
+        }
+
+        pushHistory(components, newComponents);
+        set(
+          (state) => {
+            let updatedComponents = [...state.components];
+            for (const comp of selectedComponents) {
+              updatedComponents = updateComponentInTree(updatedComponents, comp.id, { x: snappedMinX });
+            }
+            return { components: updatedComponents };
+          },
+          false,
+          { type: 'alignSelectedComponentsLeft', count: selectedComponents.length, minX: snappedMinX }
+        );
+      },
+
+      alignSelectedComponentsRight: () => {
+        const { components, selectedComponentIds, selectedComponentId, pushHistory, getSelectedComponents } = get();
+        const selectedComponents = getSelectedComponents();
+        
+        if (selectedComponents.length < 2) return;
+
+        let maxRight = -Infinity;
+        for (const comp of selectedComponents) {
+          const compX = comp.x ?? DEFAULT_POSITION.X;
+          const compWidth = typeof comp.width === 'number' ? comp.width : 100;
+          const compRight = compX + compWidth;
+          if (compRight > maxRight) {
+            maxRight = compRight;
+          }
+        }
+
+        const snappedMaxRight = snapToGrid(maxRight);
+
+        let newComponents = [...components];
+        for (const comp of selectedComponents) {
+          const compWidth = typeof comp.width === 'number' ? comp.width : 100;
+          const newX = snappedMaxRight - compWidth;
+          newComponents = updateComponentInTree(newComponents, comp.id, { x: newX });
+        }
+
+        pushHistory(components, newComponents);
+        set(
+          (state) => {
+            let updatedComponents = [...state.components];
+            for (const comp of selectedComponents) {
+              const compWidth = typeof comp.width === 'number' ? comp.width : 100;
+              const newX = snappedMaxRight - compWidth;
+              updatedComponents = updateComponentInTree(updatedComponents, comp.id, { x: newX });
+            }
+            return { components: updatedComponents };
+          },
+          false,
+          { type: 'alignSelectedComponentsRight', count: selectedComponents.length, maxRight: snappedMaxRight }
+        );
+      },
+
+      alignSelectedComponentsTop: () => {
+        const { components, selectedComponentIds, selectedComponentId, pushHistory, getSelectedComponents } = get();
+        const selectedComponents = getSelectedComponents();
+        
+        if (selectedComponents.length < 2) return;
+
+        let minY = Infinity;
+        for (const comp of selectedComponents) {
+          const compY = comp.y ?? DEFAULT_POSITION.Y;
+          if (compY < minY) {
+            minY = compY;
+          }
+        }
+
+        const snappedMinY = snapToGrid(minY);
+
+        let newComponents = [...components];
+        for (const comp of selectedComponents) {
+          newComponents = updateComponentInTree(newComponents, comp.id, { y: snappedMinY });
+        }
+
+        pushHistory(components, newComponents);
+        set(
+          (state) => {
+            let updatedComponents = [...state.components];
+            for (const comp of selectedComponents) {
+              updatedComponents = updateComponentInTree(updatedComponents, comp.id, { y: snappedMinY });
+            }
+            return { components: updatedComponents };
+          },
+          false,
+          { type: 'alignSelectedComponentsTop', count: selectedComponents.length, minY: snappedMinY }
+        );
+      },
+
+      alignSelectedComponentsBottom: () => {
+        const { components, selectedComponentIds, selectedComponentId, pushHistory, getSelectedComponents } = get();
+        const selectedComponents = getSelectedComponents();
+        
+        if (selectedComponents.length < 2) return;
+
+        let maxBottom = -Infinity;
+        for (const comp of selectedComponents) {
+          const compY = comp.y ?? DEFAULT_POSITION.Y;
+          const compHeight = typeof comp.height === 'number' ? comp.height : 100;
+          const compBottom = compY + compHeight;
+          if (compBottom > maxBottom) {
+            maxBottom = compBottom;
+          }
+        }
+
+        const snappedMaxBottom = snapToGrid(maxBottom);
+
+        let newComponents = [...components];
+        for (const comp of selectedComponents) {
+          const compHeight = typeof comp.height === 'number' ? comp.height : 100;
+          const newY = snappedMaxBottom - compHeight;
+          newComponents = updateComponentInTree(newComponents, comp.id, { y: newY });
+        }
+
+        pushHistory(components, newComponents);
+        set(
+          (state) => {
+            let updatedComponents = [...state.components];
+            for (const comp of selectedComponents) {
+              const compHeight = typeof comp.height === 'number' ? comp.height : 100;
+              const newY = snappedMaxBottom - compHeight;
+              updatedComponents = updateComponentInTree(updatedComponents, comp.id, { y: newY });
+            }
+            return { components: updatedComponents };
+          },
+          false,
+          { type: 'alignSelectedComponentsBottom', count: selectedComponents.length, maxBottom: snappedMaxBottom }
+        );
+      },
+
+      alignSelectedComponentsCenterH: () => {
+        const { components, selectedComponentIds, selectedComponentId, pushHistory, getSelectedComponents } = get();
+        const selectedComponents = getSelectedComponents();
+        
+        if (selectedComponents.length < 2) return;
+
+        let minX = Infinity;
+        let maxRight = -Infinity;
+
+        for (const comp of selectedComponents) {
+          const compX = comp.x ?? DEFAULT_POSITION.X;
+          const compWidth = typeof comp.width === 'number' ? comp.width : 100;
+          const compRight = compX + compWidth;
+          
+          if (compX < minX) {
+            minX = compX;
+          }
+          if (compRight > maxRight) {
+            maxRight = compRight;
+          }
+        }
+
+        const selectionCenterX = (minX + maxRight) / 2;
+        const snappedCenterX = snapToGrid(selectionCenterX);
+
+        let newComponents = [...components];
+        for (const comp of selectedComponents) {
+          const compWidth = typeof comp.width === 'number' ? comp.width : 100;
+          const newX = snappedCenterX - compWidth / 2;
+          const snappedNewX = snapToGrid(newX);
+          newComponents = updateComponentInTree(newComponents, comp.id, { x: snappedNewX });
+        }
+
+        pushHistory(components, newComponents);
+        set(
+          (state) => {
+            let updatedComponents = [...state.components];
+            for (const comp of selectedComponents) {
+              const compWidth = typeof comp.width === 'number' ? comp.width : 100;
+              const newX = snappedCenterX - compWidth / 2;
+              const snappedNewX = snapToGrid(newX);
+              updatedComponents = updateComponentInTree(updatedComponents, comp.id, { x: snappedNewX });
+            }
+            return { components: updatedComponents };
+          },
+          false,
+          { type: 'alignSelectedComponentsCenterH', count: selectedComponents.length, centerX: snappedCenterX }
+        );
+      },
+
+      alignSelectedComponentsCenterV: () => {
+        const { components, selectedComponentIds, selectedComponentId, pushHistory, getSelectedComponents } = get();
+        const selectedComponents = getSelectedComponents();
+        
+        if (selectedComponents.length < 2) return;
+
+        let minY = Infinity;
+        let maxBottom = -Infinity;
+
+        for (const comp of selectedComponents) {
+          const compY = comp.y ?? DEFAULT_POSITION.Y;
+          const compHeight = typeof comp.height === 'number' ? comp.height : 100;
+          const compBottom = compY + compHeight;
+          
+          if (compY < minY) {
+            minY = compY;
+          }
+          if (compBottom > maxBottom) {
+            maxBottom = compBottom;
+          }
+        }
+
+        const selectionCenterY = (minY + maxBottom) / 2;
+        const snappedCenterY = snapToGrid(selectionCenterY);
+
+        let newComponents = [...components];
+        for (const comp of selectedComponents) {
+          const compHeight = typeof comp.height === 'number' ? comp.height : 100;
+          const newY = snappedCenterY - compHeight / 2;
+          const snappedNewY = snapToGrid(newY);
+          newComponents = updateComponentInTree(newComponents, comp.id, { y: snappedNewY });
+        }
+
+        pushHistory(components, newComponents);
+        set(
+          (state) => {
+            let updatedComponents = [...state.components];
+            for (const comp of selectedComponents) {
+              const compHeight = typeof comp.height === 'number' ? comp.height : 100;
+              const newY = snappedCenterY - compHeight / 2;
+              const snappedNewY = snapToGrid(newY);
+              updatedComponents = updateComponentInTree(updatedComponents, comp.id, { y: snappedNewY });
+            }
+            return { components: updatedComponents };
+          },
+          false,
+          { type: 'alignSelectedComponentsCenterV', count: selectedComponents.length, centerY: snappedCenterY }
         );
       },
 

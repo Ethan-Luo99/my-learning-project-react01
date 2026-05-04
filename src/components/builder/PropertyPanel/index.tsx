@@ -1479,22 +1479,39 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
   const { 
     components, 
     selectedComponentId, 
+    selectedComponentIds,
     updateComponent, 
     removeComponent, 
+    removeSelectedComponents,
     setSelectedComponentId, 
     addComponent,
     moveUp,
     moveDown,
     moveToTop,
     moveToBottom,
+    moveSelectedComponentsUp,
+    moveSelectedComponentsDown,
+    moveSelectedComponentsToTop,
+    moveSelectedComponentsToBottom,
+    alignSelectedComponentsLeft,
+    alignSelectedComponentsRight,
+    alignSelectedComponentsTop,
+    alignSelectedComponentsBottom,
+    alignSelectedComponentsCenterH,
+    alignSelectedComponentsCenterV,
     canMoveUp,
     canMoveDown,
     getComponentLayerInfo,
+    getSelectedComponents,
+    isComponentSelected,
     bindings,
     addBinding,
     updateBinding,
     removeBinding,
   } = useBuilderStore();
+
+  const selectedComponents = getSelectedComponents();
+  const isMultiSelectMode = selectedComponents.length > 1;
 
   const selectedComponent = useMemo(() => {
     if (!selectedComponentId) return null;
@@ -1839,6 +1856,180 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className }) => {
 
     return value !== undefined ? value : config.defaultValue;
   };
+
+  if (isMultiSelectMode) {
+    return (
+      <div className={cn('p-4 h-full overflow-y-auto', className)}>
+        <div className="mb-4 pb-3 border-b border-gray-200">
+          <Text variant="h3" weight="semibold">
+            属性配置
+          </Text>
+        </div>
+
+        <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 rounded-lg mb-4">
+          <span className="text-lg">📦</span>
+          <div className="flex-1 min-w-0">
+            <Text variant="body" weight="medium" className="text-blue-900">
+              已选中 {selectedComponents.length} 个组件
+            </Text>
+            <Text variant="caption" color="muted" className="truncate block">
+              支持批量操作和对齐
+            </Text>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-between mb-3">
+              <Text variant="caption" color="muted" weight="medium">
+                批量操作
+              </Text>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={removeSelectedComponents}
+                color="danger"
+                className="flex-1"
+              >
+                批量删除
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-between mb-3">
+              <Text variant="caption" color="muted" weight="medium">
+                层级控制
+              </Text>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={moveSelectedComponentsToTop}
+                className="flex-1"
+              >
+                置顶
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={moveSelectedComponentsUp}
+                className="flex-1"
+              >
+                上移
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={moveSelectedComponentsDown}
+                className="flex-1"
+              >
+                下移
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={moveSelectedComponentsToBottom}
+                className="flex-1"
+              >
+                置底
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-between mb-3">
+              <Text variant="caption" color="muted" weight="medium">
+                对齐方式
+              </Text>
+            </div>
+            
+            <div className="mb-3">
+              <Text variant="caption" color="muted" className="mb-2 block">
+                水平对齐
+              </Text>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={alignSelectedComponentsLeft}
+                  className="flex-1"
+                  title="左对齐（以最左侧组件为基准）"
+                >
+                  左对齐
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={alignSelectedComponentsCenterH}
+                  className="flex-1"
+                  title="水平居中（以选中区域的中线为基准）"
+                >
+                  水平居中
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={alignSelectedComponentsRight}
+                  className="flex-1"
+                  title="右对齐（以最右侧组件为基准）"
+                >
+                  右对齐
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <Text variant="caption" color="muted" className="mb-2 block">
+                垂直对齐
+              </Text>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={alignSelectedComponentsTop}
+                  className="flex-1"
+                  title="上对齐（以最上方组件为基准）"
+                >
+                  上对齐
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={alignSelectedComponentsCenterV}
+                  className="flex-1"
+                  title="垂直居中（以选中区域的中线为基准）"
+                >
+                  垂直居中
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={alignSelectedComponentsBottom}
+                  className="flex-1"
+                  title="下对齐（以最下方组件为基准）"
+                >
+                  下对齐
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <Text variant="caption" color="muted" className="block">
+              提示：按住 Shift 键点击组件可进行多选
+            </Text>
+            <Text variant="caption" color="muted" className="block mt-1">
+              多选组件可作为整体拖拽移动
+            </Text>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!selectedComponent || !propertyConfig || !groupedProperties) {
     return (
