@@ -119,6 +119,9 @@ interface BuilderState {
   history: HistoryState[];
   currentIndex: number;
 
+  isInHistoryBatch: boolean;
+  batchStartComponents: ComponentSchema[] | null;
+
   currentProjectId: string | null;
   projectName: string;
   saveStatus: SaveStatus;
@@ -151,6 +154,10 @@ interface BuilderState {
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+
+  beginHistoryBatch: () => void;
+  endHistoryBatch: () => void;
+  cancelHistoryBatch: () => void;
 
   moveUp: (id: string) => void;
   moveDown: (id: string) => void;
@@ -430,6 +437,8 @@ export const useBuilderStore = create<BuilderState>()(
         currentIndex: 0,
         canUndo: false,
         canRedo: false,
+        isInHistoryBatch: false,
+        batchStartComponents: null,
 
         currentProjectId: null,
         projectName: '未命名项目',
@@ -840,7 +849,11 @@ export const useBuilderStore = create<BuilderState>()(
       },
 
       pushHistory: (previousComponents, nextComponents) => {
-        const { history, currentIndex, selectedComponentId, selectedComponentIds } = get();
+        const { history, currentIndex, selectedComponentId, selectedComponentIds, isInHistoryBatch } = get();
+
+        if (isInHistoryBatch) {
+          return;
+        }
 
         const newHistory = history.slice(0, currentIndex + 1);
 
@@ -874,6 +887,61 @@ export const useBuilderStore = create<BuilderState>()(
           },
           false,
           'pushHistory'
+        );
+      },
+
+      beginHistoryBatch: () => {
+        const { components } = get();
+        set(
+          {
+            isInHistoryBatch: true,
+            batchStartComponents: structuredClone(components),
+          },
+          false,
+          'beginHistoryBatch'
+        );
+      },
+
+      endHistoryBatch: () => {
+        const { isInHistoryBatch, batchStartComponents, components, pushHistory } = get();
+
+        if (!isInHistoryBatch || !batchStartComponents) {
+          set(
+            {
+              isInHistoryBatch: false,
+              batchStartComponents: null,
+            },
+            false,
+            'endHistoryBatch_no_op'
+          );
+          return;
+        }
+
+        const shouldSave =
+          JSON.stringify(batchStartComponents) !== JSON.stringify(components);
+
+        if (shouldSave) {
+          pushHistory(batchStartComponents, components);
+        }
+
+        set(
+          {
+            isInHistoryBatch: false,
+            batchStartComponents: null,
+          },
+          false,
+          'endHistoryBatch'
+        );
+      },
+
+      cancelHistoryBatch: () => {
+        set(
+          {
+            isInHistoryBatch: false,
+            batchStartComponents: null,
+          },
+          false,
+          'cancelHistoryBatch'
         );
       },
 

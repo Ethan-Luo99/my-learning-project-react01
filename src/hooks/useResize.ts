@@ -59,7 +59,12 @@ const HANDLE_CONFIGS: Record<ResizeHandle, HandleConfig> = {
 };
 
 export const useResize = ({ component, isSelected }: UseResizeOptions): ResizeResult => {
-  const { updateComponent } = useBuilderStore();
+  const { 
+    updateComponent, 
+    beginHistoryBatch, 
+    endHistoryBatch, 
+    cancelHistoryBatch 
+  } = useBuilderStore();
   
   const [resizeState, setResizeState] = useState<ResizeState>({
     isResizing: false,
@@ -100,8 +105,9 @@ export const useResize = ({ component, isSelected }: UseResizeOptions): ResizeRe
     };
 
     setResizeState(newState);
+    beginHistoryBatch();
     logger.log('Resize started:', { handle, initialBounds, initialMousePosition });
-  }, []);
+  }, [beginHistoryBatch]);
 
   const calculateResize = useCallback((
     handle: ResizeHandle,
@@ -213,8 +219,23 @@ export const useResize = ({ component, isSelected }: UseResizeOptions): ResizeRe
         initialBounds: null,
         initialMousePosition: null,
       });
+      endHistoryBatch();
     }
-  }, []);
+  }, [endHistoryBatch]);
+
+  const handleResizeCancel = useCallback(() => {
+    const state = resizeStateRef.current;
+    if (state.isResizing) {
+      logger.log('Resize canceled:', { handle: state.activeHandle });
+      setResizeState({
+        isResizing: false,
+        activeHandle: null,
+        initialBounds: null,
+        initialMousePosition: null,
+      });
+      cancelHistoryBatch();
+    }
+  }, [cancelHistoryBatch]);
 
   useEffect(() => {
     if (resizeState.isResizing) {
@@ -222,7 +243,7 @@ export const useResize = ({ component, isSelected }: UseResizeOptions): ResizeRe
       const handleMouseUp = () => handleResizeEnd();
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === 'Escape') {
-          handleResizeEnd();
+          handleResizeCancel();
         }
       };
 
@@ -236,7 +257,7 @@ export const useResize = ({ component, isSelected }: UseResizeOptions): ResizeRe
         window.removeEventListener('keydown', handleKeyDown);
       };
     }
-  }, [resizeState.isResizing, handleResizeMove, handleResizeEnd]);
+  }, [resizeState.isResizing, handleResizeMove, handleResizeEnd, handleResizeCancel]);
 
   return {
     isResizing: resizeState.isResizing,

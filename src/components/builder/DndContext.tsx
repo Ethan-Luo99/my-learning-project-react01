@@ -174,6 +174,9 @@ export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children
     isComponentSelected,
     getSelectedComponents,
     updateSelectedComponents,
+    beginHistoryBatch,
+    endHistoryBatch,
+    cancelHistoryBatch,
   } = useBuilderStore();
 
   const [activeDragItem, setActiveDragItem] = useState<ActiveDragItem | null>(null);
@@ -349,6 +352,8 @@ export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children
       
       activeDragComponentIdRef.current = actualActiveId;
       
+      beginHistoryBatch();
+      
       const isActiveSelected = isComponentSelected(actualActiveId);
       const currentSelectedComponents = getSelectedComponents();
       
@@ -415,7 +420,7 @@ export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children
         isFromPanel: false,
       });
     }
-  }, [handleGlobalPointerMove, isComponentSelected, getSelectedComponents, selectedComponentIds, selectedComponentId]);
+  }, [handleGlobalPointerMove, isComponentSelected, getSelectedComponents, selectedComponentIds, selectedComponentId, beginHistoryBatch]);
 
   const handleDragOver = useCallback((event: DragOverEvent) => {
     const { over, point } = event;
@@ -562,6 +567,7 @@ export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children
       if (!isOverCanvasArea && !isOverDropZone) {
         logger.log('❌ 不在画布上，不放置组件');
         isOverDropZoneRef.current = false;
+        cancelHistoryBatch();
         return;
       }
 
@@ -854,6 +860,7 @@ export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children
 
       isOverDropZoneRef.current = false;
       clearGuides();
+      endHistoryBatch();
     },
     [
       addComponent, 
@@ -861,7 +868,9 @@ export const DndContextProvider: React.FC<DndContextProviderProps> = ({ children
       addComponentToParent, 
       moveComponentToParent,
       handleGlobalPointerMove,
-      clearGuides
+      clearGuides,
+      endHistoryBatch,
+      cancelHistoryBatch
     ]
   );
 
