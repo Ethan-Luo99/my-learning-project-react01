@@ -21,6 +21,7 @@ import {
 } from '@/utils/storage';
 import type { ProjectMetadata, LoadProjectResult } from '@/utils/storage';
 import { generateId } from '@/utils/id';
+import { getComponentSize } from '@/utils/size';
 
 const MAX_HISTORY_LENGTH = 50;
 
@@ -1650,7 +1651,7 @@ export const useBuilderStore = create<BuilderState>()(
         let maxRight = -Infinity;
         for (const comp of selectedComponents) {
           const compX = comp.x ?? DEFAULT_POSITION.X;
-          const compWidth = typeof comp.width === 'number' ? comp.width : 100;
+          const compWidth = getComponentSize(comp).width;
           const compRight = compX + compWidth;
           if (compRight > maxRight) {
             maxRight = compRight;
@@ -1661,7 +1662,7 @@ export const useBuilderStore = create<BuilderState>()(
 
         let newComponents = [...components];
         for (const comp of selectedComponents) {
-          const compWidth = typeof comp.width === 'number' ? comp.width : 100;
+          const compWidth = getComponentSize(comp).width;
           const newX = snappedMaxRight - compWidth;
           newComponents = updateComponentInTree(newComponents, comp.id, { x: newX });
         }
@@ -1671,7 +1672,7 @@ export const useBuilderStore = create<BuilderState>()(
           (state) => {
             let updatedComponents = [...state.components];
             for (const comp of selectedComponents) {
-              const compWidth = typeof comp.width === 'number' ? comp.width : 100;
+              const compWidth = getComponentSize(comp).width;
               const newX = snappedMaxRight - compWidth;
               updatedComponents = updateComponentInTree(updatedComponents, comp.id, { x: newX });
             }
@@ -1726,7 +1727,7 @@ export const useBuilderStore = create<BuilderState>()(
         let maxBottom = -Infinity;
         for (const comp of selectedComponents) {
           const compY = comp.y ?? DEFAULT_POSITION.Y;
-          const compHeight = typeof comp.height === 'number' ? comp.height : 100;
+          const compHeight = getComponentSize(comp).height;
           const compBottom = compY + compHeight;
           if (compBottom > maxBottom) {
             maxBottom = compBottom;
@@ -1737,7 +1738,7 @@ export const useBuilderStore = create<BuilderState>()(
 
         let newComponents = [...components];
         for (const comp of selectedComponents) {
-          const compHeight = typeof comp.height === 'number' ? comp.height : 100;
+          const compHeight = getComponentSize(comp).height;
           const newY = snappedMaxBottom - compHeight;
           newComponents = updateComponentInTree(newComponents, comp.id, { y: newY });
         }
@@ -1747,7 +1748,7 @@ export const useBuilderStore = create<BuilderState>()(
           (state) => {
             let updatedComponents = [...state.components];
             for (const comp of selectedComponents) {
-              const compHeight = typeof comp.height === 'number' ? comp.height : 100;
+              const compHeight = getComponentSize(comp).height;
               const newY = snappedMaxBottom - compHeight;
               updatedComponents = updateComponentInTree(updatedComponents, comp.id, { y: newY });
             }
@@ -1769,7 +1770,7 @@ export const useBuilderStore = create<BuilderState>()(
 
         for (const comp of selectedComponents) {
           const compX = comp.x ?? DEFAULT_POSITION.X;
-          const compWidth = typeof comp.width === 'number' ? comp.width : 100;
+          const compWidth = getComponentSize(comp).width;
           const compRight = compX + compWidth;
           
           if (compX < minX) {
@@ -1785,7 +1786,7 @@ export const useBuilderStore = create<BuilderState>()(
 
         let newComponents = [...components];
         for (const comp of selectedComponents) {
-          const compWidth = typeof comp.width === 'number' ? comp.width : 100;
+          const compWidth = getComponentSize(comp).width;
           const newX = snappedCenterX - compWidth / 2;
           const snappedNewX = snapToGrid(newX);
           newComponents = updateComponentInTree(newComponents, comp.id, { x: snappedNewX });
@@ -1796,7 +1797,7 @@ export const useBuilderStore = create<BuilderState>()(
           (state) => {
             let updatedComponents = [...state.components];
             for (const comp of selectedComponents) {
-              const compWidth = typeof comp.width === 'number' ? comp.width : 100;
+              const compWidth = getComponentSize(comp).width;
               const newX = snappedCenterX - compWidth / 2;
               const snappedNewX = snapToGrid(newX);
               updatedComponents = updateComponentInTree(updatedComponents, comp.id, { x: snappedNewX });
@@ -1819,7 +1820,7 @@ export const useBuilderStore = create<BuilderState>()(
 
         for (const comp of selectedComponents) {
           const compY = comp.y ?? DEFAULT_POSITION.Y;
-          const compHeight = typeof comp.height === 'number' ? comp.height : 100;
+          const compHeight = getComponentSize(comp).height;
           const compBottom = compY + compHeight;
           
           if (compY < minY) {
@@ -1835,7 +1836,7 @@ export const useBuilderStore = create<BuilderState>()(
 
         let newComponents = [...components];
         for (const comp of selectedComponents) {
-          const compHeight = typeof comp.height === 'number' ? comp.height : 100;
+          const compHeight = getComponentSize(comp).height;
           const newY = snappedCenterY - compHeight / 2;
           const snappedNewY = snapToGrid(newY);
           newComponents = updateComponentInTree(newComponents, comp.id, { y: snappedNewY });
@@ -1846,7 +1847,7 @@ export const useBuilderStore = create<BuilderState>()(
           (state) => {
             let updatedComponents = [...state.components];
             for (const comp of selectedComponents) {
-              const compHeight = typeof comp.height === 'number' ? comp.height : 100;
+              const compHeight = getComponentSize(comp).height;
               const newY = snappedCenterY - compHeight / 2;
               const snappedNewY = snapToGrid(newY);
               updatedComponents = updateComponentInTree(updatedComponents, comp.id, { y: snappedNewY });

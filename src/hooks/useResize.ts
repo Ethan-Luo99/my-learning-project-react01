@@ -3,6 +3,7 @@ import { snapToGrid, clamp, GRID_SIZE, COMPONENT_MIN_SIZE } from '@/constants/dn
 import type { ComponentSchema } from '@/types/component';
 import { useBuilderStore } from '@/store/useBuilderStore';
 import { logger } from '@/utils/logger';
+import { getComponentSize } from '@/utils/size';
 
 export type ResizeHandle = 
   | 'top' 
@@ -84,12 +85,13 @@ export const useResize = ({ component, isSelected }: UseResizeOptions): ResizeRe
     e.preventDefault();
 
     const currentComponent = componentRef.current;
+    const { width, height } = getComponentSize(currentComponent);
     
     const initialBounds = {
       x: currentComponent.x ?? 0,
       y: currentComponent.y ?? 0,
-      width: typeof currentComponent.width === 'number' ? currentComponent.width : 100,
-      height: typeof currentComponent.height === 'number' ? currentComponent.height : 100,
+      width,
+      height,
     };
 
     const initialMousePosition = {

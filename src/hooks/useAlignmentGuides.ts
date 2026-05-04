@@ -1,6 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { ComponentSchema } from '@/types/component';
 import { logger } from '@/utils/logger';
+import { getComponentFullBounds } from '@/utils/size';
+import type { ComponentBounds } from '@/utils/size';
 
 export type AlignmentType =
   | 'left'
@@ -29,37 +31,10 @@ export interface AlignmentResult {
   snappedY: number;
 }
 
-interface ComponentBounds {
-  id: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  centerX: number;
-  centerY: number;
-  right: number;
-  bottom: number;
-}
-
 const SNAP_TOLERANCE = 8;
 
 const getComponentBounds = (component: ComponentSchema): ComponentBounds => {
-  const x = component.x ?? 0;
-  const y = component.y ?? 0;
-  const width = typeof component.width === 'number' ? component.width : 100;
-  const height = typeof component.height === 'number' ? component.height : 100;
-
-  return {
-    id: component.id,
-    x,
-    y,
-    width,
-    height,
-    centerX: x + width / 2,
-    centerY: y + height / 2,
-    right: x + width,
-    bottom: y + height,
-  };
+  return getComponentFullBounds(component);
 };
 
 interface UseAlignmentGuidesOptions {
