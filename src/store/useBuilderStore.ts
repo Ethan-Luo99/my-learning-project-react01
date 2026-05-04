@@ -1837,7 +1837,8 @@ export const useBuilderStore = create<BuilderState>()(
         const { bindings } = get();
         return bindings.filter((b) => b.targetId === targetId && b.enabled);
       },
-    }),
+      };
+    },
     {
       name: 'BuilderStore',
       store: 'builder',
