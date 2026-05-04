@@ -22,17 +22,23 @@ export const useMultiSelect = (
     setSelectedComponentId,
     setSelectedComponentIds,
     toggleComponentSelection,
-    addToSelection,
     clearSelection,
     isComponentSelected,
   } = useBuilderStore();
 
   const [isShiftKeyPressed, setIsShiftKeyPressed] = useState(false);
+  const isShiftKeyPressedRef = useRef(false);
+  const optionsRef = useRef(options);
   const lastClickedIdRef = useRef<string | null>(null);
 
   useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Shift' && !isShiftKeyPressed) {
+      if (e.key === 'Shift' && !isShiftKeyPressedRef.current) {
+        isShiftKeyPressedRef.current = true;
         setIsShiftKeyPressed(true);
         logger.log('Shift key pressed - multi-select mode enabled');
       }
@@ -40,6 +46,7 @@ export const useMultiSelect = (
 
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.key === 'Shift') {
+        isShiftKeyPressedRef.current = false;
         setIsShiftKeyPressed(false);
         logger.log('Shift key released - multi-select mode disabled');
       }
@@ -52,10 +59,10 @@ export const useMultiSelect = (
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [isShiftKeyPressed]);
+  }, []);
 
   const handleComponentClick = useCallback((id: string, e?: React.MouseEvent) => {
-    const shiftKey = e?.shiftKey || isShiftKeyPressed;
+    const shiftKey = e?.shiftKey || isShiftKeyPressedRef.current;
     const ctrlKey = e?.ctrlKey || e?.metaKey;
 
     logger.log('Component clicked:', {
@@ -81,19 +88,17 @@ export const useMultiSelect = (
       lastClickedIdRef.current = id;
     }
 
-    options.onComponentClick?.(id);
+    optionsRef.current.onComponentClick?.(id);
   }, [
-    isShiftKeyPressed,
     selectedComponentIds,
     isComponentSelected,
     toggleComponentSelection,
     setSelectedComponentId,
     setSelectedComponentIds,
-    options,
   ]);
 
   const handleCanvasClick = useCallback((e?: React.MouseEvent) => {
-    const shiftKey = e?.shiftKey || isShiftKeyPressed;
+    const shiftKey = e?.shiftKey || isShiftKeyPressedRef.current;
 
     if (e) {
       const target = e.target as HTMLElement;
@@ -108,8 +113,8 @@ export const useMultiSelect = (
       logger.log('Canvas clicked - selection cleared');
     }
 
-    options.onCanvasClick?.();
-  }, [isShiftKeyPressed, clearSelection, options]);
+    optionsRef.current.onCanvasClick?.();
+  }, [clearSelection]);
 
   return {
     isShiftKeyPressed,

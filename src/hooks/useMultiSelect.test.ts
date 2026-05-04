@@ -406,6 +406,196 @@ export const runMultiSelectTests = (): TestRunner => {
     assertEqual(state.getSelectedComponents().length, 1, '选中组件数量应该保持不变');
   });
 
+  runner.test('Shift+点击多选: 连续 Shift+点击应该切换多个组件的选中状态', () => {
+    const state = useBuilderStore.getState();
+    
+    const text1 = createMockTextComponent('text-1', '文本1');
+    const text2 = createMockTextComponent('text-2', '文本2');
+    const text3 = createMockTextComponent('text-3', '文本3');
+    state.addComponent(text1);
+    state.addComponent(text2);
+    state.addComponent(text3);
+    
+    assertEqual(state.getSelectedComponents().length, 0, '初始没有选中组件');
+    
+    state.toggleComponentSelection('text-1');
+    assert(state.isComponentSelected('text-1') === true, 'text-1 应该被选中');
+    assertEqual(state.getSelectedComponents().length, 1, '应该有 1 个选中组件');
+    
+    state.toggleComponentSelection('text-2');
+    assert(state.isComponentSelected('text-1') === true, 'text-1 仍然应该被选中');
+    assert(state.isComponentSelected('text-2') === true, 'text-2 应该被选中');
+    assertEqual(state.getSelectedComponents().length, 2, '应该有 2 个选中组件');
+    
+    state.toggleComponentSelection('text-3');
+    assertEqual(state.getSelectedComponents().length, 3, '应该有 3 个选中组件');
+  });
+
+  runner.test('Shift+点击多选: 再次 Shift+点击已选中组件应该取消选中', () => {
+    const state = useBuilderStore.getState();
+    
+    const text1 = createMockTextComponent('text-1', '文本1');
+    const text2 = createMockTextComponent('text-2', '文本2');
+    state.addComponent(text1);
+    state.addComponent(text2);
+    
+    state.toggleComponentSelection('text-1');
+    state.toggleComponentSelection('text-2');
+    
+    assertEqual(state.getSelectedComponents().length, 2, '应该有 2 个选中组件');
+    
+    state.toggleComponentSelection('text-1');
+    
+    assert(state.isComponentSelected('text-1') === false, 'text-1 应该取消选中');
+    assert(state.isComponentSelected('text-2') === true, 'text-2 仍然应该被选中');
+    assertEqual(state.getSelectedComponents().length, 1, '应该只剩下 1 个选中组件');
+  });
+
+  runner.test('取消多选: 点击未选中组件应该取消多选并选中该组件', () => {
+    const state = useBuilderStore.getState();
+    
+    const text1 = createMockTextComponent('text-1', '文本1');
+    const text2 = createMockTextComponent('text-2', '文本2');
+    const text3 = createMockTextComponent('text-3', '文本3');
+    state.addComponent(text1);
+    state.addComponent(text2);
+    state.addComponent(text3);
+    
+    state.addToSelection('text-1');
+    state.addToSelection('text-2');
+    
+    assertEqual(state.getSelectedComponents().length, 2, '应该有 2 个选中组件');
+    
+    state.setSelectedComponentId('text-3');
+    
+    assert(state.isComponentSelected('text-3') === true, 'text-3 应该被选中');
+    assert(state.isComponentSelected('text-1') === false, 'text-1 应该取消选中');
+    assert(state.isComponentSelected('text-2') === false, 'text-2 应该取消选中');
+    assertEqual(state.getSelectedComponents().length, 1, '应该只剩下 1 个选中组件');
+  });
+
+  runner.test('批量删除: 删除多个选中组件后应该清空选中状态', () => {
+    const state = useBuilderStore.getState();
+    
+    const text1 = createMockTextComponent('text-1', '文本1');
+    const text2 = createMockTextComponent('text-2', '文本2');
+    const text3 = createMockTextComponent('text-3', '文本3');
+    const text4 = createMockTextComponent('text-4', '文本4');
+    state.addComponent(text1);
+    state.addComponent(text2);
+    state.addComponent(text3);
+    state.addComponent(text4);
+    
+    assertEqual(state.components.length, 4, '初始有 4 个组件');
+    
+    state.addToSelection('text-1');
+    state.addToSelection('text-2');
+    state.addToSelection('text-4');
+    
+    assertEqual(state.getSelectedComponents().length, 3, '应该有 3 个选中组件');
+    
+    state.removeSelectedComponents();
+    
+    assertEqual(state.components.length, 1, '应该只剩下 1 个组件');
+    
+    const remaining = findComponentById(state.components, 'text-3');
+    assertNotNull(remaining, 'text-3 应该保留');
+    
+    assertEqual(state.getSelectedComponents().length, 0, '删除后选中状态应该为空');
+    assert(state.isComponentSelected('text-3') === false, 'text-3 不应该被选中');
+  });
+
+  runner.test('点击画布: 非 Shift 模式下点击画布应该清空选中状态', () => {
+    const state = useBuilderStore.getState();
+    
+    const text1 = createMockTextComponent('text-1', '文本1');
+    const text2 = createMockTextComponent('text-2', '文本2');
+    state.addComponent(text1);
+    state.addComponent(text2);
+    
+    state.addToSelection('text-1');
+    state.addToSelection('text-2');
+    
+    assertEqual(state.getSelectedComponents().length, 2, '应该有 2 个选中组件');
+    
+    state.clearSelection();
+    
+    assertEqual(state.getSelectedComponents().length, 0, 'clearSelection 后应该没有选中组件');
+  });
+
+  runner.test('点击已选中组件: 点击已选中的单个组件应该保持选中状态', () => {
+    const state = useBuilderStore.getState();
+    
+    const text1 = createMockTextComponent('text-1', '文本1');
+    state.addComponent(text1);
+    
+    state.setSelectedComponentId('text-1');
+    
+    assert(state.isComponentSelected('text-1') === true, 'text-1 应该被选中');
+    
+    state.setSelectedComponentIds(['text-1']);
+    
+    assert(state.isComponentSelected('text-1') === true, 'text-1 仍然应该被选中');
+    assertEqual(state.getSelectedComponents().length, 1, '应该有 1 个选中组件');
+  });
+
+  runner.test('Ctrl/Cmd 多选: toggleComponentSelection 应该支持多选', () => {
+    const state = useBuilderStore.getState();
+    
+    const text1 = createMockTextComponent('text-1', '文本1');
+    const text2 = createMockTextComponent('text-2', '文本2');
+    const text3 = createMockTextComponent('text-3', '文本3');
+    state.addComponent(text1);
+    state.addComponent(text2);
+    state.addComponent(text3);
+    
+    state.toggleComponentSelection('text-1');
+    assert(state.isComponentSelected('text-1') === true, 'text-1 选中');
+    
+    state.toggleComponentSelection('text-2');
+    assert(state.isComponentSelected('text-1') === true, 'text-1 保持选中');
+    assert(state.isComponentSelected('text-2') === true, 'text-2 选中');
+    
+    state.toggleComponentSelection('text-2');
+    assert(state.isComponentSelected('text-2') === false, 'text-2 取消选中');
+    assertEqual(state.getSelectedComponents().length, 1, '应该只有 1 个选中');
+  });
+
+  runner.test('空组件列表: clearSelection 在空列表时不应该报错', () => {
+    const state = useBuilderStore.getState();
+    
+    assertEqual(state.components.length, 0, '初始没有组件');
+    assertEqual(state.getSelectedComponents().length, 0, '初始没有选中组件');
+    
+    let didThrow = false;
+    try {
+      state.clearSelection();
+    } catch {
+      didThrow = true;
+    }
+    
+    assert(!didThrow, 'clearSelection 不应该抛出错误');
+  });
+
+  runner.test('selectedComponentId 同步: 选中单个组件时 selectedComponentId 应该同步', () => {
+    const state = useBuilderStore.getState();
+    
+    const text1 = createMockTextComponent('text-1', '文本1');
+    const text2 = createMockTextComponent('text-2', '文本2');
+    state.addComponent(text1);
+    state.addComponent(text2);
+    
+    state.setSelectedComponentId('text-1');
+    assertEqual(state.selectedComponentId, 'text-1', 'selectedComponentId 应该是 text-1');
+    
+    state.addToSelection('text-2');
+    assertEqual(state.selectedComponentId, 'text-1', 'selectedComponentId 应该保持不变');
+    
+    state.setSelectedComponentId('text-2');
+    assertEqual(state.selectedComponentId, 'text-2', 'selectedComponentId 应该更新为 text-2');
+    assert(state.isComponentSelected('text-1') === false, 'text-1 应该取消选中');
+  });
+
   return runner;
 };
 
