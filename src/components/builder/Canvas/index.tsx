@@ -11,6 +11,7 @@ import type { ComponentSchema } from '@/types/component';
 import { useDraggable } from '@dnd-kit/core';
 import { useCanvasContext } from '@/components/builder/DndContext';
 import { logger } from '@/utils/logger';
+import { useResize, type ResizeHandle } from '@/hooks/useResize';
 
 interface CanvasProps {
   className?: string;
@@ -26,6 +27,148 @@ const getSizeValue = (value?: number | string): string | number | undefined => {
   if (value === undefined || value === null) return undefined;
   if (typeof value === 'number') return value;
   return value;
+};
+
+interface ResizeHandleProps {
+  handle: ResizeHandle;
+  onMouseDown: (e: React.MouseEvent) => void;
+  isResizing: boolean;
+}
+
+const ResizeHandleComponent: React.FC<ResizeHandleProps> = ({ handle, onMouseDown, isResizing }) => {
+  const getHandleStyles = (): React.CSSProperties => {
+    const base: React.CSSProperties = {
+      position: 'absolute',
+      backgroundColor: 'white',
+      border: '2px solid #3b82f6',
+      borderRadius: '2px',
+      zIndex: 20,
+    };
+
+    const cornerSize = 8;
+    const edgeSize = 6;
+
+    switch (handle) {
+      case 'topLeft':
+        return {
+          ...base,
+          width: cornerSize,
+          height: cornerSize,
+          top: -cornerSize / 2,
+          left: -cornerSize / 2,
+          cursor: 'nwse-resize',
+        };
+      case 'top':
+        return {
+          ...base,
+          width: '100%',
+          height: edgeSize,
+          top: -edgeSize / 2,
+          left: 0,
+          cursor: 'ns-resize',
+          backgroundColor: 'transparent',
+          border: 'none',
+        };
+      case 'topRight':
+        return {
+          ...base,
+          width: cornerSize,
+          height: cornerSize,
+          top: -cornerSize / 2,
+          right: -cornerSize / 2,
+          cursor: 'nesw-resize',
+        };
+      case 'right':
+        return {
+          ...base,
+          width: edgeSize,
+          height: '100%',
+          top: 0,
+          right: -edgeSize / 2,
+          cursor: 'ew-resize',
+          backgroundColor: 'transparent',
+          border: 'none',
+        };
+      case 'bottomRight':
+        return {
+          ...base,
+          width: cornerSize,
+          height: cornerSize,
+          bottom: -cornerSize / 2,
+          right: -cornerSize / 2,
+          cursor: 'nwse-resize',
+        };
+      case 'bottom':
+        return {
+          ...base,
+          width: '100%',
+          height: edgeSize,
+          bottom: -edgeSize / 2,
+          left: 0,
+          cursor: 'ns-resize',
+          backgroundColor: 'transparent',
+          border: 'none',
+        };
+      case 'bottomLeft':
+        return {
+          ...base,
+          width: cornerSize,
+          height: cornerSize,
+          bottom: -cornerSize / 2,
+          left: -cornerSize / 2,
+          cursor: 'nesw-resize',
+        };
+      case 'left':
+        return {
+          ...base,
+          width: edgeSize,
+          height: '100%',
+          top: 0,
+          left: -edgeSize / 2,
+          cursor: 'ew-resize',
+          backgroundColor: 'transparent',
+          border: 'none',
+        };
+      default:
+        return base;
+    }
+  };
+
+  return (
+    <div
+      style={getHandleStyles()}
+      onMouseDown={onMouseDown}
+      className={cn(
+        'transition-all duration-100',
+        isResizing && 'bg-blue-500'
+      )}
+    />
+  );
+};
+
+interface ResizeHandlesProps {
+  isResizing: boolean;
+  onResizeStart: (handle: ResizeHandle, e: React.MouseEvent) => void;
+}
+
+const ResizeHandles: React.FC<ResizeHandlesProps> = ({ isResizing, onResizeStart }) => {
+  const handles: ResizeHandle[] = [
+    'top', 'bottom', 'left', 'right',
+    'topLeft', 'topRight', 'bottomLeft', 'bottomRight'
+  ];
+
+  return (
+    <>
+      {handles.map((handle) => (
+        <ResizeHandleComponent
+          key={handle}
+          handle={handle}
+          isResizing={isResizing}
+          onMouseDown={(e) => onResizeStart(handle, e)}
+        />
+      ))}
+    </>
+  );
 };
 
 const FreeCanvasItem: React.FC<FreeCanvasItemProps> = ({
@@ -45,6 +188,11 @@ const FreeCanvasItem: React.FC<FreeCanvasItemProps> = ({
     id: dndId,
   });
 
+  const { isResizing, handleResizeStart } = useResize({
+    component,
+    isSelected,
+  });
+
   const width = getSizeValue(component.width);
   const height = getSizeValue(component.height);
 
@@ -56,9 +204,15 @@ const FreeCanvasItem: React.FC<FreeCanvasItemProps> = ({
     height,
     transform: transform ? CSS.Translate.toString(transform) : undefined,
     opacity: isDragging ? 0.3 : 1,
-    zIndex: isDragging ? 50 : (isSelected ? 10 : 1),
+    zIndex: isDragging || isResizing ? 50 : (isSelected ? 10 : 1),
     transition: 'opacity 0.2s',
   };
+
+  const wrapperClassName = cn(
+    'relative transition-all duration-200',
+    isDragging && 'scale-95',
+    isSelected && 'ring-2 ring-primary-500 ring-offset-2 rounded-lg'
+  );
 
   return (
     <div
@@ -68,15 +222,23 @@ const FreeCanvasItem: React.FC<FreeCanvasItemProps> = ({
       {...listeners}
       data-dnd-id={dndId}
       className={cn(
-        'cursor-grab active:cursor-grabbing transition-all duration-200',
-        isDragging && 'scale-95'
+        'cursor-grab active:cursor-grabbing',
+        isResizing && 'cursor-default'
       )}
     >
-      <ComponentRenderer
-        component={component}
-        isSelected={isSelected}
-        onClick={onClick}
-      />
+      <div className={wrapperClassName}>
+        <ComponentRenderer
+          component={component}
+          isSelected={isSelected}
+          onClick={onClick}
+        />
+        {isSelected && !isDragging && (
+          <ResizeHandles
+            isResizing={isResizing}
+            onResizeStart={handleResizeStart}
+          />
+        )}
+      </div>
     </div>
   );
 };
