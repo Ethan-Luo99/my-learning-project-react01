@@ -9,6 +9,7 @@ import {
   createDefaultPage,
   createNewPage,
 } from '@/types/component';
+import { isContainerComponent } from '@/utils/component';
 import { MOCK_EMPTY_CANVAS } from '@/constants/mockData';
 import {
   saveProject as saveProjectToStorage,
@@ -23,6 +24,7 @@ import type { ProjectMetadata, LoadProjectResult } from '@/utils/storage';
 import { generateId } from '@/utils/id';
 import { getComponentSize } from '@/utils/size';
 
+
 const MAX_HISTORY_LENGTH = 50;
 
 interface HistoryState {
@@ -31,22 +33,6 @@ interface HistoryState {
   selectedComponentId: string | null;
   selectedComponentIds: string[];
 }
-
-const isContainerComponent = (
-  component: ComponentSchema
-): component is ContainerComponentSchema => {
-  return (
-    component.type === ComponentType.Container ||
-    component.type === ComponentType.Card ||
-    component.type === ComponentType.Tabs ||
-    component.type === ComponentType.TabPane ||
-    component.type === ComponentType.Accordion ||
-    component.type === ComponentType.AccordionItem ||
-    component.type === ComponentType.Modal ||
-    component.type === ComponentType.Form ||
-    component.type === ComponentType.FormItem
-  );
-};
 
 const findComponentById = (
   components: ComponentSchema[],

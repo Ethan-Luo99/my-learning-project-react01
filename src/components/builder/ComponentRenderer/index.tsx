@@ -22,6 +22,7 @@ import {
   type EventConfig,
   type ActionConfig,
 } from '@/types/component';
+import { isContainerComponent } from '@/utils/component';
 import { usePreviewModalRegistry } from '@/context/PreviewModalRegistry';
 import { cn } from '@/utils/classname';
 import { 
@@ -37,28 +38,13 @@ import { logger } from '@/utils/logger';
 import { usePreviewFormSubmit, usePreviewFormReset } from '@/context/PreviewFormRegistry';
 import { PreviewBindingContext } from '@/context/PreviewBindingContext';
 
+
 interface ComponentRendererProps {
   component: ComponentSchema;
   isSelected?: boolean;
   onClick?: ((e: React.MouseEvent) => void) | (() => void);
   editable?: boolean;
 }
-
-const isContainerComponent = (
-  component: ComponentSchema
-): component is ContainerComponentSchema => {
-  return (
-    component.type === ComponentType.Container ||
-    component.type === ComponentType.Card ||
-    component.type === ComponentType.Tabs ||
-    component.type === ComponentType.TabPane ||
-    component.type === ComponentType.Accordion ||
-    component.type === ComponentType.AccordionItem ||
-    component.type === ComponentType.Modal ||
-    component.type === ComponentType.Form ||
-    component.type === ComponentType.FormItem
-  );
-};
 
 const getTextContent = (component: ComponentSchema): React.ReactNode => {
   const props = component.props;

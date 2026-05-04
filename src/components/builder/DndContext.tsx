@@ -13,6 +13,7 @@ import {
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { ComponentType, type ComponentSchema, type ContainerComponentSchema } from '@/types/component';
+import { isContainerComponent } from '@/utils/component';
 import { useBuilderStore } from '../../store/useBuilderStore';
 import {
   isPanelItem,
@@ -39,6 +40,7 @@ import { cn } from '@/utils/classname';
 import { logger } from '@/utils/logger';
 import { useAlignmentGuides, type AlignmentGuide, type AlignmentResult } from '@/hooks/useAlignmentGuides';
 
+
 interface CanvasContextValue {
   canvasRef: React.MutableRefObject<HTMLElement | null>;
   isOverDropZoneRef: React.MutableRefObject<boolean>;
@@ -54,22 +56,6 @@ export const useCanvasContext = (): CanvasContextValue => {
     throw new Error('useCanvasContext must be used within DndContextProvider');
   }
   return context;
-};
-
-const isContainerComponent = (
-  component: ComponentSchema
-): component is ContainerComponentSchema => {
-  return (
-    component.type === ComponentType.Container ||
-    component.type === ComponentType.Card ||
-    component.type === ComponentType.Tabs ||
-    component.type === ComponentType.TabPane ||
-    component.type === ComponentType.Accordion ||
-    component.type === ComponentType.AccordionItem ||
-    component.type === ComponentType.Modal ||
-    component.type === ComponentType.Form ||
-    component.type === ComponentType.FormItem
-  );
 };
 
 const createComponentFromType = (type: string, x: number = DEFAULT_POSITION.X, y: number = DEFAULT_POSITION.Y): ComponentSchema => {

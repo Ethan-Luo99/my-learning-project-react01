@@ -8,7 +8,6 @@ interface UseMultiSelectOptions {
 }
 
 interface UseMultiSelectResult {
-  isMultiSelectMode: boolean;
   isShiftKeyPressed: boolean;
   handleComponentClick: (id: string, e?: React.MouseEvent) => void;
   handleCanvasClick: (e?: React.MouseEvent) => void;
@@ -30,9 +29,6 @@ export const useMultiSelect = (
 
   const [isShiftKeyPressed, setIsShiftKeyPressed] = useState(false);
   const lastClickedIdRef = useRef<string | null>(null);
-
-  const isMultiSelectMode = selectedComponentIds.length > 1 || 
-    (selectedComponentIds.length === 1 && selectedComponentId !== selectedComponentIds[0]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -116,7 +112,6 @@ export const useMultiSelect = (
   }, [isShiftKeyPressed, clearSelection, options]);
 
   return {
-    isMultiSelectMode,
     isShiftKeyPressed,
     handleComponentClick,
     handleCanvasClick,
