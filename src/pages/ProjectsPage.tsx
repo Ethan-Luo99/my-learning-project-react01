@@ -571,7 +571,7 @@ const ProjectsPageContent: React.FC = () => {
       </main>
 
       <ConfirmModal
-        isOpen={deleteModalOpen}
+        visible={deleteModalOpen}
         onClose={() => {
           setDeleteModalOpen(false);
           setProjectToDelete(null);
@@ -592,7 +592,7 @@ const ProjectsPageContent: React.FC = () => {
       />
 
       <InputModal
-        isOpen={renameModalOpen}
+        visible={renameModalOpen}
         onClose={() => {
           setRenameModalOpen(false);
           setProjectToRename(null);
