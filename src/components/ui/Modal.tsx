@@ -56,6 +56,7 @@ const Modal: React.FC<ModalProps> = ({
 }) => {
   const [isOpen, setIsOpen] = React.useState(visible);
   const [hasBeenOpen, setHasBeenOpen] = React.useState(visible);
+  const isAnimatingRef = React.useRef(false);
 
   React.useEffect(() => {
     if (visible) {
@@ -91,13 +92,23 @@ const Modal: React.FC<ModalProps> = ({
   }, [isOpen]);
 
   const handleClose = React.useCallback(() => {
+    if (isAnimatingRef.current) return;
+    isAnimatingRef.current = true;
     setIsOpen(false);
     onCancel?.();
     onClose?.();
+    setTimeout(() => {
+      isAnimatingRef.current = false;
+    }, 300);
   }, [onCancel, onClose]);
 
   const handleOk = React.useCallback(() => {
+    if (isAnimatingRef.current) return;
+    isAnimatingRef.current = true;
     onOk?.();
+    setTimeout(() => {
+      isAnimatingRef.current = false;
+    }, 300);
   }, [onOk]);
 
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -242,7 +253,7 @@ Modal.displayName = 'Modal';
 export interface ConfirmModalProps {
   visible?: boolean;
   title: string;
-  message: React.ReactNode;
+  message?: React.ReactNode;
   okText?: string;
   confirmText?: string;
   cancelText?: string;
@@ -281,6 +292,13 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   const actualOkText = confirmText ?? okText;
   const actualOnOk = onConfirm ?? onOk;
 
+  const renderMessage = () => {
+    if (message === null || message === undefined || message === '') {
+      return <span className="text-gray-400">确定要执行此操作吗？</span>;
+    }
+    return <div className="text-gray-600">{message}</div>;
+  };
+
   return (
     <Modal
       visible={visible}
@@ -297,7 +315,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
       onCancel={onCancel}
       onClose={onClose}
     >
-      <div className="text-gray-600">{message}</div>
+      {renderMessage()}
     </Modal>
   );
 };
@@ -347,20 +365,31 @@ const InputModal: React.FC<InputModalProps> = ({
 
   React.useEffect(() => {
     if (visible) {
-      setValue(initialValue);
+      setValue(initialValue ?? '');
+      setError(null);
+    } else {
+      setValue('');
       setError(null);
     }
   }, [visible, initialValue]);
 
   const handleSubmit = () => {
     if (validate) {
-      const validationError = validate(value);
+      let validationError: string | null = null;
+      try {
+        const validatedValue = typeof value === 'string' ? value : '';
+        validationError = validate(validatedValue);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : '验证失败，请重试';
+        validationError = errorMessage;
+      }
       if (validationError) {
         setError(validationError);
         return;
       }
     }
-    onSubmit?.(value);
+    const submitValue = typeof value === 'string' ? value : '';
+    onSubmit?.(submitValue);
   };
 
   return (

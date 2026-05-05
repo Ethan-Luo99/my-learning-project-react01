@@ -225,4 +225,167 @@ describe('Bug Fix Regression Tests', () => {
       expect(screen.getByText('测试按钮')).toBeInTheDocument();
     });
   });
+
+  describe('ConfirmModal - 边界场景处理', () => {
+    it('应该在 message 为空时显示默认提示文案', () => {
+      render(
+        <ConfirmModal
+          visible={true}
+          title="确认操作"
+          message={null}
+          onClose={() => {}}
+          onOk={() => {}}
+        />
+      );
+      
+      expect(document.body.innerHTML).toContain('确定要执行此操作吗？');
+    });
+
+    it('应该在 message 为 undefined 时显示默认提示文案', () => {
+      render(
+        <ConfirmModal
+          visible={true}
+          title="确认操作"
+          onClose={() => {}}
+          onOk={() => {}}
+        />
+      );
+      
+      expect(document.body.innerHTML).toContain('确定要执行此操作吗？');
+    });
+
+    it('应该在 message 为空字符串时显示默认提示文案', () => {
+      render(
+        <ConfirmModal
+          visible={true}
+          title="确认操作"
+          message=""
+          onClose={() => {}}
+          onOk={() => {}}
+        />
+      );
+      
+      expect(document.body.innerHTML).toContain('确定要执行此操作吗？');
+    });
+
+    it('应该在 message 有内容时显示正常的 message', () => {
+      const customMessage = '这是自定义的确认消息';
+      render(
+        <ConfirmModal
+          visible={true}
+          title="确认操作"
+          message={customMessage}
+          onClose={() => {}}
+          onOk={() => {}}
+        />
+      );
+      
+      expect(document.body.innerHTML).toContain(customMessage);
+    });
+  });
+
+  describe('InputModal - 边界场景处理', () => {
+    it('应该在 validate 函数抛出异常时捕获并显示错误', async () => {
+      const errorMessage = '验证函数出错了';
+      const throwingValidate = (_value: string): string | null => {
+        throw new Error(errorMessage);
+      };
+
+      render(
+        <InputModal
+          visible={true}
+          title="重命名项目"
+          placeholder="请输入项目名称"
+          validate={throwingValidate}
+          onClose={() => {}}
+          onSubmit={() => {}}
+        />
+      );
+
+      const okButton = Array.from(document.querySelectorAll('button')).find(
+        (btn) => btn.textContent === '确认'
+      );
+      expect(okButton).not.toBeNull();
+
+      await act(async () => {
+        okButton?.click();
+      });
+
+      expect(document.body.innerHTML).toContain(errorMessage);
+    });
+
+    it('应该在 validate 函数抛出非 Error 对象时显示通用错误', async () => {
+      const throwingValidate = (_value: string): string | null => {
+        throw '字符串类型的错误';
+      };
+
+      render(
+        <InputModal
+          visible={true}
+          title="重命名项目"
+          placeholder="请输入项目名称"
+          validate={throwingValidate}
+          onClose={() => {}}
+          onSubmit={() => {}}
+        />
+      );
+
+      const okButton = Array.from(document.querySelectorAll('button')).find(
+        (btn) => btn.textContent === '确认'
+      );
+      expect(okButton).not.toBeNull();
+
+      await act(async () => {
+        okButton?.click();
+      });
+
+      expect(document.body.innerHTML).toContain('验证失败');
+    });
+
+    it('应该在 visible 变为 false 时重置 value 和 error 状态', async () => {
+      const { rerender } = render(
+        <InputModal
+          visible={true}
+          title="重命名项目"
+          placeholder="请输入项目名称"
+          initialValue="初始值"
+          onClose={() => {}}
+          onSubmit={() => {}}
+        />
+      );
+
+      let input = document.querySelector('input[type="text"]') as HTMLInputElement;
+      expect(input).not.toBeNull();
+      expect(input?.value).toBe('初始值');
+
+      await act(async () => {
+        rerender(
+          <InputModal
+            visible={false}
+            title="重命名项目"
+            placeholder="请输入项目名称"
+            initialValue="初始值"
+            onClose={() => {}}
+            onSubmit={() => {}}
+          />
+        );
+      });
+
+      await act(async () => {
+        rerender(
+          <InputModal
+            visible={true}
+            title="重命名项目"
+            placeholder="请输入项目名称"
+            initialValue="新的初始值"
+            onClose={() => {}}
+            onSubmit={() => {}}
+          />
+        );
+      });
+
+      input = document.querySelector('input[type="text"]') as HTMLInputElement;
+      expect(input?.value).toBe('新的初始值');
+    });
+  });
 });
