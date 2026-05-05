@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { cn } from '@/utils/classname';
 import { Header } from '@/components/builder/Header';

@@ -9,6 +9,7 @@
  * - 表单组件（Input/Select/Checkbox 等）支持值变更触发绑定
  */
 
+import * as React from 'react';
 import { Text, Button, Image, Container, Card, Divider, Tabs, TabPane, Accordion, AccordionItem, Modal, Input, Textarea, Select, Checkbox, CheckboxGroup, Radio, RadioGroup, Switch, Form, FormItem } from '@/components/ui';
 import { 
   ComponentType, 

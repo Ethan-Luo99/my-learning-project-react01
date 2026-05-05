@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { useCallback, useRef, useEffect, useMemo } from 'react';
 import { Text } from '@/components/ui';
 import { cn } from '@/utils/classname';

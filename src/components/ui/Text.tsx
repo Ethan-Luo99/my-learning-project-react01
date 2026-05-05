@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { cn } from '@/utils/classname';
 
-type TextVariant = 'h1' | 'h2' | 'h3' | 'h4' | 'body' | 'caption';
+type TextVariant = 'h1' | 'h2' | 'h3' | 'h4' | 'body' | 'body-sm' | 'body2' | 'caption';
 
 type TextElement =
   | HTMLHeadingElement
@@ -21,6 +21,8 @@ const variantToTag: Record<TextVariant, keyof JSX.IntrinsicElements> = {
   h3: 'h3',
   h4: 'h4',
   body: 'p',
+  'body-sm': 'p',
+  body2: 'p',
   caption: 'span',
 };
 
@@ -35,6 +37,8 @@ const Text = React.forwardRef<TextElement, TextProps>(
       h3: 'text-2xl leading-snug',
       h4: 'text-xl leading-snug',
       body: 'text-base leading-relaxed',
+      'body-sm': 'text-sm leading-normal',
+      body2: 'text-base leading-relaxed',
       caption: 'text-sm leading-normal',
     };
 

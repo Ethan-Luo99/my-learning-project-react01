@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { Text, Button } from '@/components/ui';
 import { cn } from '@/utils/classname';
 import { generateId } from '@/utils/id';
