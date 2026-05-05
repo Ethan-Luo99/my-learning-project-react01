@@ -1,5 +1,5 @@
 import * as React from 'react';
-import type { FormValues, FormErrors } from '@/components/ui/Form';
+import type { FormValues, FormErrors } from '@/types/form';
 
 export interface PreviewFormHandle {
   id: string;

@@ -4,6 +4,7 @@ import type { ValidationRule, ValidationResult } from '@/utils/formValidation';
 import { validateField, isFormValid } from '@/utils/formValidation';
 import { usePreviewFormRegistry } from '@/context/PreviewFormRegistry';
 import { logger } from '@/utils/logger';
+import type { FormValues, FormErrors, FormTouched } from '@/types/form';
 
 export interface FormContextValue {
   layout: 'horizontal' | 'vertical' | 'inline';
@@ -29,17 +30,7 @@ export interface FormFieldConfig {
   initialValue?: any;
 }
 
-export interface FormValues {
-  [name: string]: any;
-}
-
-export interface FormErrors {
-  [name: string]: string | null;
-}
-
-export interface FormTouched {
-  [name: string]: boolean;
-}
+export type { FormValues, FormErrors, FormTouched };
 
 export interface FormValidationContextValue {
   values: FormValues;
