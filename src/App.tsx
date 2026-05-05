@@ -157,7 +157,7 @@ function AppContent() {
         8000
       );
     }
-  }, [toast]);
+  }, []);
 
   const handleUndo = useCallback(() => {
     undo();
