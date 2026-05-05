@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBuilderStore } from '@/store/useBuilderStore';
 import { ToastProvider, useToast, ConfirmModal, InputModal, Button } from '@/components/ui';
@@ -332,7 +332,6 @@ const ProjectsPageContent: React.FC = () => {
   const [projects, setProjects] = useState<ProjectMetadata[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<ProjectMetadata | null>(null);
@@ -356,8 +355,9 @@ const ProjectsPageContent: React.FC = () => {
   }, [listProjects]);
 
   useEffect(() => {
-    refreshProjects();
-  }, [refreshProjects]);
+    const list = listProjects();
+    setProjects(list);
+  }, [listProjects]);
 
   const handleNewProject = () => {
     setIsCreating(true);
@@ -439,7 +439,7 @@ const ProjectsPageContent: React.FC = () => {
     } finally {
       setIsImporting(false);
     }
-  }, [isImporting, toast, saveCurrentAndLoadProject, refreshProjects]);
+  }, [isImporting, toast, saveCurrentAndLoadProject, navigate, refreshProjects]);
 
   const handleOpenProject = (project: ProjectMetadata) => {
     const success = saveCurrentAndLoadProject(project.id);

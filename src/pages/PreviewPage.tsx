@@ -1,5 +1,5 @@
-import * as React from 'react';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import type { FC, CSSProperties } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PreviewRenderer } from '@/components/builder/ComponentRenderer';
 import { Button, Text } from '@/components/ui';
@@ -9,7 +9,14 @@ import type { ComponentSchema, Page } from '@/types/component';
 import { cn } from '@/utils/classname';
 import { PreviewFormRegistryProvider } from '@/context/PreviewFormRegistry';
 import { PreviewBindingProvider } from '@/context/PreviewBindingContext';
-import { createEventEngine, type ActionExecutionContext } from '@/utils/eventEngine';
+import { createEventEngine, type ActionExecutionContext, type EventEngine } from '@/utils/eventEngine';
+
+declare global {
+  interface Window {
+    __previewEventEngine?: EventEngine;
+    __previewActionContext?: ActionExecutionContext;
+  }
+}
 
 const getSizeValue = (value?: number | string): string | number | undefined => {
   if (value === undefined || value === null) return undefined;
@@ -21,11 +28,11 @@ interface PreviewCanvasItemProps {
   component: ComponentSchema;
 }
 
-const PreviewCanvasItem: React.FC<PreviewCanvasItemProps> = ({ component }) => {
+const PreviewCanvasItem: FC<PreviewCanvasItemProps> = ({ component }) => {
   const width = getSizeValue(component.width);
   const height = getSizeValue(component.height);
 
-  const style: React.CSSProperties = {
+  const style: CSSProperties = {
     position: 'absolute',
     left: component.x ?? DEFAULT_POSITION.X,
     top: component.y ?? DEFAULT_POSITION.Y,
@@ -95,7 +102,7 @@ interface EmptyStateProps {
   message?: string;
 }
 
-const EmptyState: React.FC<EmptyStateProps> = ({ message = '画布为空' }) => (
+const EmptyState: FC<EmptyStateProps> = ({ message = '画布为空' }) => (
   <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
     <div className="text-6xl">📄</div>
     <div className="text-center">
@@ -113,7 +120,7 @@ interface PageNavigationProps {
   canGoHome: boolean;
 }
 
-const PageNavigation: React.FC<PageNavigationProps> = ({
+const PageNavigation: FC<PageNavigationProps> = ({
   currentPage,
   pages,
   onNavigateToPage,
@@ -163,7 +170,7 @@ const PageNavigation: React.FC<PageNavigationProps> = ({
   );
 };
 
-export const PreviewPage: React.FC = () => {
+export const PreviewPage: FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get('project');
@@ -193,7 +200,7 @@ export const PreviewPage: React.FC = () => {
       }
       setIsLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, isCurrentProject, loadProject]);
 
   useEffect(() => {
     if (storeCurrentPageId && previewPageId === null) {
@@ -238,14 +245,14 @@ export const PreviewPage: React.FC = () => {
   const currentComponents = currentPage?.components || storeComponents;
   const canGoHome = storePages.length > 0 && previewPageId !== (storePages.find((p) => p.isHome)?.id || storePages[0]?.id);
 
-  const actionContext: ActionExecutionContext = {
+  const actionContext: ActionExecutionContext = useMemo(() => ({
     navigateToPage: handleNavigateToPage,
-  };
+  }), [handleNavigateToPage]);
 
   useEffect(() => {
     const eventEngine = createEventEngine(actionContext);
-    (window as any).__previewEventEngine = eventEngine;
-    (window as any).__previewActionContext = actionContext;
+    window.__previewEventEngine = eventEngine;
+    window.__previewActionContext = actionContext;
   }, [actionContext]);
 
   const handleBackToEdit = () => {
