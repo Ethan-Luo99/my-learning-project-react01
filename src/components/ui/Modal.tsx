@@ -244,6 +244,7 @@ export interface ConfirmModalProps {
   title: string;
   message: React.ReactNode;
   okText?: string;
+  confirmText?: string;
   cancelText?: string;
   confirmVariant?: 'danger' | 'primary';
   okVisible?: boolean;
@@ -253,6 +254,7 @@ export interface ConfirmModalProps {
   isLoading?: boolean;
   width?: number | string;
   onOk?: () => void;
+  onConfirm?: () => void;
   onCancel?: () => void;
   onClose?: () => void;
 }
@@ -262,6 +264,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   title,
   message,
   okText = '确认',
+  confirmText,
   cancelText = '取消',
   confirmVariant = 'danger',
   okVisible = true,
@@ -271,9 +274,13 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   isLoading = false,
   width = 420,
   onOk,
+  onConfirm,
   onCancel,
   onClose,
 }) => {
+  const actualOkText = confirmText ?? okText;
+  const actualOnOk = onConfirm ?? onOk;
+
   return (
     <Modal
       visible={visible}
@@ -282,11 +289,11 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
       centered={true}
       closable={closable}
       maskClosable={maskClosable}
-      okText={okText}
+      okText={actualOkText}
       cancelText={cancelText}
       okVisible={okVisible}
       cancelVisible={cancelVisible}
-      onOk={onOk}
+      onOk={actualOnOk}
       onCancel={onCancel}
       onClose={onClose}
     >
@@ -304,6 +311,7 @@ export interface InputModalProps {
   placeholder?: string;
   initialValue?: string;
   okText?: string;
+  confirmText?: string;
   cancelText?: string;
   closable?: boolean;
   maskClosable?: boolean;
@@ -322,6 +330,7 @@ const InputModal: React.FC<InputModalProps> = ({
   placeholder = '',
   initialValue = '',
   okText = '确认',
+  confirmText,
   cancelText = '取消',
   closable = true,
   maskClosable = true,
@@ -334,6 +343,7 @@ const InputModal: React.FC<InputModalProps> = ({
 }) => {
   const [value, setValue] = React.useState(initialValue);
   const [error, setError] = React.useState<string | null>(null);
+  const actualOkText = confirmText ?? okText;
 
   React.useEffect(() => {
     if (visible) {
@@ -361,7 +371,7 @@ const InputModal: React.FC<InputModalProps> = ({
       centered={true}
       closable={closable}
       maskClosable={maskClosable}
-      okText={okText}
+      okText={actualOkText}
       cancelText={cancelText}
       onOk={handleSubmit}
       onCancel={onCancel}
