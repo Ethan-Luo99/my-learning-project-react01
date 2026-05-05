@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PreviewRenderer } from '@/components/builder/ComponentRenderer';

@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useBuilderStore } from '@/store/useBuilderStore';
 import { logger } from '@/utils/logger';
